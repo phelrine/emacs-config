@@ -1,0 +1,8 @@
+*~
+*.elc
+ac-comphist.dat
+history
+auto-save-list
+tramp
+url/cookies
+wget-log
