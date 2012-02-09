@@ -53,7 +53,7 @@
 ;;    *Whether to sort completion candidates.
 ;;    default = nil
 ;;  `anything-execute-extended-command-use-kyr'
-;;    *Use `anything-kyr' (context-aware commands) in `anything-execute-extended-command'. 
+;;    *Use `anything-kyr' (context-aware commands) in `anything-execute-extended-command'.
 ;;    default = t
 
 ;; * `anything-lisp-complete-symbol', `anything-lisp-complete-symbol-partial-match':
@@ -75,7 +75,7 @@
 ;; (add-to-list 'load-path (expand-file-name "~/elisp"))
 ;;
 ;; Then install dependencies.
-;; 
+;;
 ;; Install anything-match-plugin.el (must).
 ;; M-x install-elisp http://www.emacswiki.org/cgi-bin/wiki/download/anything-match-plugin.el
 ;;
@@ -118,17 +118,6 @@
 (require 'thingatpt)
 (require 'anything-obsolete)
 
-;; version check
-(let ((version "1.263"))
-  (when (and (string= "1." (substring version 0 2))
-             (string-match "1\.\\([0-9]+\\)" anything-version)
-             (< (string-to-number (match-string 1 anything-version))
-                (string-to-number (substring version 2))))
-    (error "Please update anything.el!!
-
-http://www.emacswiki.org/cgi-bin/wiki/download/anything.el
-
-or  M-x install-elisp-from-emacswiki anything.el")))
 
 ;; (@* "overlay")
 (when (require 'anything-show-completion nil t)
@@ -239,12 +228,12 @@ used by `anything-lisp-complete-symbol-set-timer' and `anything-apropos'"
 
 (defcustom anything-complete-sort-candidates nil
   "*Whether to sort completion candidates."
-  :type 'boolean  
+  :type 'boolean
   :group 'anything-complete)
 
 (defcustom anything-execute-extended-command-use-kyr t
   "*Use `anything-kyr' (context-aware commands) in `anything-execute-extended-command'. "
-  :type 'boolean  
+  :type 'boolean
   :group 'anything-complete)
 (defun alcs-sort-maybe (candidates source)
   (if anything-complete-sort-candidates
@@ -709,7 +698,7 @@ It accepts one argument, selected candidate.")
   (defalias 'anything-old-read-variable (symbol-function 'read-variable))
   (defalias 'anything-old-read-command (symbol-function 'read-command))
   (put 'anything-read-string-mode 'orig-read-buffer-function read-buffer-function))
-  
+
 ;; (progn (anything-read-string-mode -1) anything-read-string-mode)
 ;; (progn (anything-read-string-mode 1) anything-read-string-mode)
 ;; (progn (anything-read-string-mode 0) anything-read-string-mode)
@@ -734,7 +723,7 @@ So, (anything-read-string-mode 1) and
   (setq anything-read-string-mode
         (cond ((consp arg) (setq anything-read-string-mode-flags arg)) ; not interactive
               (arg (> (prefix-numeric-value arg) 0))  ; C-u M-x
-              (t   (not anything-read-string-mode)))) ; M-x 
+              (t   (not anything-read-string-mode)))) ; M-x
   (when (eq anything-read-string-mode t)
     (setq anything-read-string-mode anything-read-string-mode-flags))
   (if anything-read-string-mode
@@ -878,7 +867,7 @@ So, (anything-read-string-mode 1) and
 
 (add-hook 'after-init-hook 'alcs-make-candidates)
 
-      
+
 ;;;; unit test
 ;; (install-elisp "http://www.emacswiki.org/cgi-bin/wiki/download/el-expectations.el")
 ;; (install-elisp "http://www.emacswiki.org/cgi-bin/wiki/download/el-mock.el")

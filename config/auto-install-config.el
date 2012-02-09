@@ -6,10 +6,10 @@
 
 ;; (auto-install-batch "anything")
 ;; (auto-install-batch "auto-complete development version")
-;; (auto-install-from-emacswiki "yasnippet-config.el")
+;; (auto-install-from-emacswiki "auto-install.el")
 ;; (auto-install-from-emacswiki "auto-async-byte-compile.el")
 ;; (auto-install-from-emacswiki "flymake-cursor.el")
 ;; (auto-install-from-emacswiki "open-junk-file.el")
-;; (auto-install-from-url "http://www.pitecan.com/DynamicMacro/dmacro.el")
 ;; (auto-install-from-emacswiki "tempbuf.el")
-;; (auto-install-from-emacswiki "cycle-buffer.el")
+;; (auto-install-from-emacswiki "yasnippet-config.el")
+;; (auto-install-from-url "http://www.pitecan.com/DynamicMacro/dmacro.el")
