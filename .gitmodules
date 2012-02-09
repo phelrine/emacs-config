@@ -9,7 +9,7 @@
 	url = https://github.com/hayamiz/twittering-mode.git
 [submodule "modules/undo-tree"]
 	path = modules/undo-tree
-	url = http://www.dr-qubit.org/git/undo-tree.git
+	url = https://github.com/emacsmirror/undo-tree.git
 [submodule "modules/emacs-window-layout"]
 	path = modules/emacs-window-layout
 	url = https://github.com/kiwanami/emacs-window-layout.git
