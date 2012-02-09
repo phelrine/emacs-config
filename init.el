@@ -64,7 +64,6 @@
 (global-set-key (kbd "C-t") 'hs-toggle-hiding)
 
 (require 'anything-startup)
-(setq anything-enable-shortcuts 'alphabet)
 (global-set-key (kbd "C-x C-b") 'anything-buffers+)
 (global-set-key (kbd "M-y") 'anything-show-kill-ring)
 

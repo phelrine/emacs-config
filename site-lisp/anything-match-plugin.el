@@ -154,16 +154,6 @@
 (require 'anything)
 (require 'cl)
 
-(let ((version "1.283"))
-  (when (and (string= "1." (substring version 0 2))
-             (string-match "1\.\\([0-9]+\\)" anything-version)
-             (< (string-to-number (match-string 1 anything-version))
-                (string-to-number (substring version 2))))
-    (error "Please update anything.el!!
-
-http://www.emacswiki.org/cgi-bin/wiki/download/anything.el
-
-or  M-x install-elisp-from-emacswiki anything.el")))
 
 (defcustom anything-grep-candidates-fast-directory-regexp nil
   "*Directory regexp where a RAM disk (or tmpfs) is mounted.
@@ -209,7 +199,7 @@ For example, to list candidats of \"foo\" source, input pattern as \"foo .\".")
          ,pattern-real))))
 
 (defmacro amp-define (prefix pattern-expr)
-  (let ((get-pattern (intern (concat prefix "get-pattern"))) 
+  (let ((get-pattern (intern (concat prefix "get-pattern")))
         (match (intern (concat prefix "match")))
         (search (intern (concat prefix "search")))
         (search-backward (intern (concat prefix "search-backward"))))
@@ -221,7 +211,7 @@ For example, to list candidats of \"foo\" source, input pattern as \"foo .\".")
          (re-search-forward (,get-pattern pattern) nil t))
        (defun ,search-backward (pattern &rest ignore)
          (re-search-backward (,get-pattern pattern) nil t)))))
-  
+
 ;; exact match
 ;(amp-define "anything-exact-" (concat (anything-prefix-get-pattern pattern) "$"))
 (amp-define-memoizer "anything-exact-" (concat "\n" pattern "\n"))
@@ -295,7 +285,7 @@ For example, to list candidats of \"foo\" source, input pattern as \"foo .\".")
          while (,searchfn1 (or (cdar pat) "") nil t)
          for bol = (point-at-bol)
          for eol = (point-at-eol)
-         if (loop 
+         if (loop
              for (pred . s) in (cdr pat)
              always (progn (goto-char ,b)
                            (funcall pred (,searchfn2 s ,e t))))
@@ -319,7 +309,7 @@ For example, to list candidats of \"foo\" source, input pattern as \"foo .\".")
   (anything-mp-handle-source-name-maybe
    pattern (apply-partially 'anything-mp-3p-match str)
    (lambda ()
-     (declare (special first-pred first-re))
+     (declare (special first-pred first-re rest))
      (and (funcall first-pred (anything-prefix-match str first-re))
           (loop for (pred . re) in rest
                 always (funcall pred (string-match re str)))))))
@@ -381,7 +371,7 @@ The smaller  this value is, the slower highlight is.")
                     (>= (length re) anything-mp-highlight-threshold))
           do
           (anything-mp-highlight-region (point-min) end re 'anything-match))))
-                         
+
 ;;;; source compier
 (defvar anything-mp-default-match-functions
   '(anything-exact-match anything-mp-3p-match anything-mp-3-match))
@@ -446,13 +436,13 @@ If (direct-insert-match) is in the source, this function is used."
               for i from 0
               do
               (setq re (replace-regexp-in-string "^-" "\\-" re))
-              (unless (zerop i) (insert " | ")) 
+              (unless (zerop i) (insert " | "))
               (insert "grep -ih "
                       (if (eq flag 'identity) "" "-v ")
                       (shell-quote-argument re))
               (when (and (not search-from-end) (zerop i))
                 (insert " " allfiles))))
-      
+
       (when limit (insert (format " | head -n %d" limit)))
       (when filter (insert " | " filter))
       (buffer-string))))
