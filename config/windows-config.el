@@ -1,6 +1,0 @@
-(defvar win:switch-prefix (kbd "C-z"))
-(require 'windows)
-(setq win:use-frame nil)
-(win:startup-with-window)
-(define-key ctl-x-map "c" 'see-you-again)
-(global-set-key (kbd "C-z C-r") 'resume-windows)
