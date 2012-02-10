@@ -3,18 +3,11 @@
   (setenv "PATH" path))
 (setenv "LANG" "ja_JP.UTF-8")
 
-(setq load-path
-      (append (mapcar (lambda (d)
-                        (expand-file-name (concat "~/.emacs.d/" d)))
-                      '("site-lisp/" "yasnippet/"))
-              load-path))
-
-(let ((default-directory  "~/.emacs.d/modules/"))
-  (setq load-path
-        (append
-         (let ((load-path (copy-sequence load-path))) ;; Shadow
-           (normal-top-level-add-subdirs-to-load-path))
-         load-path)))
+(nconc load-path
+       (mapcar (lambda (d)
+                 (expand-file-name (concat "~/.emacs.d/" d)))
+               '("site-lisp/" "yasnippet/")))
+(normal-top-level-add-to-load-path (cddr (directory-files "~/.emacs.d/modules/" t)))
 
 (require 'yasnippet-config)
 (require 'auto-complete-config)
@@ -53,24 +46,22 @@
   (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
   nil)
 
-(global-set-key (kbd "C-h") 'delete-backward-char)
-(global-set-key (kbd "C-o") 'other-window)
+(require 'jaunte)
+(require 'hideshow)
+(require 'anything-startup)
+(require 'magit)
+(require 'auto-async-byte-compile)
+
+(mapc (lambda (c) (global-set-key (read-kbd-macro (car c)) (cdr c)))
+      '(("C-h" . delete-backward-char)
+        ("C-o" . other-window)
+        ("C-c C-j" . jaunte)
+        ("C-t" . hs-toggle-hiding)
+        ("C-x C-b" . anything-buffers+)
+        ("M-y" . 'anything-show-kill-ring)
+        ("C-x g" . 'magit-status)))
 (windmove-default-keybindings)
 
-(require 'jaunte)
-(global-set-key (kbd "C-c C-j") 'jaunte)
-
-(require 'hideshow)
-(global-set-key (kbd "C-t") 'hs-toggle-hiding)
-
-(require 'anything-startup)
-(global-set-key (kbd "C-x C-b") 'anything-buffers+)
-(global-set-key (kbd "M-y") 'anything-show-kill-ring)
-
-(require 'magit)
-(global-set-key (kbd "C-x g") 'magit-status)
-
-(require 'auto-async-byte-compile)
 (add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode)
 
 (require 'saveplace)
@@ -95,14 +86,8 @@
 (defalias 'message-box 'message)
 
 (when (eq (window-system) 'ns)
-  (set-fontset-font "fontset-default"
-                    'japanese-jisx0208
+  (set-fontset-font "fontset-default" 'japanese-jisx0208
                     '("Hiragino_Kaku_Gothic_ProN" . "iso10646-1"))
-  (set-fontset-font "fontset-default"
-                    'katakana-jisx0201
+  (set-fontset-font "fontset-default" 'katakana-jisx0201
                     '("Hiragino_Kaku_Gothic_ProN" . "iso10646-1"))
-  (setq default-frame-alist
-        (append default-frame-alist
-                '((width . 120)
-                  (height . 40))))
-  )
+  (nconc default-frame-alist '((width . 120)(height . 40))))
