@@ -51,6 +51,7 @@
 (require 'anything-startup)
 (require 'magit)
 (require 'auto-async-byte-compile)
+(require 'multi-command)
 
 (mapc (lambda (c) (global-set-key (read-kbd-macro (car c)) (cdr c)))
       '(("C-h" . delete-backward-char)
@@ -58,9 +59,13 @@
         ("C-c C-j" . jaunte)
         ("C-t" . hs-toggle-hiding)
         ("C-x C-b" . anything-buffers+)
-        ("M-y" . 'anything-show-kill-ring)
-        ("C-x g" . 'magit-status)))
+        ("M-y" . anything-show-kill-ring)
+        ("C-x g" . magit-status)
+        ("C-q" . mcmd-set-next-mode)))
+
 (windmove-default-keybindings)
+(define-multi-command global-map "C-f" '(forward-char forward-word) :reset t)
+(define-multi-command global-map "C-b" '(backward-char backward-word) :reset t)
 
 (add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode)
 
@@ -91,3 +96,4 @@
   (set-fontset-font "fontset-default" 'katakana-jisx0201
                     '("Hiragino_Kaku_Gothic_ProN" . "iso10646-1"))
   (nconc default-frame-alist '((width . 120)(height . 40))))
+

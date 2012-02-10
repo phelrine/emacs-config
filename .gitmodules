@@ -31,3 +31,6 @@
 [submodule "modules/jade-mode"]
 	path = modules/jade-mode
 	url = https://github.com/brianc/jade-mode.git
+[submodule "modules/multi-command"]
+	path = modules/multi-command
+	url = https://github.com/phelrine/multi-command.git
