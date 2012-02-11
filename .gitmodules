@@ -34,3 +34,6 @@
 [submodule "modules/multi-command"]
 	path = modules/multi-command
 	url = https://github.com/phelrine/multi-command.git
+[submodule "modules/apel"]
+	path = modules/apel
+	url = https://github.com/emacsmirror/apel.git
