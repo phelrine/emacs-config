@@ -843,13 +843,13 @@ If SCREEN is ommitted, current-screen is used."
     (cond
      ((not (elscreen-screen-live-p screen))
       (elscreen-message "There is no such screen, cannot clone"))
-    ((setq clone (elscreen-create-internal))
-     (save-window-excursion
-       (elscreen-goto-internal screen)
-       (setq elscreen-window-configuration
-             (elscreen-current-window-configuration)))
-     (elscreen-set-window-configuration clone elscreen-window-configuration)
-     (elscreen-goto clone)))))
+     ((setq clone (elscreen-create-internal))
+      (save-window-excursion
+        (elscreen-goto-internal screen)
+        (setq elscreen-window-configuration
+              (elscreen-current-window-configuration)))
+      (elscreen-set-window-configuration clone elscreen-window-configuration)
+      (elscreen-goto clone)))))
 
 (defvar elscreen-kill-hook nil)
 (defun elscreen-kill (&optional screen)
@@ -1359,7 +1359,7 @@ Use \\[toggle-read-only] to permit editing."
                        :keys (format "%s %d"
                                      (key-description elscreen-prefix-key)
                                      screen)))
-              screen-list))
+               screen-list))
         (setq elscreen-menu
               (nconc elscreen-menu elscreen-e21-menu-bar-command-entries))
         (setq elscreen-menu
@@ -1509,7 +1509,7 @@ Use \\[toggle-read-only] to permit editing."
                                     'elscreen-tab-current-screen-face
                                   'elscreen-tab-other-screen-face))
                          tab-separator)))))
-               screen-list)
+             screen-list)
 
             (setq elscreen-e21-tab-format
                   (nconc
@@ -1667,7 +1667,7 @@ Use \\[toggle-read-only] to permit editing."
       (elscreen-apply-window-configuration elscreen-window-configuration))
      ((setq screen (elscreen-create-internal 'noerror))
       (elscreen-set-window-configuration screen
-                                           elscreen-window-configuration)))))
+                                         elscreen-window-configuration)))))
 
 (defun elscreen-command-line-find-file (file file-count &optional line column)
   (let ((line (or line 0))
@@ -1691,23 +1691,46 @@ Use \\[toggle-read-only] to permit editing."
                   ("-e"                . elscreen-command-line-funcall))))
 
   (static-when elscreen-on-emacs
-    (defun elscreen-e21-command-line ()
-      (when (string-match "\\`-" argi)
-        (error "Unknown option `%s'" argi))
-      (setq file-count (1+ file-count))
-      (setq inhibit-startup-buffer-menu t)
-      (let* ((file
-              (expand-file-name
-               (command-line-normalize-file-name orig-argi)
-               dir)))
-        (elscreen-command-line-find-file file file-count line column))
-      (setq line 0)
-      (setq column 0)
-      t)
+    (if (string-match "^\\(19\\|2[0-2]\\)" emacs-version) ; emacs22 or prior-to
+        (progn
+          (defun elscreen-e21-command-line ()
+            (when (string-match "\\`-" argi)
+              (error "Unknown option `%s'" argi))
+            (setq file-count (1+ file-count))
+            (setq inhibit-startup-buffer-menu t)
+            (let* ((file
+                    (expand-file-name
+                     (command-line-normalize-file-name orig-argi)
+                     dir)))
+              (elscreen-command-line-find-file file file-count line column))
+            (setq line 0)
+            (setq column 0)
+            t)
 
-    (add-hook 'after-init-hook (lambda ()
-                                 (add-to-list 'command-line-functions
-                                              'elscreen-e21-command-line t))))
+          (add-hook 'after-init-hook (lambda ()
+                                       (add-to-list 'command-line-functions
+                                                    'elscreen-e21-command-line t))))
+                                        ; else
+      (progn
+        (defun elscreen-e23-command-line ()
+          (when (string-match "\\`-" argi)
+            (error "Unknown option `%s'" argi))
+          (setq file-count (1+ file-count))
+          (setq inhibit-startup-buffer-menu t)
+          (let* ((file
+                  (expand-file-name
+                   (command-line-normalize-file-name orig-argi)
+                   cl1-dir)))
+            (elscreen-command-line-find-file file file-count cl1-line cl1-column))
+          (setq cl1-line 0)
+          (setq cl1-column 0)
+          t) ; defun
+
+        (add-hook 'after-init-hook (lambda ()
+                                     (add-to-list 'command-line-functions
+                                                  'elscreen-e23-command-line t))))
+      ); endif
+    )
 
   (static-when elscreen-on-xemacs
     (defadvice command-line-1 (around elscreen-xmas-command-line-1 activate)
