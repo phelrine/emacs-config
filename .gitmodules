@@ -40,3 +40,6 @@
 [submodule "modules/haml-mode"]
 	path = modules/haml-mode
 	url = https://github.com/nex3/haml-mode.git
+[submodule "modules/yaml-mode"]
+	path = modules/yaml-mode
+	url = https://github.com/yoshiki/yaml-mode.git
