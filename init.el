@@ -52,6 +52,7 @@
 (require 'magit)
 (require 'auto-async-byte-compile)
 (require 'multi-command)
+(require 'haml-mode)
 
 (mapc (lambda (c) (global-set-key (read-kbd-macro (car c)) (cdr c)))
       '(("C-h" . delete-backward-char)

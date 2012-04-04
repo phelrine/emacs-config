@@ -37,3 +37,6 @@
 [submodule "modules/apel"]
 	path = modules/apel
 	url = https://github.com/emacsmirror/apel.git
+[submodule "modules/haml-mode"]
+	path = modules/haml-mode
+	url = https://github.com/nex3/haml-mode.git
