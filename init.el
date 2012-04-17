@@ -55,19 +55,16 @@
 (require 'haml-mode)
 
 (mapc (lambda (c) (global-set-key (read-kbd-macro (car c)) (cdr c)))
-      '(("C-h" . delete-backward-char)
-        ("C-o" . other-window)
-        ("C-c C-j" . jaunte)
-        ("C-t" . hs-toggle-hiding)
+      '(("C-h"     . delete-backward-char)
+        ("C-o"     . other-window)
+        ("C-t"     . hs-toggle-hiding)
         ("C-x C-b" . anything-buffers+)
-        ("M-y" . anything-show-kill-ring)
-        ("C-x g" . magit-status)
-        ("C-q" . mcmd-set-next-mode)))
+        ("C-x C-j" . jaunte)
+        ("C-x g"   . magit-status)
+        ("M-y"     . anything-show-kill-ring)
+        ))
 
 (windmove-default-keybindings)
-(define-multi-command global-map "C-f" '(forward-char forward-word) :reset t)
-(define-multi-command global-map "C-b" '(backward-char backward-word) :reset t)
-
 (add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode)
 
 (require 'saveplace)
@@ -97,4 +94,3 @@
   (set-fontset-font "fontset-default" 'katakana-jisx0201
                     '("Hiragino_Kaku_Gothic_ProN" . "iso10646-1"))
   (nconc default-frame-alist '((width . 120)(height . 40))))
-
