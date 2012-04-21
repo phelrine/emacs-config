@@ -13,3 +13,5 @@
 ;; (auto-install-from-emacswiki "tempbuf.el")
 ;; (auto-install-from-emacswiki "yasnippet-config.el")
 ;; (auto-install-from-url "http://www.pitecan.com/DynamicMacro/dmacro.el")
+
+;; (auto-install-from-url "https://raw.github.com/m2ym/popwin-el/master/popwin.el")
