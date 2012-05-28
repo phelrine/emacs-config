@@ -1,6 +1,6 @@
 #name : #ifndef XXX; #define XXX; #endif
 # --
-#ifndef ${1:`(upcase (file-name-nondirectory (file-name-sans-extension (buffer-file-name))))`_H}
+#ifndef ${1:INCLUDE_GUARD_`(upcase (let ((filename (file-name-sans-extension (buffer-file-name)))) (concat (file-name-nondirectory (substring (file-name-directory filename) 0 -1)) "_" (file-name-nondirectory filename))))`}
 #define $1
 
 $0
