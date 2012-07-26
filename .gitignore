@@ -1,8 +1,10 @@
-*~
 *.elc
+*~
+abbrev_defs
 ac-comphist.dat
-history
 auto-save-list
+el-get/
+history
 tramp
 url/cookies
 wget-log
