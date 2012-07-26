@@ -20,10 +20,11 @@
 (when (require 'el-get nil t)
   (el-get 'sync my-el-packages))
 
-(require 'auto-async-byte-compile nil t)
 (require 'open-junk-file nil t)
-(require 'switch-window nil t)
 (require 'haml-mode nil t)
+
+(when (require 'auto-async-byte-compile nil t)
+  (add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode))
 
 (when (require 'anything-startup nil t)
   (global-set-key (kbd "M-y") 'anything-show-kill-ring)
@@ -94,15 +95,17 @@
   (defun yas/minor-mode-off()) ;; dummy
   (setq yas/prompt-functions '(yas/dropdown-prompt yas/completing-prompt)))
 
+(when (require 'switch-window nil t)
+  (global-set-key (kbd "C-o") 'switch-window))
 
-(mapc (lambda (c) (global-set-key (read-kbd-macro (car c)) (cdr c)))
-      '(("C-h"     . delete-backward-char)
-        ("C-o"     . other-window)))
+(when (require 'ido nil t)
+  (ido-mode 1))
 
+(global-set-key (kbd "C-h") 'delete-backward-char)
 
 ;;; hooks
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
-(add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode)
+
 (dolist (hook '(lisp-interaction-mode-hook emacs-lisp-mode-hook))
   (add-hook hook 'turn-on-eldoc-mode))
 (add-hook 'c-mode-common-hook
