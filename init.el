@@ -93,6 +93,7 @@
 (when (require 'yasnippet-config nil t)
   (require 'dropdown-list)
   (defun yas/minor-mode-off()) ;; dummy
+  (yas/global-mode 1)
   (setq yas/prompt-functions '(yas/dropdown-prompt yas/completing-prompt)))
 
 (when (require 'switch-window nil t)
