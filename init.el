@@ -15,7 +15,7 @@
        (eval-print-last-sexp)))))
 
 (defvar my-el-packages
-  '(anything anything-startup apel auto-async-byte-compile auto-complete coffee-mode el-get flymake-cursor fuzzy haml-mode magit open-junk-file popup popwin switch-window tempbuf undo-tree yaml-mode yasnippet yasnippet-config))
+  '(anything anything-startup apel auto-async-byte-compile auto-complete coffee-mode el-get flymake-cursor fuzzy haml-mode magit open-junk-file popup popwin switch-window tempbuf undo-tree yaml-mode yasnippet yasnippet-config powerline))
 
 (when (require 'el-get nil t)
   (el-get 'sync my-el-packages))
