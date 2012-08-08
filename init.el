@@ -38,10 +38,10 @@
   (require 'flymake-cursor nil t)
   (set-face-background 'flymake-errline "red")
   (set-face-background 'flymake-warnline "yellow")
-  (setq flymake-err-line-patterns
-        `(("\\(.+\\):\\([0-9]+\\):\\([0-9]+\\): \\(.+\\)" 1 2 3 4) ; gcc 4.5
-          ("^\\(.*\\):\\([0-9]+\\): \\(.*\\)$" 1 2 nil 3)          ; ruby
-          ,@flymake-err-line-patterns))
+  (defvar flymake-err-line-patterns
+    `(("\\(.+\\):\\([0-9]+\\):\\([0-9]+\\): \\(.+\\)" 1 2 3 4) ; gcc 4.5
+      ("^\\(.*\\):\\([0-9]+\\): \\(.*\\)$" 1 2 nil 3)          ; ruby
+      ,@flymake-err-line-patterns))
 
   (add-hook 'find-file-hook 'flymake-find-file-hook)
 
@@ -144,3 +144,20 @@
 (load "gtags-config")
 (load "latex-mode-config")
 (load "ruby-config")
+
+;;; Python
+(require 'ipython nil t)
+
+;;; Scheme
+(defconst scheme-program-name "gosh -i")
+(autoload 'scheme-mode "cmuscheme" "Major mode for Scheme." t)
+(autoload 'run-scheme "cmuscheme" "Run an inferior Scheme process." t)
+(defun scheme-other-window ()
+  "Run scheme on other window"
+  (interactive)
+  (switch-to-buffer-other-window
+   (get-buffer-create "*scheme*"))
+  (run-scheme scheme-program-name))
+
+(add-hook 'scheme-mode-hook
+          (lambda () (local-set-key (kbd "C-c s") 'scheme-other-window)))
