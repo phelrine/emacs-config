@@ -19,7 +19,9 @@
 
   (push '("\\.tex$" flymake-tex-init flymake-tex-cleanup-custom) flymake-allowed-file-name-masks))
 
-(add-hook 'latex-mode-hook '(lambda () (reftex-mode)))
-(if (require 'flyspell nil t) (add-hook 'latex-mode-hook '(lambda () (flyspell-mode))))
+(add-hook 'latex-mode-hook
+          '(lambda ()
+             (reftex-mode 1)
+             (auto-fill-mode -1)))
 
 (setq auto-mode-alist (cons '("\\.tex\\'" . latex-mode) auto-mode-alist))
