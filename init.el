@@ -15,7 +15,7 @@
        (eval-print-last-sexp)))))
 
 (defvar my-el-packages
-  '(anything anything-startup apel auto-async-byte-compile auto-complete coffee-mode el-get flymake-cursor fuzzy haml-mode magit open-junk-file popup popwin switch-window tempbuf undo-tree yaml-mode yasnippet yasnippet-config powerline))
+  '(anything anything-startup apel auto-async-byte-compile auto-complete coffee-mode el-get flymake-cursor fuzzy haml-mode magit open-junk-file popup popwin switch-window tempbuf undo-tree yaml-mode yasnippet yasnippet-config powerline escreen))
 
 (when (require 'el-get nil t)
   (el-get 'sync my-el-packages))
@@ -161,3 +161,29 @@
 
 (add-hook 'scheme-mode-hook
           (lambda () (local-set-key (kbd "C-c s") 'scheme-other-window)))
+
+(when (require 'escreen nil t)
+  (setq escreen-prefix-char "\C-z")
+  (escreen-install))
+
+(require 'powerline nil t)
+(defpowerline escreen (propertize (format-mode-line
+                                   (if (boundp 'escreen-current-screen-string)
+                                       (concat "S" escreen-current-screen-string) ""))))
+
+(setq-default  mode-line-format
+               (list "%e"
+                     '(:eval (concat
+                              (powerline-rmw 'left nil)
+                              (powerline-buffer-id 'left nil powerline-color1)
+                              (powerline-escreen 'left powerline-color1 nil)
+                              (powerline-major-mode 'left powerline-color1)
+                              (powerline-minor-modes 'left powerline-color1)
+                              (powerline-narrow  'left powerline-color1  powerline-color2)
+                              (powerline-vc 'center powerline-color2)
+                              (powerline-make-fill  powerline-color2)
+                              (powerline-row 'right powerline-color1 powerline-color2)
+                              (powerline-make-text ":" powerline-color1  )
+                              (powerline-column 'right powerline-color1  )
+                              (powerline-percent 'right nil powerline-color1)
+                              (powerline-make-text "  " nil)))))
