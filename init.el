@@ -15,7 +15,7 @@
        (eval-print-last-sexp)))))
 
 (defvar my-el-packages
-  '(anything anything-startup apel auto-async-byte-compile auto-complete coffee-mode el-get flymake-cursor fuzzy haml-mode magit open-junk-file popup popwin switch-window tempbuf undo-tree yaml-mode yasnippet yasnippet-config powerline escreen))
+  '(anything anything-startup apel auto-async-byte-compile auto-complete coffee-mode el-get flymake-cursor fuzzy haml-mode magit open-junk-file popup popwin switch-window tempbuf undo-tree yaml-mode yasnippet yasnippet-config powerline escreen key-chord))
 
 (when (require 'el-get nil t)
   (el-get 'sync my-el-packages))
@@ -221,3 +221,9 @@
                               (powerline-column 'right powerline-color1  )
                               (powerline-percent 'right nil powerline-color1)
                               (powerline-make-text "  " nil)))))
+
+(when (require 'key-chord nil t)
+  (key-chord-mode 1)
+  (setq key-chord-two-keys-delay 0.05)
+  (key-chord-define-global "op" 'popwin:popup-buffer)
+  (key-chord-define-global "kw" 'delete-other-windows))
