@@ -66,7 +66,11 @@
 (when (require 'popwin nil t)
   (setq display-buffer-function 'popwin:display-buffer)
   (global-set-key (kbd "C-x C-p") popwin:keymap)
-  (add-to-list 'popwin:special-display-config '("magit" :regexp t :height 0.4 :stick t)))
+  (setq popwin:special-display-config
+        (append popwin:special-display-config
+                '(("magit" :regexp t :height 0.4 :stick t)
+                  (" *auto-async-byte-compile*")
+                  (":home" :position left)))))
 
 (when (require 'undo-tree nil t)
   (global-undo-tree-mode))
