@@ -1,34 +1,56 @@
+(require 'cl)
+(require 'package)
+(package-initialize)
+
 (let ((path (substring (shell-command-to-string "echo $PATH") 0 -1)))
   (setq exec-path (split-string path ":"))
   (setenv "PATH" path))
 (setenv "LANG" "ja_JP.UTF-8")
 
-(add-to-list 'load-path "~/.emacs.d/el-get/el-get")
 (add-to-list 'load-path "~/.emacs.d/config")
+(add-to-list 'package-archives
+             '("melpa" . "http://melpa.milkbox.net/packages/") t)
 
-(unless (require 'el-get nil t)
-  (url-retrieve
-   "https://raw.github.com/dimitri/el-get/master/el-get-install.el"
-   (lambda (s)
-     (let (el-get-master-branch)
-       (goto-char (point-max))
-       (eval-print-last-sexp)))))
+(defvar installed-packages
+  (list
+   'auto-async-byte-compile
+   'auto-complete
+   'coffee-mode
+   'flymake-cursor
+   'fuzzy
+   'haml-mode
+   'helm
+   'key-chord
+   'magit
+   'open-junk-file
+   'popup
+   'popwin
+   'powerline
+   'switch-window
+   'undo-tree
+   'yaml-mode
+   'yasnippet
+   ))
 
-(defvar my-el-packages
-  '(anything anything-startup apel auto-async-byte-compile auto-complete coffee-mode el-get flymake-cursor fuzzy haml-mode magit open-junk-file popup popwin switch-window tempbuf undo-tree yaml-mode yasnippet yasnippet-config powerline escreen key-chord))
-
-(when (require 'el-get nil t)
-  (el-get 'sync my-el-packages))
+(let ((not-installed
+       (loop for x in installed-packages if (not (package-installed-p x)) collect x)))
+  (when not-installed
+    (package-refresh-contents)
+    (dolist (pkg not-installed)
+      (package-install pkg))))
 
 (require 'open-junk-file nil t)
-(require 'haml-mode nil t)
 
 (when (require 'auto-async-byte-compile nil t)
-  (add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode))
+  (add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode)
+  )
 
-(when (require 'anything-startup nil t)
-  (global-set-key (kbd "M-y") 'anything-show-kill-ring)
-  (global-set-key (kbd "C-x C-b") 'anything-buffers+))
+(when (require 'helm-config nil t)
+  (helm-mode 1)
+  (global-set-key (kbd "C-c h") 'helm-mini)
+  (global-set-key (kbd "C-x C-f") 'helm-find-files)
+  (global-set-key (kbd "C-x C-b") 'helm-buffers-list)
+  )
 
 (when (require 'auto-complete-config nil t)
   (ac-config-default)
@@ -40,20 +62,17 @@
   (set-face-background 'flymake-warnline "yellow")
   (defvar flymake-err-line-patterns
     `(("\\(.+\\):\\([0-9]+\\):\\([0-9]+\\): \\(.+\\)" 1 2 3 4) ; gcc 4.5
-      ("^\\(.*\\):\\([0-9]+\\): \\(.*\\)$" 1 2 nil 3)          ; ruby
       ,@flymake-err-line-patterns))
 
-  (add-hook 'find-file-hook 'flymake-find-file-hook)
-
-  (defun flymake-pyflakes-init ()
-    (let* ((temp-file (flymake-init-create-temp-buffer-copy
-                       'flymake-create-temp-inplace))
-           (local-file (file-relative-name
-                        temp-file
-                        (file-name-directory buffer-file-name))))
-      (list "pyflakes"  (list local-file))))
-
-  (push '("\\.py\\'" flymake-pyflakes-init) flymake-allowed-file-name-masks))
+  (defun flymake-cc-init ()
+    (let* ((temp-file   (flymake-init-create-temp-buffer-copy
+                         'flymake-create-temp-inplace))
+           (local-file  (file-relative-name
+                         temp-file
+                         (file-name-directory buffer-file-name))))
+      (list "g++" (list "std=c++0x" "-Wall" "-Wextra" "-fsyntax-only" local-file))))
+  (push '("\\.cpp$" flymake-cc-init) flymake-allowed-file-name-masks)
+  (add-hook 'c++-mode-hook 'flymake-mode))
 
 (when (require 'hideshow nil t)
   (add-hook 'ruby-mode-hook (lambda () (hs-minor-mode t)))
@@ -82,15 +101,6 @@
   (savehist-mode 1)
   (setq history-length 5000))
 
-(when (require 'tempbuf nil t)
-  (dolist (hook '(view-mode-hook
-                  apropos-mode-hook
-                  magit-mode-hook
-                  dired-mode-hook
-                  find-file-hook))
-    (add-hook hook 'turn-on-tempbuf-mode))
-  (global-set-key (kbd "C-x p") 'tempbuf-mode))
-
 (when (require 'yaml-mode nil t)
   (add-to-list 'auto-mode-alist '("\\.yml$" . yaml-mode)))
 
@@ -103,9 +113,6 @@
 (when (require 'switch-window nil t)
   (global-set-key (kbd "C-o") 'switch-window))
 
-(when (require 'ido nil t)
-  (ido-mode 1))
-
 (global-set-key (kbd "C-h") 'delete-backward-char)
 
 ;;; hooks
@@ -113,24 +120,28 @@
 
 (dolist (hook '(lisp-interaction-mode-hook emacs-lisp-mode-hook))
   (add-hook hook 'turn-on-eldoc-mode))
+
 (add-hook 'c-mode-common-hook
           (lambda ()
             (local-set-key (kbd "C-c c") 'compile)
             (c-set-offset 'arglist-close 0)))
 
-(column-number-mode 1)
 (display-time)
+(set-background-color "gray90")
+(require 'hl-line)
+(set-face-background 'hl-line "violet")
+(set-face-underline-p 'hl-line "black")
+(column-number-mode 1)
 (global-auto-revert-mode 1)
 (global-hl-line-mode 1)
 (line-number-mode 1)
 (menu-bar-mode -1)
-(set-background-color "gray90")
-(set-face-background 'hl-line "violet")
-(set-face-underline-p 'hl-line "black")
-(setq make-backup-files nil)
-(setq-default tab-width 4 indent-tabs-mode nil)
 (show-paren-mode 1)
 (tool-bar-mode -1)
+(setq-default
+ make-backup-files nil
+ tab-width 4
+ indent-tabs-mode nil)
 
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 (defalias 'qrr 'query-replace-regexp)
@@ -199,35 +210,13 @@
                  nil
                (font-lock-mode t))) t)
 
-
-(when (require 'escreen nil t)
-  (setq escreen-prefix-char "\C-z")
-  (escreen-install))
-
 (require 'powerline nil t)
-(defpowerline escreen (propertize (format-mode-line
-                                   (if (boundp 'escreen-current-screen-string)
-                                       (concat "S" escreen-current-screen-string) ""))))
-
-(setq-default  mode-line-format
-               (list "%e"
-                     '(:eval (concat
-                              (powerline-rmw 'left nil)
-                              (powerline-buffer-id 'left nil powerline-color1)
-                              (powerline-escreen 'left powerline-color1 nil)
-                              (powerline-major-mode 'left powerline-color1)
-                              (powerline-minor-modes 'left powerline-color1)
-                              (powerline-narrow  'left powerline-color1  powerline-color2)
-                              (powerline-vc 'center powerline-color2)
-                              (powerline-make-fill  powerline-color2)
-                              (powerline-row 'right powerline-color1 powerline-color2)
-                              (powerline-make-text ":" powerline-color1  )
-                              (powerline-column 'right powerline-color1  )
-                              (powerline-percent 'right nil powerline-color1)
-                              (powerline-make-text "  " nil)))))
+(powerline-default)
 
 (when (require 'key-chord nil t)
   (key-chord-mode 1)
   (setq key-chord-two-keys-delay 0.05)
   (key-chord-define-global "op" 'popwin:popup-buffer)
   (key-chord-define-global "kw" 'delete-other-windows))
+
+(push '(".+\\.h$" . c++-mode) auto-mode-alist)
