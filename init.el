@@ -30,6 +30,7 @@
    'undo-tree
    'yaml-mode
    'yasnippet
+   'escreen
    ))
 
 (let ((not-installed
@@ -104,7 +105,7 @@
 (when (require 'yaml-mode nil t)
   (add-to-list 'auto-mode-alist '("\\.yml$" . yaml-mode)))
 
-(when (require 'yasnippet-config nil t)
+(when (require 'yasnippet)
   (require 'dropdown-list)
   (defun yas/minor-mode-off()) ;; dummy
   (yas/global-mode 1)
@@ -129,6 +130,8 @@
 (display-time)
 (set-background-color "gray90")
 (require 'hl-line)
+(set-face-foreground 'region "gray90")
+(set-face-background 'region "royal blue")
 (set-face-background 'hl-line "violet")
 (set-face-underline-p 'hl-line "black")
 (column-number-mode 1)
@@ -211,7 +214,7 @@
                (font-lock-mode t))) t)
 
 (require 'powerline nil t)
-(powerline-default)
+(powerline-default-theme)
 
 (when (require 'key-chord nil t)
   (key-chord-mode 1)
@@ -220,3 +223,7 @@
   (key-chord-define-global "kw" 'delete-other-windows))
 
 (push '(".+\\.h$" . c++-mode) auto-mode-alist)
+
+(when (require 'escreen nil t))
+
+(require 'skk)
