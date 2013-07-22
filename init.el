@@ -31,6 +31,8 @@
    'yaml-mode
    'yasnippet
    'escreen
+   'color-theme
+   'color-theme-solarized
    ))
 
 (let ((not-installed
@@ -224,6 +226,8 @@
 
 (push '(".+\\.h$" . c++-mode) auto-mode-alist)
 
-(when (require 'escreen nil t))
+(require 'escreen nil t)
+(require 'skk nil t)
 
-(require 'skk)
+(when (and  (require 'color-theme nil t) (require 'color-theme-solarized nil t))
+  (color-theme-solarized-light))
