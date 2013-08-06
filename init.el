@@ -17,6 +17,7 @@
    'auto-complete
    'coffee-mode
    'flymake-cursor
+   'flymake-python-pyflakes
    'fuzzy
    'haml-mode
    'helm
@@ -61,8 +62,10 @@
 
 (when (require 'flymake nil t)
   (require 'flymake-cursor nil t)
-  (set-face-background 'flymake-errline "red")
+  (set-face-foreground 'flymake-errline "orange")
+  (set-face-background 'flymake-errline "blue")
   (set-face-background 'flymake-warnline "yellow")
+
   (defvar flymake-err-line-patterns
     `(("\\(.+\\):\\([0-9]+\\):\\([0-9]+\\): \\(.+\\)" 1 2 3 4) ; gcc 4.5
       ,@flymake-err-line-patterns))
@@ -75,7 +78,13 @@
                          (file-name-directory buffer-file-name))))
       (list "g++" (list "std=c++0x" "-Wall" "-Wextra" "-fsyntax-only" local-file))))
   (push '("\\.cpp$" flymake-cc-init) flymake-allowed-file-name-masks)
-  (add-hook 'c++-mode-hook 'flymake-mode))
+  (add-hook 'c++-mode-hook 'flymake-mode)
+
+  ;; python settings
+  (when (require 'flymake-python-pyflakes nil t)
+    (add-hook 'python-mode-hook 'flymake-python-pyflakes-load))
+  )
+
 
 (when (require 'hideshow nil t)
   (add-hook 'ruby-mode-hook (lambda () (hs-minor-mode t)))
