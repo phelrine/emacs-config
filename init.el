@@ -126,10 +126,9 @@
   (add-to-list 'auto-mode-alist '("\\.yml$" . yaml-mode)))
 
 (when (require 'yasnippet)
-  (require 'dropdown-list)
-  (defun yas/minor-mode-off()) ;; dummy
+  ;; (defun yas/minor-mode-off()) ;; dummy
   (yas/global-mode 1)
-  (setq yas/prompt-functions '(yas/dropdown-prompt yas/completing-prompt)))
+  (setq yas/prompt-functions '(yas/completing-prompt)))
 
 (when (require 'switch-window nil t)
   (global-set-key (kbd "C-o") 'switch-window))
