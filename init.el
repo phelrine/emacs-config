@@ -12,29 +12,30 @@
              '("melpa" . "http://melpa.milkbox.net/packages/") t)
 
 (defvar installed-packages
-  (list
-   'auto-async-byte-compile
-   'auto-complete
-   'coffee-mode
-   'flymake-cursor
-   'flymake-python-pyflakes
-   'fuzzy
-   'haml-mode
-   'helm
-   'key-chord
-   'magit
-   'open-junk-file
-   'popup
-   'popwin
-   'powerline
-   'switch-window
-   'undo-tree
-   'yaml-mode
-   'yasnippet
-   'escreen
-   'color-theme
-   'color-theme-solarized
-   ))
+  '(auto-async-byte-compile
+    auto-complete
+    coffee-mode
+    flymake-cursor
+    flymake-python-pyflakes
+    fuzzy
+    haml-mode
+    helm
+    key-chord
+    magit
+    open-junk-file
+    popwin
+    powerline
+    switch-window
+    undo-tree
+    yaml-mode
+    yasnippet
+    escreen
+    color-theme
+    color-theme-solarized
+    markdown-mode
+    smartparens
+    smartrep
+    ))
 
 (let ((not-installed
        (loop for x in installed-packages if (not (package-installed-p x)) collect x)))
