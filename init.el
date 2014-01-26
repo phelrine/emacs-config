@@ -232,8 +232,8 @@
                  nil
                (font-lock-mode t))) t)
 
-(require 'powerline nil t)
-(powerline-default-theme)
+(when (require 'powerline nil t)
+  (powerline-vim-theme))
 
 (when (require 'key-chord nil t)
   (key-chord-mode 1)
