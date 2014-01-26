@@ -54,7 +54,11 @@
   (helm-mode 1)
   (global-set-key (kbd "C-c h") 'helm-mini)
   (global-set-key (kbd "C-x C-f") 'helm-find-files)
+  (global-set-key (kbd "C-x C-r") 'helm-recentf)
+  (global-set-key (kbd "C-x C-i") 'helm-imenu)
   (global-set-key (kbd "C-x C-b") 'helm-buffers-list)
+  (global-set-key (kbd "M-x") 'helm-M-x)
+  (global-set-key (kbd "M-y") 'helm-show-kill-ring)
   )
 
 (when (require 'auto-complete-config nil t)
