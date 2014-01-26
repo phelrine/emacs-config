@@ -63,7 +63,11 @@
 
 (when (require 'auto-complete-config nil t)
   (ac-config-default)
-  (global-auto-complete-mode 1))
+  (global-auto-complete-mode 1)
+  (when (require 'ac-helm nil t)
+    (setq ac-auto-start nil)
+    (global-set-key (kbd "C-;") 'ac-complete-with-helm))
+  )
 
 (when (require 'flymake nil t)
   (require 'flymake-cursor nil t)
