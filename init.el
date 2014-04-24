@@ -35,6 +35,7 @@
     markdown-mode
     smartparens
     smartrep
+    zlc
     ))
 
 (let ((not-installed
@@ -53,13 +54,13 @@
 (when (require 'helm-config nil t)
   (helm-mode 1)
   (global-set-key (kbd "C-c h") 'helm-mini)
-  ;; (global-set-key (kbd "C-x C-f") 'helm-find-files)
+  (global-set-key (kbd "C-x C-f") 'helm-find-files)
   (global-set-key (kbd "C-x C-r") 'helm-recentf)
   (global-set-key (kbd "C-x C-i") 'helm-imenu)
   (global-set-key (kbd "C-x C-b") 'helm-buffers-list)
   (global-set-key (kbd "M-x") 'helm-M-x)
   (global-set-key (kbd "M-y") 'helm-show-kill-ring)
-  (add-to-list 'helm-completing-read-handlers-alist '(find-file . nil))
+  ;; (add-to-list 'helm-completing-read-handlers-alist '(find-file . nil))
   )
 
 (when (require 'auto-complete-config nil t)
@@ -182,6 +183,7 @@
 (load "gtags-config")
 (load "latex-mode-config")
 (load "ruby-config")
+(load "csharp-config")
 
 ;;; Python
 (require 'ipython nil t)
@@ -234,12 +236,12 @@
                (font-lock-mode t))) t)
 
 (when (require 'powerline nil t)
-  (powerline-vim-theme))
+  (powerline-default-theme))
 
 (when (require 'key-chord nil t)
   (key-chord-mode 1)
   (setq key-chord-two-keys-delay 0.05)
-  (key-chord-define-global "op" 'popwin:popup-buffer)
+  ;; (key-chord-define-global "op" 'popwin:popup-buffer)
   (key-chord-define-global "kw" 'delete-other-windows))
 
 (push '(".+\\.h$" . c++-mode) auto-mode-alist)
@@ -247,8 +249,9 @@
 (require 'escreen nil t)
 (require 'skk nil t)
 
-(when (and  (require 'color-theme nil t) (require 'color-theme-solarized nil t))
-  (color-theme-solarized-light))
 
-(require 'zlc)
-(zlc-mode t)
+(when (and (require 'color-theme nil t) (require 'solarized))
+  (load-theme 'solarized-light t))
+
+(when (require 'zlc nil t)
+  (zlc-mode t))
