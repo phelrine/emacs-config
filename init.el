@@ -60,6 +60,9 @@
   (global-set-key (kbd "C-x C-b") 'helm-buffers-list)
   (global-set-key (kbd "M-x") 'helm-M-x)
   (global-set-key (kbd "M-y") 'helm-show-kill-ring)
+  (custom-set-variables
+   '(helm-ff-skip-boring-files t)
+   '(helm-boring-file-regexp-list '("~$" "\\.meta$")))
   ;; (add-to-list 'helm-completing-read-handlers-alist '(find-file . nil))
   )
 
