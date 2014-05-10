@@ -36,6 +36,7 @@
     smartparens
     smartrep
     zlc
+    exec-path-from-shell
     ))
 
 (let ((not-installed
@@ -258,3 +259,6 @@
 
 (when (require 'zlc nil t)
   (zlc-mode t))
+
+(when (require 'exec-path-from-shell nil t)
+  (exec-path-from-shell-initialize))
