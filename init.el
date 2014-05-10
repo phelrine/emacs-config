@@ -12,9 +12,13 @@
              '("melpa" . "http://melpa.milkbox.net/packages/") t)
 
 (defvar installed-packages
-  '(auto-async-byte-compile
+  '(
+    auto-async-byte-compile
     auto-complete
     coffee-mode
+    color-theme
+    csharp-mode
+    escreen
     flymake-cursor
     flymake-python-pyflakes
     fuzzy
@@ -22,20 +26,17 @@
     helm
     key-chord
     magit
+    markdown-mode
     open-junk-file
     popwin
     powerline
+    smartparens
+    smartrep
+    solarized-theme
     switch-window
     undo-tree
     yaml-mode
     yasnippet
-    escreen
-    color-theme
-    color-theme-solarized
-    markdown-mode
-    smartparens
-    smartrep
-    zlc
     exec-path-from-shell
     ))
 
@@ -54,7 +55,6 @@
 
 (when (require 'helm-config nil t)
   (helm-mode 1)
-  (global-set-key (kbd "C-c h") 'helm-mini)
   (global-set-key (kbd "C-x C-f") 'helm-find-files)
   (global-set-key (kbd "C-x C-r") 'helm-recentf)
   (global-set-key (kbd "C-x C-i") 'helm-imenu)
@@ -67,12 +67,9 @@
   ;; (add-to-list 'helm-completing-read-handlers-alist '(find-file . nil))
   )
 
-(when (require 'auto-complete-config nil t)
-  (ac-config-default)
-  (global-auto-complete-mode 1)
-  (when (require 'ac-helm nil t)
-    (setq ac-auto-start nil)
-    (global-set-key (kbd "C-;") 'ac-complete-with-helm))
+(when (require 'company nil t)
+  (add-hook 'after-init-hook 'global-company-mode)
+  (global-set-key (kbd "C-;") 'company-complete)
   )
 
 (when (require 'flymake nil t)
@@ -84,27 +81,7 @@
   (defvar flymake-err-line-patterns
     `(("\\(.+\\):\\([0-9]+\\):\\([0-9]+\\): \\(.+\\)" 1 2 3 4) ; gcc 4.5
       ,@flymake-err-line-patterns))
-
-  (defun flymake-cc-init ()
-    (let* ((temp-file   (flymake-init-create-temp-buffer-copy
-                         'flymake-create-temp-inplace))
-           (local-file  (file-relative-name
-                         temp-file
-                         (file-name-directory buffer-file-name))))
-      (list "g++" (list "std=c++0x" "-Wall" "-Wextra" "-fsyntax-only" local-file))))
-  (push '("\\.cpp$" flymake-cc-init) flymake-allowed-file-name-masks)
-  (add-hook 'c++-mode-hook 'flymake-mode)
-
-  ;; python settings
-  (when (require 'flymake-python-pyflakes nil t)
-    (add-hook 'python-mode-hook 'flymake-python-pyflakes-load))
   )
-
-
-(when (require 'hideshow nil t)
-  (add-hook 'ruby-mode-hook (lambda () (hs-minor-mode t)))
-  (add-hook 'c-mode-common-hook (lambda () (hs-minor-mode t)))
-  (global-set-key (kbd "C-t") 'hs-toggle-hiding))
 
 (when (require 'magit nil t)
   (global-set-key (kbd "C-x g") 'magit-status))
@@ -136,9 +113,7 @@
   (yas/global-mode 1)
   (setq yas/prompt-functions '(yas/completing-prompt)))
 
-(when (require 'switch-window nil t)
-  (global-set-key (kbd "C-o") 'switch-window))
-
+(global-set-key (kbd "C-o") 'other-window)
 (global-set-key (kbd "C-h") 'delete-backward-char)
 
 ;;; hooks
@@ -147,29 +122,20 @@
 (dolist (hook '(lisp-interaction-mode-hook emacs-lisp-mode-hook))
   (add-hook hook 'turn-on-eldoc-mode))
 
-(add-hook 'c-mode-common-hook
-          (lambda ()
-            (local-set-key (kbd "C-c c") 'compile)
-            (c-set-offset 'arglist-close 0)))
-
-(display-time)
-(set-background-color "gray90")
 (require 'hl-line)
-(set-face-foreground 'region "gray90")
-(set-face-background 'region "royal blue")
 (set-face-background 'hl-line "violet")
-(set-face-underline-p 'hl-line "black")
-(column-number-mode 1)
-(global-auto-revert-mode 1)
-(global-hl-line-mode 1)
-(line-number-mode 1)
+(set-face-underline-p 'hl-line "blue")
+(custom-set-variables
+ '(global-auto-revert-mode t)
+ '(global-hl-line-mode t)
+ '(show-paren-mode 1)
+ '(make-backup-files nil)
+ '(tab-width 4)
+ '(indent-tabs-mode nil)
+ )
+
 (menu-bar-mode -1)
-(show-paren-mode 1)
 (tool-bar-mode -1)
-(setq-default
- make-backup-files nil
- tab-width 4
- indent-tabs-mode nil)
 
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 (defalias 'qrr 'query-replace-regexp)
@@ -183,14 +149,11 @@
                     '("Hiragino_Kaku_Gothic_ProN" . "iso10646-1"))
   (nconc default-frame-alist '((width . 120)(height . 40))))
 
-(load "coffee-config")
-(load "gtags-config")
-(load "latex-mode-config")
+(load "c-config")
+(load "python-config")
 (load "ruby-config")
-(load "csharp-config")
-
-;;; Python
-(require 'ipython nil t)
+(load "coffee-config")
+(load "latex-mode-config")
 
 ;;; Scheme
 (defconst scheme-program-name "gosh -i")
@@ -240,7 +203,8 @@
                (font-lock-mode t))) t)
 
 (when (require 'powerline nil t)
-  (powerline-default-theme))
+  (powerline-default-theme)
+  )
 
 (when (require 'key-chord nil t)
   (key-chord-mode 1)
@@ -253,12 +217,8 @@
 (require 'escreen nil t)
 (require 'skk nil t)
 
-
 (when (and (require 'color-theme nil t) (require 'solarized))
   (load-theme 'solarized-light t))
-
-(when (require 'zlc nil t)
-  (zlc-mode t))
 
 (when (require 'exec-path-from-shell nil t)
   (exec-path-from-shell-initialize))
