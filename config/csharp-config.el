@@ -18,6 +18,6 @@
           )
 
 ;; Gtags設定
-(require 'gtags)
-(global-set-key (kbd "C-'") 'gtags-find-tag-other-window)  ; (別バッファで)関数の定義元(関数の実体)へジャンプ
-(global-set-key (kbd "C-M-'") 'gtags-find-tag)             ; 変数等のジャンプ
+;; (require 'gtags)
+;; (global-set-key (kbd "C-'") 'gtags-find-tag-other-window)  ; (別バッファで)関数の定義元(関数の実体)へジャンプ
+;; (global-set-key (kbd "C-M-'") 'gtags-find-tag)             ; 変数等のジャンプ
