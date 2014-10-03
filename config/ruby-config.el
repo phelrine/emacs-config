@@ -1,5 +1,21 @@
+(require 'nlinum-autoloads nil t)
+
 ;; indent
 (setq ruby-deep-indent-paren-style nil)
+(defadvice ruby-indent-line (after unindent-closing-paren activate)
+  (let ((column (current-column))
+        indent offset)
+    (save-excursion
+      (back-to-indentation)
+      (let ((state (syntax-ppss)))
+        (setq offset (- column (current-column)))
+        (when (and (eq (char-after) ?\))
+                   (not (zerop (car state))))
+          (goto-char (cadr state))
+          (setq indent (current-indentation)))))
+    (when indent
+      (indent-line-to indent)
+      (when (> offset 0) (forward-char offset)))))
 
 (when (require 'flymake nil t)
   ;; Invoke ruby with '-c' to get syntax checking
@@ -26,4 +42,9 @@
         (setq hs-special-modes-alist
               (cons ruby-mode-hs-info hs-special-modes-alist)))))
 
-(push '(".+\\.erb$" . html-mode) auto-mode-alist)
+(when (require 'web-mode nil t)
+  (push '(".+\\.erb$" . web-mode) auto-mode-alist))
+
+(add-hook 'ruby-mode-hook
+          (lambda ()
+            (nlinum-mode t)))
