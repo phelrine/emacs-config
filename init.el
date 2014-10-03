@@ -17,8 +17,10 @@
     auto-complete
     coffee-mode
     color-theme
+    company
     csharp-mode
     escreen
+    expand-region
     flymake-cursor
     flymake-python-pyflakes
     fuzzy
@@ -222,3 +224,7 @@
 
 (when (require 'exec-path-from-shell nil t)
   (exec-path-from-shell-initialize))
+
+(when (require 'expand-region-autoloads nil t)
+  (global-set-key (kbd "C-M-SPC") 'er/expand-region)
+  )
