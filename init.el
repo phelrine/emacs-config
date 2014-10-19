@@ -13,6 +13,7 @@
 
 (defvar installed-packages
   '(
+    ace-isearch
     auto-async-byte-compile
     auto-complete
     coffee-mode
@@ -41,6 +42,7 @@
     yasnippet
     exec-path-from-shell
     use-package
+    helm-company
     git-gutter-fringe+
     ))
 
@@ -72,9 +74,7 @@
    ("M-y" . helm-show-kill-ring)
    ))
 
-(use-package company
-  :init (add-hook 'after-init-hook 'global-company-mode)
-  :bind (("C-;" . company-complete)))
+(use-package company :init (add-hook 'after-init-hook 'global-company-mode))
 
 (use-package flymake
   :config
@@ -211,11 +211,10 @@
 (use-package powerline :config (powerline-default-theme))
 (use-package escreen)
 (use-package skk)
-
 (use-package color-theme)
-(use-package solarized
-  :config (load-theme 'solarized-light t))
-
+(use-package solarized :config (load-theme 'solarized-light t))
 (use-package exec-path-from-shell :config (exec-path-from-shell-initialize))
 (use-package expand-region :bind ("C-M-SPC" . er/expand-region))
 (use-package git-gutter-fringe+ :config (global-git-gutter+-mode t))
+(use-package helm-company :bind ("C-;" . helm-company))
+(use-package ace-isearch :config (global-ace-isearch-mode t))
