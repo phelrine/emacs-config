@@ -40,6 +40,8 @@
     yaml-mode
     yasnippet
     exec-path-from-shell
+    use-package
+    git-gutter-fringe+
     ))
 
 (let ((not-installed
@@ -49,92 +51,92 @@
     (dolist (pkg not-installed)
       (package-install pkg))))
 
-(require 'open-junk-file nil t)
+(require 'use-package nil t)
+(use-package open-junk-file :commands open-junk-file)
+(use-package auto-async-byte-compile
+  :config (add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode))
 
-(when (require 'auto-async-byte-compile nil t)
-  (add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode)
-  )
+(use-package helm-config
+  :config
+  (progn
+    (helm-mode t)
+    (custom-set-variables
+     '(helm-ff-skip-boring-files t)
+     '(helm-boring-file-regexp-list '("~$" "\\.meta$"))))
+  :bind
+  (("C-x C-f" . helm-find-files)
+   ("C-x C-r" . helm-recentf)
+   ("C-x C-i" . helm-imenu)
+   ("C-x C-b" . helm-buffers-list)
+   ("M-x" . helm-M-x)
+   ("M-y" . helm-show-kill-ring)
+   ))
 
-(when (require 'helm-config nil t)
-  (helm-mode 1)
-  (global-set-key (kbd "C-x C-f") 'helm-find-files)
-  (global-set-key (kbd "C-x C-r") 'helm-recentf)
-  (global-set-key (kbd "C-x C-i") 'helm-imenu)
-  (global-set-key (kbd "C-x C-b") 'helm-buffers-list)
-  (global-set-key (kbd "M-x") 'helm-M-x)
-  (global-set-key (kbd "M-y") 'helm-show-kill-ring)
-  (custom-set-variables
-   '(helm-ff-skip-boring-files t)
-   '(helm-boring-file-regexp-list '("~$" "\\.meta$")))
-  ;; (add-to-list 'helm-completing-read-handlers-alist '(find-file . nil))
-  )
+(use-package company
+  :init (add-hook 'after-init-hook 'global-company-mode)
+  :bind (("C-;" . company-complete)))
 
-(when (require 'company nil t)
-  (add-hook 'after-init-hook 'global-company-mode)
-  (global-set-key (kbd "C-;") 'company-complete)
-  )
+(use-package flymake
+  :config
+  (progn
+    (use-package flymake-cursor)
+    (set-face-foreground 'flymake-errline "orange")
+    (set-face-background 'flymake-errline "blue")
+    (set-face-background 'flymake-warnline "yellow")
+    (defvar flymake-err-line-patterns
+      `(("\\(.+\\):\\([0-9]+\\):\\([0-9]+\\): \\(.+\\)" 1 2 3 4) ; gcc 4.5
+        ,@flymake-err-line-patterns))
+    ))
 
-(when (require 'flymake nil t)
-  (require 'flymake-cursor nil t)
-  (set-face-foreground 'flymake-errline "orange")
-  (set-face-background 'flymake-errline "blue")
-  (set-face-background 'flymake-warnline "yellow")
+(use-package magit :bind (("C-x g" . magit-status)))
 
-  (defvar flymake-err-line-patterns
-    `(("\\(.+\\):\\([0-9]+\\):\\([0-9]+\\): \\(.+\\)" 1 2 3 4) ; gcc 4.5
-      ,@flymake-err-line-patterns))
-  )
+(use-package popwin
+  :config
+  (progn
+    (setq display-buffer-function 'popwin:display-buffer)
+    (setq popwin:special-display-config
+          (append popwin:special-display-config
+                  '((" *auto-async-byte-compile*")
+                    (":home" :position left))))
+    ))
 
-(when (require 'magit nil t)
-  (global-set-key (kbd "C-x g") 'magit-status))
+(use-package undo-tree :config (global-undo-tree-mode))
 
-(when (require 'popwin nil t)
-  (setq display-buffer-function 'popwin:display-buffer)
-  (global-set-key (kbd "C-x C-p") popwin:keymap)
-  (setq popwin:special-display-config
-        (append popwin:special-display-config
-                '(("magit" :regexp t :height 0.4 :stick t)
-                  (" *auto-async-byte-compile*")
-                  (":home" :position left)))))
+(use-package saveplace :config (setq-default save-place t))
 
-(when (require 'undo-tree nil t)
-  (global-undo-tree-mode))
+(use-package savehist
+  :config
+  (progn
+    (setq avehist-mode 1)
+    (setq history-length 5000)))
 
-(when (require 'saveplace nil t)
-  (setq-default save-place t))
+(use-package yaml-mode :mode "\\.yml$")
 
-(when (require 'savehist nil t)
-  (savehist-mode 1)
-  (setq history-length 5000))
-
-(when (require 'yaml-mode nil t)
-  (add-to-list 'auto-mode-alist '("\\.yml$" . yaml-mode)))
-
-(when (require 'yasnippet)
-  ;; (defun yas/minor-mode-off()) ;; dummy
-  (yas/global-mode 1)
-  (setq yas/prompt-functions '(yas/completing-prompt)))
+(use-package yasnippet
+  :config
+  (progn
+    (yas/global-mode 1)
+    (setq yas/prompt-functions '(yas/completing-prompt))))
 
 (global-set-key (kbd "C-o") 'other-window)
 (global-set-key (kbd "C-h") 'delete-backward-char)
-
-;;; hooks
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
-
 (dolist (hook '(lisp-interaction-mode-hook emacs-lisp-mode-hook))
   (add-hook hook 'turn-on-eldoc-mode))
 
-(require 'hl-line)
-(set-face-background 'hl-line "violet")
-(set-face-underline-p 'hl-line "blue")
+(use-package hl-line
+  :config
+  (progn
+    (set-face-background 'hl-line "violet")
+    (set-face-underline-p 'hl-line "blue")
+    (global-hl-line-mode t)))
+
 (custom-set-variables
  '(global-auto-revert-mode t)
- '(global-hl-line-mode t)
  '(show-paren-mode 1)
  '(make-backup-files nil)
  '(tab-width 4)
- '(indent-tabs-mode nil)
- )
+ '(indent-tabs-mode nil))
 
 (menu-bar-mode -1)
 (tool-bar-mode -1)
@@ -173,13 +175,15 @@
 
 ;;; Perl
 (defalias 'perl-mode 'cperl-mode)
-(require 'cperl-mode)
-(setq cperl-indent-level 4
-      cperl-close-paren-offset -4
-      cperl-continued-statement-offset 4
-      cperl-indent-parens-as-block t
-      cperl-tab-always-indent t)
-(add-hook 'cperl-mode-hook '(lambda () (setq indent-tabs-mode nil)))
+(use-package cperl-mode
+  :config
+  (progn
+    (setq cperl-indent-level 4
+          cperl-close-paren-offset -4
+          cperl-continued-statement-offset 4
+          cperl-indent-parens-as-block t
+          cperl-tab-always-indent t)
+    (add-hook 'cperl-mode-hook '(lambda () (setq indent-tabs-mode nil)))))
 
 (when (boundp 'show-trailing-whitespace) (setq-default show-trailing-whitespace t))
 (defface my-face-b-1 '((t (:background "red"))) nil)
@@ -204,27 +208,14 @@
                  nil
                (font-lock-mode t))) t)
 
-(when (require 'powerline nil t)
-  (powerline-default-theme)
-  )
+(use-package powerline :config (powerline-default-theme))
+(use-package escreen)
+(use-package skk)
 
-(when (require 'key-chord nil t)
-  (key-chord-mode 1)
-  (setq key-chord-two-keys-delay 0.05)
-  ;; (key-chord-define-global "op" 'popwin:popup-buffer)
-  (key-chord-define-global "kw" 'delete-other-windows))
+(use-package color-theme)
+(use-package solarized
+  :config (load-theme 'solarized-light t))
 
-(push '(".+\\.h$" . c++-mode) auto-mode-alist)
-
-(require 'escreen nil t)
-(require 'skk nil t)
-
-(when (and (require 'color-theme nil t) (require 'solarized))
-  (load-theme 'solarized-light t))
-
-(when (require 'exec-path-from-shell nil t)
-  (exec-path-from-shell-initialize))
-
-(when (require 'expand-region-autoloads nil t)
-  (global-set-key (kbd "C-M-SPC") 'er/expand-region)
-  )
+(use-package exec-path-from-shell :config (exec-path-from-shell-initialize))
+(use-package expand-region :bind ("C-M-SPC" . er/expand-region))
+(use-package git-gutter-fringe+ :config (global-git-gutter+-mode t))

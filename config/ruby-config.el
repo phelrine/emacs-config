@@ -1,5 +1,3 @@
-(require 'nlinum-autoloads nil t)
-
 ;; indent
 (setq ruby-deep-indent-paren-style nil)
 (defadvice ruby-indent-line (after unindent-closing-paren activate)
@@ -17,18 +15,19 @@
       (indent-line-to indent)
       (when (> offset 0) (forward-char offset)))))
 
-(when (require 'flymake nil t)
-  ;; Invoke ruby with '-c' to get syntax checking
-  (defun flymake-ruby-init ()
-    (let* ((temp-file (flymake-init-create-temp-buffer-copy
-                       'flymake-create-temp-inplace))
-           (local-file (file-relative-name
-                        temp-file
-                        (file-name-directory buffer-file-name))))
-      (list "ruby" (list "-c" local-file))))
+(defun flymake-ruby-init ()
+  (let* ((temp-file (flymake-init-create-temp-buffer-copy
+                     'flymake-create-temp-inplace))
+         (local-file (file-relative-name
+                      temp-file
+                      (file-name-directory buffer-file-name))))
+    (list "ruby" (list "-c" local-file))))
 
-  (push '(".+\\.rb$" flymake-ruby-init) flymake-allowed-file-name-masks)
-  (push '("Rakefile$" flymake-ruby-init) flymake-allowed-file-name-masks))
+(use-package flymake
+  :config
+  (progn
+    (push '(".+\\.rb$" flymake-ruby-init) flymake-allowed-file-name-masks)
+    (push '("Rakefile$" flymake-ruby-init) flymake-allowed-file-name-masks)))
 
 (when (require 'hideshow nil t)
   (let ((ruby-mode-hs-info
@@ -42,9 +41,5 @@
         (setq hs-special-modes-alist
               (cons ruby-mode-hs-info hs-special-modes-alist)))))
 
-(when (require 'web-mode nil t)
-  (push '(".+\\.erb$" . web-mode) auto-mode-alist))
-
-(add-hook 'ruby-mode-hook
-          (lambda ()
-            (nlinum-mode t)))
+(use-package web-mode :mode ".+\\.erb$")
+(use-package nlinum :config (add-hook 'ruby-mode-hook (lambda () (nlinum-mode t))))
