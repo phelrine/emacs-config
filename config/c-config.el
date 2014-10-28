@@ -5,18 +5,12 @@
                        temp-file
                        (file-name-directory buffer-file-name))))
     (list "g++" (list "std=c++0x" "-Wall" "-Wextra" "-fsyntax-only" local-file))))
+
+(defun flycheck-setting-c/c++()
+  (flycheck-mode t)
+  (flycheck-select-checker 'c/c++-cppcheck))
+
 (push '("\\.cpp$" flymake-cc-init) flymake-allowed-file-name-masks)
-
-;; C
-(use-package nlinum :config (add-hook 'c-mode-common-hook (nlinum-mode t)))
-(use-package gtags :config (add-hook 'c-mode-common-hook (gtags-mode t)))
-(use-package flycheck
-  :config
-  (add-hook 'c-mode-common-hook
-            (lambda ()
-              (flycheck-mode t)
-              (flycheck-select-checker 'c/c++-cppcheck))))
-
 (add-hook
  'c-mode-common-hook
  (lambda ()
@@ -30,15 +24,44 @@
    (c-set-offset 'arglist-intro '+)
    (c-set-offset 'arglist-close 0)))
 
+;; Common
+(use-package gtags :config (add-hook 'c-mode-common-hook #'gtags-mode))
+(use-package dtrt-indent :ensure :config (add-hook 'c-mode-common-hook #'dtrt-indent-mode))
+(use-package flycheck :ensure
+  :config (add-hook 'c-mode-hook #'flycheck-setting-c/c++))
+
 ;; C++
 (push '(".+\\.h$" . c++-mode) auto-mode-alist)
+(require 'cc-mode)
+(require 'semantic)
+(global-semanticdb-minor-mode 1)
+(global-semantic-idle-scheduler-mode 1)
+(semantic-mode 1)
 
-;; C#
-(use-package csharp-mode
-  :mode "\\.cs$"
+(use-package flycheck :ensure
+  :config (add-hook 'c++-mode-hook #'flycheck-setting-c/c++)
+(use-package irony :ensure :disabled
+  :config (add-hook 'c++-mode-hook #'irony-mode))
+(use-package company-irony :ensure :disabled
   :config
   (progn
-    (use-package omnisharp
-      :config
-      (add-hook 'csharp-mode-hook (omnisharp-mode t)))
-    ))
+
+    (add-to-list 'company-backends 'company-irony)
+    (add-hook 'irony-mode-hook 'company-irony-setup-begin-commands)))
+(use-package rtags :ensure
+  :config
+  (add-hook 'c++-mode-hook
+            (lambda ()
+              (rtags-enable-standard-keybindings c-mode-base-map)
+              (setq rtags-completions-enabled t)
+              (rtags-diagnostics))))
+(use-package company-rtags :ensure rtags
+  :config
+  (progn
+    (add-to-list 'company-backends 'company-rtags)
+    (setq company-rtags-begin-after-member-access t)))
+(use-package function-args :ensure :disabled :config (fa-config-default))
+;; C#
+(use-package csharp-mode :ensure :mode "\\.cs$")
+(use-package omnisharp :ensure
+  :config (add-hook 'csharp-mode-hook #'omnisharp-mode))
