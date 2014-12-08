@@ -25,10 +25,15 @@
    (c-set-offset 'arglist-close 0)))
 
 ;; Common
-(use-package gtags :config (add-hook 'c-mode-common-hook #'gtags-mode))
-(use-package dtrt-indent :ensure :config (add-hook 'c-mode-common-hook #'dtrt-indent-mode))
+;; (use-package gtags :config (add-hook 'c-mode-common-hook #'gtags-mode))
+;; (use-package dtrt-indent :ensure :config (add-hook 'c-mode-common-hook #'dtrt-indent-mode))
 (use-package flycheck :ensure
-  :config (add-hook 'c-mode-hook #'flycheck-setting-c/c++))
+  :config
+  (progn
+    (add-hook 'c-mode-hook #'flycheck-setting-c/c++)
+    (add-hook 'c++-mode-hook #'flycheck-setting-c/c++)
+    (add-hook 'csharp-mode-hook #'flycheck-mode)))
+(use-package nlinum :ensure :config (add-hook 'c-mode-common-hook #'nlinum-mode))
 
 ;; C++
 (push '(".+\\.h$" . c++-mode) auto-mode-alist)
@@ -38,14 +43,11 @@
 (global-semantic-idle-scheduler-mode 1)
 (semantic-mode 1)
 
-(use-package flycheck :ensure
-  :config (add-hook 'c++-mode-hook #'flycheck-setting-c/c++)
 (use-package irony :ensure :disabled
   :config (add-hook 'c++-mode-hook #'irony-mode))
 (use-package company-irony :ensure :disabled
   :config
   (progn
-
     (add-to-list 'company-backends 'company-irony)
     (add-hook 'irony-mode-hook 'company-irony-setup-begin-commands)))
 (use-package rtags :ensure
@@ -61,7 +63,11 @@
     (add-to-list 'company-backends 'company-rtags)
     (setq company-rtags-begin-after-member-access t)))
 (use-package function-args :ensure :disabled :config (fa-config-default))
+
 ;; C#
 (use-package csharp-mode :ensure :mode "\\.cs$")
 (use-package omnisharp :ensure
-  :config (add-hook 'csharp-mode-hook #'omnisharp-mode))
+  :config
+  (progn
+    (add-hook 'csharp-mode-hook 'omnisharp-mode)
+    (add-to-list 'company-backends 'company-omnisharp)))
