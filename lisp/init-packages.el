@@ -74,7 +74,10 @@
    ("M-y" . helm-show-kill-ring)))
 (use-package company :ensure
   :init (global-company-mode)
-  :bind (("C-;" . company-complete)))
+  :bind (("C-;" . company-complete))
+  )
+(use-package company-dabbrev
+  :config (eval-after-load 'company '(add-to-list 'company-backends 'company-dabbrev)))
 (use-package magit :ensure :bind (("C-x g" . magit-status)))
 (use-package git-gutter-fringe+ :config (global-git-gutter+-mode t) :ensure)
 (use-package yasnippet
@@ -83,8 +86,9 @@
   (progn
     (yas/global-mode 1)
     (setq yas/prompt-functions '(yas/completing-prompt))
-    (eval-after-load 'company
-      '(add-to-list 'company-backends 'company-yasnippet))))
+    ;; (eval-after-load 'company
+    ;; '(add-to-list 'company-backends 'company-yasnippet))
+    ))
 
 (use-package popwin :ensure
   :config
@@ -111,7 +115,7 @@
 ;; (use-package nlinum :ensure nlinum :config (global-nlinum-mode))
 
 ;; load language settings
-(load "c-config")
+;; (load "c-config")
 (load "python-config")
 (load "ruby-config")
 (load "coffee-config")

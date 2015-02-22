@@ -45,8 +45,7 @@
 (use-package company-irony :ensure :disabled
   :config
   (progn
-
-    (add-to-list 'company-backends 'company-irony)
+    (set (make-local-variable 'company-backends) '(company-irony))
     (add-hook 'irony-mode-hook 'company-irony-setup-begin-commands)))
 (use-package rtags :ensure
   :config
@@ -58,8 +57,11 @@
 (use-package company-rtags :ensure rtags
   :config
   (progn
-    (add-to-list 'company-backends 'company-rtags)
-    (setq company-rtags-begin-after-member-access t)))
+    (add-hook
+     'c++-mode-hook
+     (lambda()
+       (set (make-local-variable 'company-backends) '(company-rtags))
+       (setq company-rtags-begin-after-member-access t)))))
 (use-package function-args :ensure :disabled :config (fa-config-default))
 ;; C#
 (use-package csharp-mode :ensure :mode "\\.cs$")
