@@ -4,6 +4,7 @@
 (package-initialize)
 (setenv "LANG" "ja_JP.UTF-8")
 (add-to-list 'load-path "~/.emacs.d/lisp")
+(add-to-list 'load-path "/usr/local/Cellar/emacs/24.3/share/emacs/site-lisp/skk/")
 
 (global-set-key (kbd "C-o") 'other-window)
 (global-set-key (kbd "C-h") 'delete-backward-char)

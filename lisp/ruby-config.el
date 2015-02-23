@@ -43,3 +43,7 @@
 
 (use-package web-mode :mode ".+\\.erb$")
 (use-package nlinum :config (add-hook 'ruby-mode-hook (lambda () (nlinum-mode t))))
+(use-package robe
+  :config
+  (progn
+    (push 'company-robe company-backends)))

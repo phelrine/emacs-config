@@ -59,12 +59,12 @@
 
 ;; packages
 (use-package helm-config :ensure helm
+  :init
+  (custom-set-variables
+   '(helm-ff-skip-boring-files t)
+   '(helm-boring-file-regexp-list '("~$" "\\.meta$")))
   :config
-  (progn
-    (helm-mode t)
-    (custom-set-variables
-     '(helm-ff-skip-boring-files t)
-     '(helm-boring-file-regexp-list '("~$" "\\.meta$"))))
+  (helm-mode t)
   :bind
   (("C-x C-f" . helm-find-files)
    ("C-x C-r" . helm-recentf)
@@ -76,9 +76,15 @@
   :init (global-company-mode)
   :bind (("C-;" . company-complete))
   )
-(use-package company-dabbrev
-  :config (eval-after-load 'company '(add-to-list 'company-backends 'company-dabbrev)))
-(use-package magit :ensure :bind (("C-x g" . magit-status)))
+(use-package magit :ensure
+  :bind (("C-x g" . magit-status))
+  :config
+  (progn
+    (setq vcs-ediff-p nil)
+    (defadvice magit-ediff (around flymake-off activate)
+      (setq vcs-ediff-p t)
+      ad-do-it
+      (setq vcs-ediff-p nil))))
 (use-package git-gutter-fringe+ :config (global-git-gutter+-mode t) :ensure)
 (use-package yasnippet
   :ensure
