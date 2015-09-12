@@ -54,6 +54,7 @@
  '(show-trailing-whitespace t)
  '(tab-width 4)
  '(tool-bar-mode nil)
+ '(volatile-highlights-mode t)
  '(whitespace-display-mappings (quote ((space-mark 12288 [9633]) (tab-mark 9 [187 9]))))
  '(whitespace-space-regexp "\\(　+\\)")
  '(whitespace-style (quote (face tabs tab-mark spaces space-mark))))
@@ -169,6 +170,7 @@
   :config (add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode))
 (use-package skk)
 (use-package ddskk :bind ("C-x j" . skk-mode) :ensure)
+(use-package volatile-highlights :ensure)
 
 ;; Flymake
 (defun flymake-cc-init ()
