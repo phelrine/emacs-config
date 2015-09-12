@@ -40,6 +40,7 @@
  '(global-auto-revert-mode t)
  '(helm-boring-file-regexp-list (quote ("~$" "\\.meta$")))
  '(helm-ff-skip-boring-files t)
+ '(history-length 5000)
  '(indent-tabs-mode nil)
  '(make-backup-files nil)
  '(show-paren-mode 1)
@@ -84,30 +85,18 @@
 
 ;; builtin
 (use-package whitespace
-  :init
-  (progn
-    (setq whitespace-style '(face tabs tab-mark spaces space-mark)
-          whitespace-space-regexp "\\(\x3000+\\)"
-          whitespace-display-mappings '((space-mark ?\x3000 [?\□])
-                                        (tab-mark   ?\t   [?\xBB ?\t]))))
+  :init (progn
+          (setq whitespace-style '(face tabs tab-mark spaces space-mark)
+                whitespace-space-regexp "\\(\x3000+\\)"
+                whitespace-display-mappings '((space-mark ?\x3000 [?\□])
+                                              (tab-mark   ?\t   [?\xBB ?\t]))))
   :config (global-whitespace-mode 1))
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
 
 (use-package saveplace :config (setq-default save-place t))
-(use-package savehist
-  :config
-  (progn
-    (savehist-mode 1)
-    (setq history-length 5000)))
-(use-package recentf
-  :config
-  (progn (setq recentf-max-saved-items 1000)))
-(use-package hl-line
-  :config
-  (progn
-    (set-face-background 'hl-line "violet")
-    (set-face-underline 'hl-line "blue")
-    (global-hl-line-mode t)))
+(use-package savehist :config (savehist-mode 1))
+(use-package recentf :config (progn (setq recentf-max-saved-items 1000)))
+(use-package hl-line :config (global-hl-line-mode t))
 
 ;; packages
 (use-package helm-config :ensure helm
@@ -148,13 +137,13 @@
   :bind (("C-;" . company-complete)))
 (use-package magit :ensure
   :bind (("C-x g" . magit-status))
-  :config
-  (progn
-    (setq vcs-ediff-p nil)
-    (defadvice magit-ediff (around flymake-off activate)
-      (setq vcs-ediff-p t)
-      ad-do-it
-      (setq vcs-ediff-p nil))))
+  :config (progn
+            (setq vcs-ediff-p nil)
+            (defadvice magit-ediff (around flymake-off activate)
+              (setq vcs-ediff-p t)
+              ad-do-it
+              (setq vcs-ediff-p nil))))
+
 (use-package git-gutter-fringe+ :config (global-git-gutter+-mode t) :ensure)
 (use-package yasnippet :ensure
   :config (progn
