@@ -1,6 +1,5 @@
 (require 'package)
-(add-to-list 'package-archives
-             '("melpa" . "http://melpa.milkbox.net/packages/") t)
+(add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
 (package-initialize)
 (setenv "LANG" "ja_JP.UTF-8")
 (add-to-list 'load-path "~/.emacs.d/lisp")
@@ -37,14 +36,27 @@
                   (company-clang :with company-dabbrev-code)
                   (company-dabbrev-code company-gtags company-etags company-keywords)
                   company-oddmuse company-files company-dabbrev)))
+ '(company-dabbrev-downcase nil)
  '(global-auto-revert-mode t)
+ '(global-git-gutter+-mode t)
+ '(global-hl-line-mode t)
+ '(global-whitespace-mode t)
  '(helm-boring-file-regexp-list (quote ("~$" "\\.meta$")))
  '(helm-ff-skip-boring-files t)
  '(history-length 5000)
  '(indent-tabs-mode nil)
  '(make-backup-files nil)
+ '(menu-bar-mode nil)
+ '(recentf-max-saved-items 1000)
+ '(save-place t nil (saveplace))
+ '(savehist-mode t)
  '(show-paren-mode 1)
- '(tab-width 4))
+ '(show-trailing-whitespace t)
+ '(tab-width 4)
+ '(tool-bar-mode nil)
+ '(whitespace-display-mappings (quote ((space-mark 12288 [9633]) (tab-mark 9 [187 9]))))
+ '(whitespace-space-regexp "\\(　+\\)")
+ '(whitespace-style (quote (face tabs tab-mark spaces space-mark))))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -57,8 +69,6 @@
  '(whitespace-space ((t (:foreground "DarkGoldenrod1"))))
  '(whitespace-tab ((t (:foreground "blue")))))
 
-(menu-bar-mode 1)
-(tool-bar-mode -1)
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 (defalias 'qrr 'query-replace-regexp)
 (defalias 'yes-or-no-p 'y-or-n-p)
@@ -77,26 +87,17 @@
           "-isysroot" xcode:sdk "-I."
           "-D__IPHONE_OS_VERSION_MIN_REQUIRED=30200")))
 
-(when (boundp 'show-trailing-whitespace) (setq-default show-trailing-whitespace t))
 (global-font-lock-mode)
-
 (dolist (hook '(lisp-interaction-mode-hook emacs-lisp-mode-hook))
   (add-hook hook 'turn-on-eldoc-mode))
 
 ;; builtin
-(use-package whitespace
-  :init (progn
-          (setq whitespace-style '(face tabs tab-mark spaces space-mark)
-                whitespace-space-regexp "\\(\x3000+\\)"
-                whitespace-display-mappings '((space-mark ?\x3000 [?\□])
-                                              (tab-mark   ?\t   [?\xBB ?\t]))))
-  :config (global-whitespace-mode 1))
+(use-package hl-line)
+(use-package saveplace)
+(use-package savehist)
+(use-package recentf)
+(use-package whitespace)
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
-
-(use-package saveplace :config (setq-default save-place t))
-(use-package savehist :config (savehist-mode 1))
-(use-package recentf :config (progn (setq recentf-max-saved-items 1000)))
-(use-package hl-line :config (global-hl-line-mode t))
 
 ;; packages
 (use-package helm-config :ensure helm
@@ -131,9 +132,7 @@
 (global-set-key (kbd "M-SPC") 'bm-toggle-or-helm)
 
 (use-package company :ensure
-  :init (progn
-          (setq company-dabbrev-downcase nil)
-          (add-hook 'after-init-hook 'global-company-mode))
+  :init (add-hook 'after-init-hook 'global-company-mode)
   :bind (("C-;" . company-complete)))
 (use-package magit :ensure
   :bind (("C-x g" . magit-status))
@@ -144,7 +143,7 @@
               ad-do-it
               (setq vcs-ediff-p nil))))
 
-(use-package git-gutter-fringe+ :config (global-git-gutter+-mode t) :ensure)
+(use-package git-gutter-fringe+ :ensure)
 (use-package yasnippet :ensure
   :config (progn
             (yas/global-mode 1)
@@ -171,46 +170,37 @@
 (use-package skk)
 (use-package ddskk :bind ("C-x j" . skk-mode) :ensure)
 
-;;; CC-Mode
+;; Flymake
 (defun flymake-cc-init ()
-  (let* ((temp-file   (flymake-init-create-temp-buffer-copy
-                       'flymake-create-temp-inplace))
-         (local-file  (file-relative-name
-                       temp-file
-                       (file-name-directory buffer-file-name))))
+  (let* ((temp-file   (flymake-init-create-temp-buffer-copy 'flymake-create-temp-inplace))
+         (local-file  (file-relative-name temp-file (file-name-directory buffer-file-name))))
     (list "g++" (list "std=c++0x" "-Wall" "-Wextra" "-fsyntax-only" local-file))))
 
-(defun flymake-ruby-init ()
-  (let* ((temp-file (flymake-init-create-temp-buffer-copy
-                     'flymake-create-temp-inplace))
-         (local-file (file-relative-name
-                      temp-file
-                      (file-name-directory buffer-file-name))))
-    (list "ruby" (list "-c" local-file))))
-
 (use-package flymake
-  :config (nconc flymake-allowed-file-name-masks
-                 '(("\\.cpp$" flymake-cc-init)
-                   (".+\\.rb$" flymake-ruby-init)
-                   ("Rakefile$" flymake-ruby-init))))
+  :config (nconc flymake-allowed-file-name-masks '(("\\.cpp$" flymake-cc-init))))
 (use-package flymake-cursor)
 
 (defun flycheck-setting-c/c++()
   (flycheck-mode t)
   (flycheck-select-checker 'c/c++-cppcheck))
+
 (use-package flycheck :ensure
-  :config
-  (progn
-    (add-hook 'c-mode-hook #'flycheck-setting-c/c++)
-    (add-hook 'c++-mode-hook #'flycheck-setting-c/c++)
-    (add-hook 'csharp-mode-hook #'flycheck-mode)
-    (add-hook 'ruby-mode-hook #'flycheck-mode)))
+  :config (progn
+            (add-hook 'c-mode-hook 'flycheck-setting-c/c++)
+            (add-hook 'c++-mode-hook 'flycheck-setting-c/c++)
+            (add-hook 'csharp-mode-hook 'flycheck-mode)
+            (add-hook 'ruby-mode-hook 'flycheck-mode)))
+
+(use-package flycheck-color-mode-line :ensure
+  :config (eval-after-load "flycheck" '(add-hook 'flychech-mode-hook 'flycheck-color-mode-line-mode)))
 
 (use-package nlinum :ensure
   :config (progn
-            (add-hook 'c-mode-common-hook #'nlinum-mode)
-            (add-hook 'ruby-mode-hook #'nlinum-mode)))
+            (add-hook 'c-mode-common-hook 'nlinum-mode)
+            (add-hook 'ruby-mode-hook 'nlinum-mode)
+            (add-hook 'coffee-mode-hook 'nlinum-mode)))
 
+;;; CC-Mode
 (setq cc-other-file-alist
       `(("\\.cpp$" (".hpp" ".h"))
         ("\\.h$" (".c" ".cpp" ".m" ".mm"))
@@ -232,7 +222,7 @@
     (c-set-offset 'arglist-close 0)
     (local-set-key (kbd "C-c o") 'ff-find-other-file)))
 
-;; (use-package gtags :config (add-hook 'c-mode-common-hook #'gtags-mode))
+;; (use-package gtags :config (add-hook 'c-mode-common-hook 'gtags-mode))
 ;;; C++
 (add-to-list 'auto-mode-alist '(".+\\.h$" . c++-mode))
 (add-to-list 'magic-mode-alist
@@ -248,7 +238,7 @@
 (global-semantic-idle-scheduler-mode 1)
 (semantic-mode 1)
 
-(use-package irony :ensure :disabled :config (add-hook 'c++-mode-hook #'irony-mode))
+(use-package irony :ensure :disabled :config (add-hook 'c++-mode-hook 'irony-mode))
 (use-package company-irony :ensure :disabled
   :config (progn
             (set (make-local-variable 'company-backends) '(company-irony))
@@ -256,10 +246,10 @@
 
 (use-package rtags :ensure :disabled
   :config (add-hook 'c++-mode-hook
-            (lambda ()
-              (rtags-enable-standard-keybindings c-mode-base-map)
-              (setq rtags-completions-enabled t)
-              (rtags-diagnostics))))
+                    (lambda ()
+                      (rtags-enable-standard-keybindings c-mode-base-map)
+                      (setq rtags-completions-enabled t)
+                      (rtags-diagnostics))))
 
 (use-package company-rtags :ensure rtags
   :config (progn (add-hook
@@ -296,8 +286,8 @@
       (indent-line-to indent)
       (when (> offset 0) (forward-char offset)))))
 
-(use-package robe :config (progn (push 'company-robe company-backends)))
-(use-package web-mode :mode ".+\\.erb$")
+(use-package robe :ensure :config (progn (push 'company-robe company-backends)))
+(use-package web-mode :ensure :mode ".+\\.erb$")
 
 (defun coffee-custom ()
   "coffee-mode-hook"
@@ -316,7 +306,7 @@
        (file-exists-p (coffee-compiled-file-name))
        (coffee-cos-mode t)))
 
-(use-package coffee-mode
+(use-package coffee-mode :ensure
   :config (add-hook 'coffee-mode-hook 'coffee-custom)
   :mode "\\.coffee$")
 
