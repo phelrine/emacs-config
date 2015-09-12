@@ -25,6 +25,12 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(bm-buffer-persistence t)
+ '(bm-cycle-all-buffers t)
+ '(bm-fringe-face (quote bm-face))
+ '(bm-fringe-persistent-face (quote bm-face))
+ '(bm-highlight-style (quote bm-highlight-line-and-fringe))
+ '(bm-persistent-face (quote bm-face))
  '(company-backends
    (quote
     (company-bbdb company-nxml company-css company-eclim company-semantic company-cmake company-capf
@@ -44,6 +50,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(bm-face ((t (:background "spring green" :overline nil :underline t))))
  '(flymake-errline ((t (:foreground "orange" :background "blue"))))
  '(flymake-warnline ((t (:background "yellow"))))
  '(whitespace-space ((t (:foreground "DarkGoldenrod1"))))
@@ -111,6 +118,28 @@
          ("C-x C-b" . helm-buffers-list)
          ("M-x" . helm-M-x)
          ("M-y" . helm-show-kill-ring)))
+
+(setq bm-restore-repository-on-load t)
+(use-package bm :ensure
+  :config (progn
+            (add-hook 'find-file-hook 'bm-buffer-restore)
+            (add-hook 'after-revert-hook 'bm-buffer-restore)
+            (add-hook 'kill-buffer-hook 'bm-buffer-save)
+            (add-hook 'after-save-hook 'bm-buffer-save)
+            (add-hook 'vc-before-checkin-hook 'bm-buffer-save)
+            (add-hook 'kill-emacs-hook '(lambda ()
+                                          (bm-buffer-save-all)
+                                          (bm-repository-save))))
+  :bind (("M-[" . bm-previous)
+         ("M-]" . bm-next)))
+
+(use-package helm-bm :ensure)
+(defun bm-toggle-or-helm ()
+  (interactive)
+  (bm-toggle)
+  (when (eq last-command 'bm-toggle-or-helm)
+    (helm-bm)))
+(global-set-key (kbd "M-SPC") 'bm-toggle-or-helm)
 
 (use-package company :ensure
   :init (progn
