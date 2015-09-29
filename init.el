@@ -114,6 +114,10 @@
          ("C-x C-b" . helm-buffers-list)
          ("M-x" . helm-M-x)
          ("M-y" . helm-show-kill-ring)))
+(use-package helm-git-grep :ensure
+  :config (progn
+            (define-key isearch-mode-map (kbd "C-c g") 'helm-git-grep-from-isearch))
+  :bind (("C-c g" . helm-git-grep)))
 
 (setq bm-restore-repository-on-load t)
 (use-package bm :ensure
