@@ -242,7 +242,8 @@
 (add-to-list 'magic-mode-alist
              `(,(lambda ()
                   (and (string= (file-name-extension buffer-file-name) "h")
-                       (or (re-search-forward "@\\<interface\\>" magic-mode-regexp-match-limit t)
+                       (or (re-search-forward "#\\<import\\>" magic-mode-regexp-match-limit t)
+                           (re-search-forward "@\\<interface\\>" magic-mode-regexp-match-limit t)
                            (re-search-forward "@\\<protocol\\>" magic-mode-regexp-match-limit t))))
                . objc-mode))
 
