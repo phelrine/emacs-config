@@ -131,16 +131,10 @@
                                           (bm-buffer-save-all)
                                           (bm-repository-save))))
   :bind (("M-[" . bm-previous)
-         ("M-]" . bm-next)))
+         ("M-]" . bm-next)
+         ("M-SPC" . bm-toggle)))
 
-(use-package helm-bm :ensure)
-(defun bm-toggle-or-helm ()
-  (interactive)
-  (bm-toggle)
-  (when (eq last-command 'bm-toggle-or-helm)
-    (helm-bm)))
-(global-set-key (kbd "M-SPC") 'bm-toggle-or-helm)
-
+(use-package helm-bm :ensure :bind (("C-c m" . helm-bm)))
 (use-package company :ensure
   :init (add-hook 'after-init-hook 'global-company-mode)
   :bind (("C-;" . company-complete)))
