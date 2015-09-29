@@ -47,6 +47,11 @@
  '(indent-tabs-mode nil)
  '(make-backup-files nil)
  '(menu-bar-mode nil)
+ '(migemo-coding-system (quote utf-8))
+ '(migemo-command "cmigemo")
+ '(migemo-options (quote ("-q" "--emacs")))
+ '(migemo-regex-dictionary nil)
+ '(migemo-user-dictionary nil)
  '(recentf-max-saved-items 1000)
  '(save-place t nil (saveplace))
  '(savehist-mode t)
@@ -171,6 +176,15 @@
 (use-package skk)
 (use-package ddskk :bind ("C-x j" . skk-mode) :ensure)
 (use-package volatile-highlights :ensure)
+
+(if (executable-find "cmigemo")
+    (use-package migemo
+      :config (progn
+                (setq migemo-dictionary
+                      (cond
+                       ((eq system-type 'darwin) "/usr/local/share/migemo/utf-8/migemo-dict")
+                       ((eq system-type 'gnu-linux) "/usr/share/cmigemo/utf-8/migemo-dict")))
+                (migemo-init))))
 
 ;; Flymake
 (defun flymake-cc-init ()
