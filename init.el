@@ -1,3 +1,8 @@
+(require 'cask)
+(cask-initialize)
+(require 'pallet)
+(pallet-mode t)
+
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -44,10 +49,6 @@
  '(migemo-options (quote ("-q" "--emacs")))
  '(migemo-regex-dictionary nil)
  '(migemo-user-dictionary nil)
- '(package-archives
-   (quote
-    (("gnu" . "http://elpa.gnu.org/packages/")
-     ("melpa" . "http://melpa.milkbox.net/packages/"))))
  '(recentf-max-saved-items 1000)
  '(save-place t nil (saveplace))
  '(savehist-mode t)
@@ -115,13 +116,10 @@
 (require 'whitespace)
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
 
-(require 'package)
-(package-initialize)
-(unless (package-installed-p 'use-package) (package-install 'use-package))
-(eval-when-compile (require 'use-package))
+;;; packages
+(require 'use-package)
 
-;; packages
-(use-package helm-config :ensure helm
+(use-package helm-config
   :config (helm-mode t)
   :bind (("C-x C-f" . helm-find-files)
          ("C-x C-r" . helm-recentf)
@@ -129,72 +127,74 @@
          ("C-x C-b" . helm-buffers-list)
          ("M-x" . helm-M-x)
          ("M-y" . helm-show-kill-ring)))
-(use-package helm-git-grep :ensure
-  :config (progn
-            (define-key isearch-mode-map (kbd "C-c g") 'helm-git-grep-from-isearch))
+
+(use-package helm-git-grep
+  :commands (helm-git-grep-from-isearch)
+  :config (define-key isearch-mode-map (kbd "C-c g") 'helm-git-grep-from-isearch)
   :bind (("C-c g" . helm-git-grep)))
 
 (setq bm-restore-repository-on-load t)
-(use-package bm :ensure
-  :config (progn
-            (add-hook 'find-file-hook 'bm-buffer-restore)
-            (add-hook 'after-revert-hook 'bm-buffer-restore)
-            (add-hook 'kill-buffer-hook 'bm-buffer-save)
-            (add-hook 'after-save-hook 'bm-buffer-save)
-            (add-hook 'vc-before-checkin-hook 'bm-buffer-save)
-            (add-hook 'kill-emacs-hook '(lambda ()
-                                          (bm-buffer-save-all)
-                                          (bm-repository-save))))
+(use-package bm
+  :commands (bm-buffer-restore bm-buffer-save bm-buffer-save-all bm-repository-save)
+  :config
+  (add-hook 'find-file-hook 'bm-buffer-restore)
+  (add-hook 'after-revert-hook 'bm-buffer-restore)
+  (add-hook 'kill-buffer-hook 'bm-buffer-save)
+  (add-hook 'after-save-hook 'bm-buffer-save)
+  (add-hook 'vc-before-checkin-hook 'bm-buffer-save)
+  (add-hook 'kill-emacs-hook '(lambda ()
+                                (bm-buffer-save-all)
+                                (bm-repository-save)))
   :bind (("M-[" . bm-previous)
          ("M-]" . bm-next)
          ("M-SPC" . bm-toggle)))
 
-(use-package helm-bm :ensure :bind (("C-c m" . helm-bm)))
-(use-package company :ensure
+(use-package helm-bm :commands (helm-bm) :bind (("C-c m" . helm-bm)))
+(use-package company
   :init (add-hook 'after-init-hook 'global-company-mode)
   :bind (("C-;" . company-complete)))
-(use-package magit :ensure
+
+(use-package magit
   :bind (("C-x g" . magit-status))
-  :config (progn
-            (setq vcs-ediff-p nil)
-            (defadvice magit-ediff (around flymake-off activate)
-              (setq vcs-ediff-p t)
-              ad-do-it
-              (setq vcs-ediff-p nil))))
+  :config
+  (setq vcs-ediff-p nil)
+  (defadvice magit-ediff (around flymake-off activate)
+    (setq vcs-ediff-p t)
+    ad-do-it
+    (setq vcs-ediff-p nil)))
 
-(use-package git-gutter-fringe+ :ensure)
-(use-package yasnippet :ensure
-  :config (progn (yas/global-mode 1)))
+(use-package git-gutter-fringe+ :diminish git-gutter+-mode)
+(use-package yasnippet :config (yas-global-mode 1))
 
-(use-package popwin :ensure
-  :config (progn
-            (setq display-buffer-function 'popwin:display-buffer)
-            (dolist (window '((" *auto-async-byte-compile*")
-                              (":home" :position left)))
-              (add-to-list 'popwin:special-display-config window))))
+(use-package popwin
+  :config
+  (dolist (window '((" *auto-async-byte-compile*")
+                    (":home" :position left)))
+    (add-to-list 'popwin:special-display-config window)))
 
-(use-package exec-path-from-shell :config (exec-path-from-shell-initialize) :ensure)
-(use-package open-junk-file :ensure :commands open-junk-file)
-(use-package yaml-mode :mode "\\.yml$" :ensure)
-(use-package telephone-line :config (telephone-line-mode t) :ensure)
-(use-package color-theme :ensure)
-(use-package solarized :config (load-theme 'solarized-light t) :ensure solarized-theme)
-(use-package expand-region :bind ("C-M-SPC" . er/expand-region) :ensure)
-(use-package undo-tree :config (global-undo-tree-mode t) :ensure)
+(use-package exec-path-from-shell :config (exec-path-from-shell-initialize))
+(use-package open-junk-file :commands open-junk-file)
+(use-package yaml-mode :mode "\\.yml$")
+(use-package telephone-line :config (telephone-line-mode t))
+(use-package color-theme)
+(use-package solarized :config (load-theme 'solarized-light t))
+(use-package expand-region :bind ("C-M-SPC" . er/expand-region))
+(use-package undo-tree :config (global-undo-tree-mode t))
 (use-package escreen)
-(use-package auto-async-byte-compile :ensure
+(use-package auto-async-byte-compile
   :config (add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode))
-(use-package ddskk :bind ("C-x j" . skk-mode) :ensure)
-(use-package volatile-highlights :ensure)
+(use-package ddskk :bind ("C-x j" . skk-mode))
+(use-package volatile-highlights)
 
-(if (executable-find "cmigemo")
-    (use-package migemo
-      :config (progn
-                (setq migemo-dictionary
-                      (cond
-                       ((eq system-type 'darwin) "/usr/local/share/migemo/utf-8/migemo-dict")
-                       ((eq system-type 'gnu-linux) "/usr/share/cmigemo/utf-8/migemo-dict")))
-                (migemo-init))))
+
+(use-package migemo
+  :if (executable-find "cmigemo")
+  :config
+  (setq migemo-dictionary
+        (cond
+         ((eq system-type 'darwin) "/usr/local/share/migemo/utf-8/migemo-dict")
+         ((eq system-type 'gnu-linux) "/usr/share/cmigemo/utf-8/migemo-dict")))
+  (migemo-init))
 
 ;; Flymake
 (defun flymake-cc-init ()
@@ -202,46 +202,44 @@
          (local-file  (file-relative-name temp-file (file-name-directory buffer-file-name))))
     (list "g++" (list "std=c++0x" "-Wall" "-Wextra" "-fsyntax-only" local-file))))
 
-
-(use-package flymake :config (progn (push '("\\.cpp$" flymake-cc-init) flymake-allowed-file-name-masks)))
+(use-package flymake :config (add-to-list 'flymake-allowed-file-name-masks '("\\.cpp$" flymake-cc-init)))
 (use-package flymake-cursor)
 (defun flycheck-setting-c/c++()
   (flycheck-mode t)
   ;; (flycheck-select-checker 'c/c++-cppcheck)
   )
 
-(use-package flycheck :ensure
-  :config (progn
-            (add-hook 'c-mode-hook 'flycheck-setting-c/c++)
-            (add-hook 'c++-mode-hook 'flycheck-setting-c/c++)
-            (add-hook 'csharp-mode-hook 'flycheck-mode)
-            (add-hook 'ruby-mode-hook 'flycheck-mode)
-            (add-hook 'objc-mode-hook 'flycheck-mode)
-            ))
+(use-package flycheck
+  :config
+  (add-hook 'c-mode-hook 'flycheck-setting-c/c++)
+  (add-hook 'c++-mode-hook 'flycheck-setting-c/c++)
+  (add-hook 'csharp-mode-hook 'flycheck-mode)
+  (add-hook 'ruby-mode-hook 'flycheck-mode)
+  (add-hook 'objc-mode-hook 'flycheck-mode)
+  )
 
-(use-package flycheck-color-mode-line :ensure
+(use-package flycheck-color-mode-line
   :config (eval-after-load "flycheck" '(add-hook 'flychech-mode-hook 'flycheck-color-mode-line-mode)))
 
-(use-package nlinum :ensure
-  :config (progn
-            (add-hook 'c-mode-common-hook 'nlinum-mode)
-            (add-hook 'ruby-mode-hook 'nlinum-mode)
-            (add-hook 'coffee-mode-hook 'nlinum-mode)))
+(use-package nlinum
+  :config
+  (add-hook 'c-mode-common-hook 'nlinum-mode)
+  (add-hook 'ruby-mode-hook 'nlinum-mode)
+  (add-hook 'coffee-mode-hook 'nlinum-mode))
 
 ;;; CC-Mode
-(add-hook
- 'c-mode-common-hook
- '(lambda ()
-    (eldoc-mode t)
-    (local-set-key (kbd "C-c c") 'compile)
-    (setq c-basic-offset 4
-          indent-tabs-mode nil
-          comment-column 40)
-    (c-set-offset 'substatement-open 0)
-    (c-set-offset 'case-label '+)
-    (c-set-offset 'arglist-intro '+)
-    (c-set-offset 'arglist-close 0)
-    (local-set-key (kbd "C-c o") 'ff-find-other-file)))
+(defun cc-mode-setup()
+  (eldoc-mode t)
+  (local-set-key (kbd "C-c c") 'compile)
+  (setq c-basic-offset 4
+        indent-tabs-mode nil
+        comment-column 40)
+  (c-set-offset 'substatement-open 0)
+  (c-set-offset 'case-label '+)
+  (c-set-offset 'arglist-intro '+)
+  (c-set-offset 'arglist-close 0)
+  (local-set-key (kbd "C-c o") 'ff-find-other-file))
+(add-hook 'c-mode-common-hook 'cc-mode-setup)
 
 ;; (use-package gtags :config (add-hook 'c-mode-common-hook 'gtags-mode))
 ;;; C++
@@ -261,35 +259,54 @@
 (global-semantic-idle-scheduler-mode 1)
 (semantic-mode 1)
 
-(use-package irony :ensure :disabled :config (add-hook 'c++-mode-hook 'irony-mode))
-(use-package company-irony :ensure :disabled
+(use-package auto-complete :config (add-hook 'auto-complete-mode 'ac-common-setup))
+(use-package auto-complete-clang-async
+  :load-path "~/repos/emacs-clang-complete-async"
+  :if (eq window-system 'ns)
+  :config
+  (defun objc-mode-setup()
+    (setq ac-clang-cflags
+          (split-string
+           (shell-command-to-string (concat (executable-find "clang-complete-helper") " cflags "
+                                            (and buffer-file-name
+                                                 (file-relative-name buffer-file-name))))))
+    (setq ac-clang-complete-executable (executable-find "clang-complete"))
+    (add-to-list 'ac-sources 'ac-source-clang-async)
+    (ac-clang-launch-completion-process)
+    (company-mode 0)
+    (auto-complete-mode t)
+    (local-set-key (kbd "C-;") 'auto-complete))
+  (add-hook 'objc-mode-hook 'objc-mode-setup))
+
+(use-package irony :disabled :config (add-hook 'c++-mode-hook 'irony-mode))
+(use-package company-irony :disabled
   :config (progn
             (set (make-local-variable 'company-backends) '(company-irony))
             (add-hook 'irony-mode-hook 'company-irony-setup-begin-commands)))
 
-(use-package rtags :ensure :disabled
+(use-package rtags :disabled
   :config (add-hook 'c++-mode-hook
                     (lambda ()
                       (rtags-enable-standard-keybindings c-mode-base-map)
                       (setq rtags-completions-enabled t)
                       (rtags-diagnostics))))
 
-(use-package company-rtags :ensure rtags
+(use-package company-rtags
   :config (progn (add-hook
                   'c++-mode-hook
                   (lambda()
                     ;; (set (make-local-variable 'company-backends) '(company-rtags))
                     (setq company-rtags-begin-after-member-access t)))))
 
-(use-package function-args :ensure :disabled :config (fa-config-default))
+(use-package function-args :disabled :config (fa-config-default))
 
 ;;; C#
-(use-package csharp-mode :ensure :mode "\\.cs$")
-(use-package omnisharp :ensure
-  :config (progn
-            (add-hook 'csharp-mode-hook 'omnisharp-mode)
-            (let ((global-backends company-backends))
-              (set (make-local-variable 'company-backends) (cons 'company-omnisharp global-backends)))))
+(use-package csharp-mode :mode "\\.cs$")
+(use-package omnisharp
+  :config
+  (add-hook 'csharp-mode-hook 'omnisharp-mode)
+  (let ((global-backends company-backends))
+    (set (make-local-variable 'company-backends) (cons 'company-omnisharp global-backends))))
 
 ;; 設定ファイルを別にする
 ;; indent
@@ -309,8 +326,8 @@
       (indent-line-to indent)
       (when (> offset 0) (forward-char offset)))))
 
-(use-package robe :ensure :config (progn (push 'company-robe company-backends)))
-(use-package web-mode :ensure :mode ".+\\.erb$")
+(use-package robe :config (add-to-list 'company-backends 'company-robe))
+(use-package web-mode :mode ".+\\.erb$")
 
 (defun coffee-custom ()
   "coffee-mode-hook"
@@ -329,7 +346,7 @@
        (file-exists-p (coffee-compiled-file-name))
        (coffee-cos-mode t)))
 
-(use-package coffee-mode :ensure
+(use-package coffee-mode
   :config (add-hook 'coffee-mode-hook 'coffee-custom)
   :mode "\\.coffee$")
 
