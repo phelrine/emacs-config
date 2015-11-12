@@ -1,24 +1,3 @@
-(require 'package)
-(add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
-(package-initialize)
-(setenv "LANG" "ja_JP.UTF-8")
-(add-to-list 'load-path "~/.emacs.d/lisp")
-
-(global-set-key (kbd "C-o") 'other-window)
-(global-set-key (kbd "C-h") 'delete-backward-char)
-(global-set-key (kbd "RET") 'newline-and-indent)
-(add-to-list 'exec-path (concat (getenv "HOME") "/repos/rtags/bin"))
-(add-to-list 'exec-path (concat (getenv "HOME") "/bin"))
-
-(require 'tramp)
-(add-to-list 'tramp-default-proxies-alist '(nil "\\`root\\'" "/ssh:%h:"))
-(add-to-list 'tramp-default-proxies-alist '("localhost" nil nil))
-(add-to-list 'tramp-default-proxies-alist '((regexp-quote (system-name)) nil nil))
-
-(unless (package-installed-p 'use-package)
-  (package-install 'use-package))
-(eval-when-compile (require 'use-package))
-
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -30,11 +9,24 @@
  '(bm-fringe-persistent-face (quote bm-face))
  '(bm-highlight-style (quote bm-highlight-line-and-fringe))
  '(bm-persistent-face (quote bm-face))
+ '(cc-other-file-alist
+   (quote
+    (("\\.cpp$"
+      (".hpp" ".h"))
+     ("\\.h$"
+      (".c" ".cpp" ".m" ".mm"))
+     ("\\.hpp$"
+      (".cpp" ".c"))
+     ("\\.m$"
+      (".h"))
+     ("\\.mm$"
+      (".h")))))
+ '(company-async-timeout 0.5 t)
  '(company-backends
    (quote
     (company-bbdb company-nxml company-css company-eclim company-semantic company-cmake company-capf
-                  (company-clang :with company-dabbrev-code)
-                  (company-dabbrev-code company-gtags company-etags company-keywords)
+                  (company-dabbrev-code :with company-clang)
+                  (company-clang company-gtags company-etags company-keywords)
                   company-oddmuse company-files company-dabbrev)))
  '(company-dabbrev-downcase nil)
  '(global-auto-revert-mode t)
@@ -52,6 +44,10 @@
  '(migemo-options (quote ("-q" "--emacs")))
  '(migemo-regex-dictionary nil)
  '(migemo-user-dictionary nil)
+ '(package-archives
+   (quote
+    (("gnu" . "http://elpa.gnu.org/packages/")
+     ("melpa" . "http://melpa.milkbox.net/packages/"))))
  '(recentf-max-saved-items 1000)
  '(save-place t nil (saveplace))
  '(savehist-mode t)
@@ -62,7 +58,8 @@
  '(volatile-highlights-mode t)
  '(whitespace-display-mappings (quote ((space-mark 12288 [9633]) (tab-mark 9 [187 9]))))
  '(whitespace-space-regexp "\\(　+\\)")
- '(whitespace-style (quote (face tabs tab-mark spaces space-mark))))
+ '(whitespace-style (quote (face tabs tab-mark spaces space-mark)))
+ '(yas-prompt-functions (quote (yas/completing-prompt))))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -75,6 +72,14 @@
  '(whitespace-space ((t (:foreground "DarkGoldenrod1"))))
  '(whitespace-tab ((t (:foreground "blue")))))
 
+(setenv "LANG" "ja_JP.UTF-8")
+(add-to-list 'load-path "~/.emacs.d/lisp")
+
+(global-set-key (kbd "C-o") 'other-window)
+(global-set-key (kbd "C-h") 'delete-backward-char)
+(global-set-key (kbd "RET") 'newline-and-indent)
+(add-to-list 'exec-path (concat (getenv "HOME") "/repos/rtags/bin"))
+(add-to-list 'exec-path (concat (getenv "HOME") "/bin"))
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 (defalias 'qrr 'query-replace-regexp)
 (defalias 'yes-or-no-p 'y-or-n-p)
@@ -85,25 +90,35 @@
   (set-fontset-font "fontset-default" 'katakana-jisx0201
                     '("Hiragino_Kaku_Gothic_ProN" . "iso10646-1"))
   (nconc default-frame-alist '((width . 120)(height . 40)))
-  (setq xcode:sdk "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk")
-  (setq xcode:foundation (concat xcode:sdk "/System/Library/Frameworks/Foundation.framework/Headers/"))
-  (setq xcode:uikit (concat xcode:sdk "/System/Library/Frameworks/UIKit.framework/Headers/"))
-  (setq company-clang-argument
-        '("-Wall" "-Wextra" "-fsyntax-only" "-ObjC" "-std=c99"
-          "-isysroot" xcode:sdk "-I."
-          "-D__IPHONE_OS_VERSION_MIN_REQUIRED=30200")))
+  (defvar xcode:sdk "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk")
+  (defvar xcode:frameworks (concat xcode:sdk "/System/Library/Frameworks/"))
+  (defvar xcode:headers (concat xcode:sdk "/usr/include/"))
+  (defvar company-clang-argument
+    '("-Wall" "-Wextra" "-fsyntax-only" "-ObjC" "-std=c99" "-fblocks" "-fobjc-arc"
+      "-isysroot" xcode:sdk "-I" xcode:headers "-I." "-D__IPHONE_OS_VERSION_MIN_REQUIRED=70000")))
+
 
 (global-font-lock-mode)
 (dolist (hook '(lisp-interaction-mode-hook emacs-lisp-mode-hook))
   (add-hook hook 'turn-on-eldoc-mode))
 
+(require 'tramp)
+(add-to-list 'tramp-default-proxies-alist '(nil "\\`root\\'" "/ssh:%h:"))
+(add-to-list 'tramp-default-proxies-alist '("localhost" nil nil))
+(add-to-list 'tramp-default-proxies-alist '((regexp-quote (system-name)) nil nil))
+
 ;; builtin
-(use-package hl-line)
-(use-package saveplace)
-(use-package savehist)
-(use-package recentf)
-(use-package whitespace)
+(require 'hl-line)
+(require 'saveplace)
+(require 'savehist)
+(require 'recentf)
+(require 'whitespace)
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
+
+(require 'package)
+(package-initialize)
+(unless (package-installed-p 'use-package) (package-install 'use-package))
+(eval-when-compile (require 'use-package))
 
 ;; packages
 (use-package helm-config :ensure helm
@@ -149,9 +164,7 @@
 
 (use-package git-gutter-fringe+ :ensure)
 (use-package yasnippet :ensure
-  :config (progn
-            (yas/global-mode 1)
-            (setq yas/prompt-functions '(yas/completing-prompt))))
+  :config (progn (yas/global-mode 1)))
 
 (use-package popwin :ensure
   :config (progn
@@ -171,7 +184,6 @@
 (use-package escreen)
 (use-package auto-async-byte-compile :ensure
   :config (add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode))
-(use-package skk)
 (use-package ddskk :bind ("C-x j" . skk-mode) :ensure)
 (use-package volatile-highlights :ensure)
 
@@ -190,20 +202,22 @@
          (local-file  (file-relative-name temp-file (file-name-directory buffer-file-name))))
     (list "g++" (list "std=c++0x" "-Wall" "-Wextra" "-fsyntax-only" local-file))))
 
-(use-package flymake
-  :config (nconc flymake-allowed-file-name-masks '(("\\.cpp$" flymake-cc-init))))
-(use-package flymake-cursor)
 
+(use-package flymake :config (progn (push '("\\.cpp$" flymake-cc-init) flymake-allowed-file-name-masks)))
+(use-package flymake-cursor)
 (defun flycheck-setting-c/c++()
   (flycheck-mode t)
-  (flycheck-select-checker 'c/c++-cppcheck))
+  ;; (flycheck-select-checker 'c/c++-cppcheck)
+  )
 
 (use-package flycheck :ensure
   :config (progn
             (add-hook 'c-mode-hook 'flycheck-setting-c/c++)
             (add-hook 'c++-mode-hook 'flycheck-setting-c/c++)
             (add-hook 'csharp-mode-hook 'flycheck-mode)
-            (add-hook 'ruby-mode-hook 'flycheck-mode)))
+            (add-hook 'ruby-mode-hook 'flycheck-mode)
+            (add-hook 'objc-mode-hook 'flycheck-mode)
+            ))
 
 (use-package flycheck-color-mode-line :ensure
   :config (eval-after-load "flycheck" '(add-hook 'flychech-mode-hook 'flycheck-color-mode-line-mode)))
@@ -215,13 +229,6 @@
             (add-hook 'coffee-mode-hook 'nlinum-mode)))
 
 ;;; CC-Mode
-(setq cc-other-file-alist
-      `(("\\.cpp$" (".hpp" ".h"))
-        ("\\.h$" (".c" ".cpp" ".m" ".mm"))
-        ("\\.hpp$" (".cpp" ".c"))
-        ("\\.m$" (".h"))
-        ("\\.mm$" (".h"))))
-
 (add-hook
  'c-mode-common-hook
  '(lambda ()
@@ -239,6 +246,7 @@
 ;; (use-package gtags :config (add-hook 'c-mode-common-hook 'gtags-mode))
 ;;; C++
 (add-to-list 'auto-mode-alist '(".+\\.h$" . c++-mode))
+(add-to-list 'auto-mode-alist '("\\.mm?$" . objc-mode))
 (add-to-list 'magic-mode-alist
              `(,(lambda ()
                   (and (string= (file-name-extension buffer-file-name) "h")
@@ -270,7 +278,7 @@
   :config (progn (add-hook
                   'c++-mode-hook
                   (lambda()
-                    (set (make-local-variable 'company-backends) '(company-rtags))
+                    ;; (set (make-local-variable 'company-backends) '(company-rtags))
                     (setq company-rtags-begin-after-member-access t)))))
 
 (use-package function-args :ensure :disabled :config (fa-config-default))
