@@ -2,6 +2,7 @@
 (source gnu)
 
 (depends-on "auto-async-byte-compile")
+(depends-on "auto-complete")
 (depends-on "bind-key")
 (depends-on "bm")
 (depends-on "cask")
@@ -21,8 +22,10 @@
 (depends-on "git-gutter-fringe+")
 (depends-on "helm")
 (depends-on "helm-bm")
+(depends-on "helm-core")
 (depends-on "helm-git-grep")
 (depends-on "helm-migemo")
+(depends-on "highlight-indent-guides")
 (depends-on "htmlize")
 (depends-on "idle-highlight-mode")
 (depends-on "magit")

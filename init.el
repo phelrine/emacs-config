@@ -70,6 +70,8 @@
  '(bm-face ((t (:background "spring green" :overline nil :underline t))))
  '(flymake-errline ((t (:foreground "orange" :background "blue"))))
  '(flymake-warnline ((t (:background "yellow"))))
+ '(highlight-indent-guides-even-face ((t (:background "wheat1"))))
+ '(highlight-indent-guides-odd-face ((t (:background "wheat2"))))
  '(whitespace-space ((t (:foreground "DarkGoldenrod1"))))
  '(whitespace-tab ((t (:foreground "blue")))))
 
@@ -227,6 +229,10 @@
   (add-hook 'ruby-mode-hook 'nlinum-mode)
   (add-hook 'coffee-mode-hook 'nlinum-mode))
 
+(use-package highlight-indent-guides
+  :config
+  (add-hook 'prog-mode-hook 'highlight-indent-guides-mode))
+
 ;;; CC-Mode
 (defun cc-mode-setup()
   (eldoc-mode t)
@@ -267,16 +273,18 @@
   (defun objc-mode-setup()
     (setq ac-clang-cflags
           (split-string
-           (shell-command-to-string (concat (executable-find "clang-complete-helper") " cflags "
-                                            (and buffer-file-name
-                                                 (file-relative-name buffer-file-name))))))
+           (concat (shell-command-to-string (concat (executable-find "clang-complete-helper") " cflags "
+                                                    (and buffer-file-name
+                                                         (file-relative-name buffer-file-name))))
+                   " -ObjC")))
     (setq ac-clang-complete-executable (executable-find "clang-complete"))
     (add-to-list 'ac-sources 'ac-source-clang-async)
     (ac-clang-launch-completion-process)
     (company-mode 0)
     (auto-complete-mode t)
     (local-set-key (kbd "C-;") 'auto-complete))
-  (add-hook 'objc-mode-hook 'objc-mode-setup))
+  (add-hook 'objc-mode-hook 'objc-mode-setup)
+  (add-hook 'c++-mode-hook 'objc-mode-setup))
 
 (use-package irony :disabled :config (add-hook 'c++-mode-hook 'irony-mode))
 (use-package company-irony :disabled
