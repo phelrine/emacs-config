@@ -56,7 +56,6 @@
  '(show-trailing-whitespace t)
  '(tab-width 4)
  '(tool-bar-mode nil)
- '(volatile-highlights-mode t)
  '(whitespace-display-mappings (quote ((space-mark 12288 [9633]) (tab-mark 9 [187 9]))))
  '(whitespace-space-regexp "\\(　+\\)")
  '(whitespace-style (quote (face tabs tab-mark spaces space-mark)))
@@ -72,6 +71,7 @@
  '(flymake-warnline ((t (:background "yellow"))))
  '(highlight-indent-guides-even-face ((t (:background "wheat1"))))
  '(highlight-indent-guides-odd-face ((t (:background "wheat2"))))
+ '(objc-font-lock-background ((t (:inherit nil))))
  '(whitespace-space ((t (:foreground "DarkGoldenrod1"))))
  '(whitespace-tab ((t (:foreground "blue")))))
 
@@ -186,8 +186,8 @@
 (use-package auto-async-byte-compile
   :config (add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode))
 (use-package ddskk :bind ("C-x j" . skk-mode))
-(use-package volatile-highlights)
-
+(use-package volatile-highlights :config (volatile-highlights-mode t))
+(use-package rainbow-delimiters :config (add-hook 'prog-mode-hook 'rainbow-delimiters-mode))
 
 (use-package migemo
   :if (executable-find "cmigemo")
@@ -285,7 +285,7 @@
     (local-set-key (kbd "C-;") 'auto-complete))
   (add-hook 'objc-mode-hook 'objc-mode-setup)
   (add-hook 'c++-mode-hook 'objc-mode-setup))
-
+(use-package objc-font-lock :config (add-hook 'objc-mode-hook 'objc-font-lock-mode))
 (use-package irony :disabled :config (add-hook 'c++-mode-hook 'irony-mode))
 (use-package company-irony :disabled
   :config (progn
