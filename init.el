@@ -8,6 +8,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(beacon-mode t)
  '(bm-buffer-persistence t)
  '(bm-cycle-all-buffers t)
  '(bm-fringe-face (quote bm-face))
@@ -357,6 +358,13 @@
 (use-package coffee-mode
   :config (add-hook 'coffee-mode-hook 'coffee-custom)
   :mode "\\.coffee$")
+
+(use-package go-mode
+  :config
+  (add-hook 'go-mode-hook
+            '(lambda ()
+               (add-to-list (make-local-variable 'company-backends) 'company-go))))
+
 
 ;; (Load "python-config")
 ;; (load "scheme-config")
