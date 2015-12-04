@@ -199,6 +199,10 @@
          ((eq system-type 'gnu-linux) "/usr/share/cmigemo/utf-8/migemo-dict")))
   (migemo-init))
 
+(use-package point-undo
+  :bind (("<f5>" . point-undo)
+         ("<f6>" . point-redo)))
+
 ;; Flymake
 (defun flymake-cc-init ()
   (let* ((temp-file   (flymake-init-create-temp-buffer-copy 'flymake-create-temp-inplace))
