@@ -47,6 +47,7 @@
 (depends-on "omnisharp")
 (depends-on "open-junk-file")
 (depends-on "pallet")
+(depends-on "point-undo")
 (depends-on "popup")
 (depends-on "popwin")
 (depends-on "prodigy")
