@@ -8,6 +8,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(beacon-color "light green")
  '(beacon-mode t)
  '(bm-buffer-persistence t)
  '(bm-cycle-all-buffers t)
@@ -57,6 +58,7 @@
  '(show-trailing-whitespace t)
  '(tab-width 4)
  '(tool-bar-mode nil)
+ '(volatile-highlights-mode t)
  '(whitespace-display-mappings (quote ((space-mark 12288 [9633]) (tab-mark 9 [187 9]))))
  '(whitespace-space-regexp "\\(　+\\)")
  '(whitespace-style (quote (face tabs tab-mark spaces space-mark)))
@@ -187,7 +189,6 @@
 (use-package auto-async-byte-compile
   :config (add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode))
 (use-package ddskk :bind ("C-x j" . skk-mode))
-(use-package volatile-highlights :config (volatile-highlights-mode t))
 (use-package rainbow-delimiters :config (add-hook 'prog-mode-hook 'rainbow-delimiters-mode))
 
 (use-package migemo
