@@ -1,4 +1,6 @@
-(require 'cask)
+(if (eq window-system 'ns)
+    (require 'cask)
+  (require 'cask (concat (getenv "HOME") "/.cask/cask.el")))
 (cask-initialize)
 (require 'pallet)
 (pallet-mode t)
