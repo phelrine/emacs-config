@@ -107,8 +107,6 @@
 
 
 (global-font-lock-mode)
-(dolist (hook '(lisp-interaction-mode-hook emacs-lisp-mode-hook))
-  (add-hook hook 'turn-on-eldoc-mode))
 
 (require 'tramp)
 (add-to-list 'tramp-default-proxies-alist '(nil "\\`root\\'" "/ssh:%h:"))
@@ -125,7 +123,6 @@
 
 ;;; packages
 (require 'use-package)
-
 (use-package helm-config
   :config (helm-mode t)
   :bind (("C-x C-f" . helm-find-files)
@@ -157,9 +154,9 @@
          ("M-SPC" . bm-toggle)))
 
 (use-package helm-bm :commands (helm-bm) :bind (("C-c m" . helm-bm)))
-(use-package company
-  :init (add-hook 'after-init-hook 'global-company-mode)
-  :bind (("C-;" . company-complete)))
+
+(use-package company)
+(use-package auto-complete)
 
 (use-package magit
   :bind (("C-x g" . magit-status))
@@ -241,6 +238,14 @@
   :config
   (add-hook 'prog-mode-hook 'highlight-indent-guides-mode))
 
+;;; Lisp Mode
+(dolist (hook '(lisp-interaction-mode-hook emacs-lisp-mode-hook))
+  (add-hook hook
+            (lambda ()
+              (turn-on-eldoc-mode)
+              (company-mode t)
+              (local-set-key (kbd "C-;") 'company-complete))))
+
 ;;; CC-Mode
 (defun cc-mode-setup()
   (eldoc-mode t)
@@ -273,11 +278,11 @@
 (global-semantic-idle-scheduler-mode 1)
 (semantic-mode 1)
 
-(use-package auto-complete :config (add-hook 'auto-complete-mode 'ac-common-setup))
 (use-package auto-complete-clang-async
   :load-path "~/repos/emacs-clang-complete-async"
   :if (eq window-system 'ns)
   :config
+  (setq ac-clang-complete-executable (executable-find "clang-complete"))
   (defun objc-mode-setup()
     (setq ac-clang-cflags
           (split-string
@@ -285,10 +290,8 @@
                                                     (and buffer-file-name
                                                          (file-relative-name buffer-file-name))))
                    " -ObjC")))
-    (setq ac-clang-complete-executable (executable-find "clang-complete"))
     (add-to-list 'ac-sources 'ac-source-clang-async)
     (ac-clang-launch-completion-process)
-    (company-mode 0)
     (auto-complete-mode t)
     (local-set-key (kbd "C-;") 'auto-complete))
   (add-hook 'objc-mode-hook 'objc-mode-setup)
@@ -366,12 +369,17 @@
   :config (add-hook 'coffee-mode-hook 'coffee-custom)
   :mode "\\.coffee$")
 
+(use-package go-autocomplete)
 (use-package go-mode
   :config
   (add-hook 'go-mode-hook
             '(lambda ()
-               (add-to-list (make-local-variable 'company-backends) 'company-go))))
-
+               (go-eldoc-setup)
+               (auto-complete-mode t)
+               (flycheck-mode t)
+               (local-set-key (kbd "C-;") 'auto-complete)
+               (local-set-key (kbd "M-.") 'godef-jump)
+               (local-set-key (kbd "M-,") 'pop-tag-mark))))
 
 ;; (Load "python-config")
 ;; (load "scheme-config")
