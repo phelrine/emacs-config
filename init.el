@@ -173,10 +173,14 @@
 (use-package popwin
   :config
   (dolist (window '((" *auto-async-byte-compile*")
-                    (":home" :position left)))
+                    (":home" :position left)
+                    ("*compilation*")))
     (add-to-list 'popwin:special-display-config window)))
 
-(use-package exec-path-from-shell :config (exec-path-from-shell-initialize))
+(use-package exec-path-from-shell
+  :config
+  (exec-path-from-shell-initialize)
+  (exec-path-from-shell-copy-env "GOPATH"))
 (use-package open-junk-file :commands open-junk-file)
 (use-package yaml-mode :mode "\\.yml$")
 (use-package telephone-line :config (telephone-line-mode t))
@@ -228,11 +232,7 @@
 (use-package flycheck-color-mode-line
   :config (eval-after-load "flycheck" '(add-hook 'flychech-mode-hook 'flycheck-color-mode-line-mode)))
 
-(use-package nlinum
-  :config
-  (add-hook 'c-mode-common-hook 'nlinum-mode)
-  (add-hook 'ruby-mode-hook 'nlinum-mode)
-  (add-hook 'coffee-mode-hook 'nlinum-mode))
+(use-package nlinum :config (add-hook 'prog-mode-hook 'nlinum-mode))
 
 (use-package highlight-indent-guides
   :config
@@ -369,17 +369,18 @@
   :config (add-hook 'coffee-mode-hook 'coffee-custom)
   :mode "\\.coffee$")
 
+(defun go-mode-setup()
+  (go-eldoc-setup)
+  (auto-complete-mode t)
+  (flycheck-mode t)
+  (local-set-key (kbd "C-;") 'auto-complete)
+  (local-set-key (kbd "M-.") 'godef-jump)
+  (local-set-key (kbd "M-,") 'pop-tag-mark))
+
 (use-package go-autocomplete)
 (use-package go-mode
   :config
-  (add-hook 'go-mode-hook
-            '(lambda ()
-               (go-eldoc-setup)
-               (auto-complete-mode t)
-               (flycheck-mode t)
-               (local-set-key (kbd "C-;") 'auto-complete)
-               (local-set-key (kbd "M-.") 'godef-jump)
-               (local-set-key (kbd "M-,") 'pop-tag-mark))))
+  (add-hook 'go-mode-hook 'go-mode-setup))
 
 ;; (Load "python-config")
 ;; (load "scheme-config")
