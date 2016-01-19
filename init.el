@@ -64,7 +64,7 @@
  '(whitespace-display-mappings (quote ((space-mark 12288 [9633]) (tab-mark 9 [187 9]))))
  '(whitespace-space-regexp "\\(　+\\)")
  '(whitespace-style (quote (face tabs tab-mark spaces space-mark)))
- '(yas-prompt-functions (quote (yas/completing-prompt))))
+ )
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -168,7 +168,24 @@
     (setq vcs-ediff-p nil)))
 
 (use-package git-gutter-fringe+ :diminish git-gutter+-mode)
-(use-package yasnippet :config (yas-global-mode 1))
+(defun yas-popup-isearch-prompt (prompt choices &optional display-fn)
+  (when (featurep 'popup)
+    (popup-menu*
+     (mapcar
+      (lambda (choice)
+        (popup-make-item
+         (or (and display-fn (funcall display-fn choice))
+             choice)
+         :value choice))
+      choices)
+     :prompt prompt
+     ;; start isearch mode immediately
+     :isearch t
+     )))
+(use-package yasnippet
+  :config
+  (setq yas-prompt-functions '(yas-popup-isearch-prompt yas/completing-prompt))
+  (yas-global-mode 1))
 
 (use-package popwin
   :config
