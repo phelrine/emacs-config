@@ -30,6 +30,8 @@
       (".h"))
      ("\\.mm$"
       (".h")))))
+ '(clang-format-style
+   "{BasedOnStyle: google, IndentWidth: 4, BreakBeforeBraces: Linux, ObjCBlockIndentWidth: 4}")
  '(company-async-timeout 0.5 t)
  '(company-backends
    (quote
@@ -63,8 +65,7 @@
  '(volatile-highlights-mode t)
  '(whitespace-display-mappings (quote ((space-mark 12288 [9633]) (tab-mark 9 [187 9]))))
  '(whitespace-space-regexp "\\(　+\\)")
- '(whitespace-style (quote (face tabs tab-mark spaces space-mark)))
- )
+ '(whitespace-style (quote (face tabs tab-mark spaces space-mark))))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -343,6 +344,28 @@
   (add-hook 'csharp-mode-hook 'omnisharp-mode)
   (let ((global-backends company-backends))
     (set (make-local-variable 'company-backends) (cons 'company-omnisharp global-backends))))
+
+;;; Obj-C
+(defadvice ff-get-file-name (around ff-get-file-name-framework
+                                    (search-dirs
+                                     fname-stub
+                                     &optional suffix-list))
+  "Search for Mac framework headers as well as POSIX headers."
+  (or
+   (if (string-match "\\(.*?\\)/\\(.*\\)" fname-stub)
+       (let* ((framework (match-string 1 fname-stub))
+              (header (match-string 2 fname-stub))
+              (fname-stub (concat framework ".framework/Headers/" header)))
+         ad-do-it))
+   ad-do-it))
+(ad-enable-advice 'ff-get-file-name 'around 'ff-get-file-name-framework)
+(ad-activate 'ff-get-file-name)
+(if (eq window-system 'ns)
+    (setq cc-search-directories
+          '("." "../include" "/usr/include" "/usr/local/include/*"
+            "/System/Library/Frameworks" "/Library/Frameworks")))
+
+(use-package clang-format)
 
 ;; 設定ファイルを別にする
 ;; indent
