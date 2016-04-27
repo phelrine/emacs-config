@@ -256,6 +256,12 @@
   :config
   (add-hook 'prog-mode-hook 'highlight-indent-guides-mode))
 
+(use-package projectile
+  :config
+  (projectile-global-mode)
+  (setq projectile-completion-system 'helm)
+  (helm-projectile-on))
+
 ;;; Lisp Mode
 (dolist (hook '(lisp-interaction-mode-hook emacs-lisp-mode-hook))
   (add-hook hook
