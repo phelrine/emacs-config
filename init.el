@@ -31,7 +31,7 @@
      ("\\.mm$"
       (".h")))))
  '(clang-format-style
-   "{BasedOnStyle: google, IndentWidth: 4, BreakBeforeBraces: Linux, ObjCBlockIndentWidth: 4}")
+   "{BasedOnStyle: google, IndentWidth: 4, BreakBeforeBraces: Linux, ObjCBlockIndentWidth: 4, ColumnLimit: 0}")
  '(company-async-timeout 0.5 t)
  '(company-backends
    (quote
