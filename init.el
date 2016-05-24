@@ -31,7 +31,7 @@
      ("\\.mm$"
       (".h")))))
  '(clang-format-style
-   "{BasedOnStyle: google, IndentWidth: 4, BreakBeforeBraces: Linux, ObjCBlockIndentWidth: 4, ColumnLimit: 0}")
+   "{BasedOnStyle: google, IndentWidth: 4, BreakBeforeBraces: Linux, ObjCBlockIndentWidth: 4, ColumnLimit: 0, ObjCSpaceAfterProperty: true}")
  '(company-async-timeout 0.5 t)
  '(company-backends
    (quote
@@ -224,6 +224,10 @@
 (use-package point-undo
   :bind (("<f5>" . point-undo)
          ("<f6>" . point-redo)))
+
+(use-package cursor-in-brackets
+  :config
+  (global-cursor-in-brackets t))
 
 ;; Flymake
 (defun flymake-cc-init ()
