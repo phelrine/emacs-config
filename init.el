@@ -227,7 +227,7 @@
 
 (use-package cursor-in-brackets
   :config
-  (global-cursor-in-brackets t))
+  (global-cursor-in-brackets-mode t))
 
 ;; Flymake
 (defun flymake-cc-init ()
