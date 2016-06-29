@@ -432,6 +432,24 @@
   :config
   (add-hook 'go-mode-hook 'go-mode-setup))
 
+(use-package company-sourcekit)
+(defun swift-mode-setup()
+  (when (and (featurep 'company) (featurep 'company-sourcekit))
+    (company-mode t)
+    (add-to-list 'company-backends 'company-sourcekit)
+    (local-set-key (kbd "C-;") 'company-complete))
+  (when (featurep 'flycheck)
+    (flycheck-mode t)
+    (setq flycheck-swift-sdk-path
+          (replace-regexp-in-string
+           "\n+$" "" (shell-command-to-string
+                      "xcrun --show-sdk-path --sdk macosx")))
+    (add-to-list 'flycheck-checkers 'swift))
+  )
+
+(use-package swift-mode
+  :config (add-hook 'swift-mode-hook 'swift-mode-setup))
+
 ;; (Load "python-config")
 ;; (load "scheme-config")
 ;; (load "latex-mode-config")
