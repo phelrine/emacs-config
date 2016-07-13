@@ -380,7 +380,16 @@
 
 (use-package clang-format)
 
-;; 設定ファイルを別にする
+(require 'ipython nil t)
+(use-package anaconda-mode :ensure :config (add-to-list 'company-backends 'company-anaconda))
+(defun python-mode-setup()
+  (when (featurep 'anaconda-mode)
+    (anaconda-mode t))
+  (company-mode t)
+  (local-set-key (kbd "C-;") 'company-complete))
+
+(add-hook 'python-mode-hook 'python-mode-setup)
+
 ;; indent
 (setq ruby-deep-indent-paren-style nil)
 (defadvice ruby-indent-line (after unindent-closing-paren activate)
@@ -431,9 +440,7 @@
   (local-set-key (kbd "M-,") 'pop-tag-mark))
 
 (use-package go-autocomplete)
-(use-package go-mode
-  :config
-  (add-hook 'go-mode-hook 'go-mode-setup))
+(use-package go-mode :config (add-hook 'go-mode-hook 'go-mode-setup))
 
 (use-package company-sourcekit)
 (defun swift-mode-setup()
@@ -453,6 +460,5 @@
 (use-package swift-mode
   :config (add-hook 'swift-mode-hook 'swift-mode-setup))
 
-;; (Load "python-config")
 ;; (load "scheme-config")
 ;; (load "latex-mode-config")
