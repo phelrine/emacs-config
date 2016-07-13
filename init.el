@@ -10,6 +10,8 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(ac-expand-on-auto-complete t)
+ '(ac-show-menu-immediately-on-auto-complete t)
  '(beacon-color "light green")
  '(beacon-mode t)
  '(bm-buffer-persistence t)
@@ -60,6 +62,7 @@
  '(savehist-mode t)
  '(show-paren-mode 1)
  '(show-trailing-whitespace t)
+ '(sourcekit-verbose t)
  '(tab-width 4)
  '(tool-bar-mode nil)
  '(volatile-highlights-mode t)
