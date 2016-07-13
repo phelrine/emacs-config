@@ -460,5 +460,21 @@
 (use-package swift-mode
   :config (add-hook 'swift-mode-hook 'swift-mode-setup))
 
-;; (load "scheme-config")
+(defconst scheme-program-name "gosh -i")
+(autoload 'scheme-mode "cmuscheme" "Major mode for Scheme." t)
+(autoload 'run-scheme "cmuscheme" "Run an inferior Scheme process." t)
+(defun scheme-other-window ()
+  "Run scheme on other window"
+  (interactive)
+  (switch-to-buffer-other-window
+   (get-buffer-create "*scheme*"))
+  (run-scheme scheme-program-name))
+
+(defun scheme-mode-setup ()
+  (when (featurep 'company)
+    (company-mode t)
+    (local-set-key (kbd "C-;") 'company-complete))
+  (local-set-key (kbd "C-c s") 'scheme-other-window))
+(add-hook 'scheme-mode-hook 'scheme-mode-setup)
+
 ;; (load "latex-mode-config")
