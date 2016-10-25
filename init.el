@@ -1,3 +1,10 @@
+
+;; Added by Package.el.  This must come before configurations of
+;; installed packages.  Don't delete this line.  If you don't want it,
+;; just comment it out by adding a semicolon to the start of the line.
+;; You may delete these explanatory comments.
+(package-initialize)
+
 (if (eq window-system 'ns)
     (require 'cask)
   (require 'cask (concat (getenv "HOME") "/.cask/cask.el")))
@@ -11,7 +18,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(ac-expand-on-auto-complete t)
- '(ac-show-menu-immediately-on-auto-complete t)
+ '(ac-show-menu-immediately-on-auto-complete nil)
  '(beacon-color "light green")
  '(beacon-mode t)
  '(bm-buffer-persistence t)
@@ -57,18 +64,23 @@
  '(migemo-options (quote ("-q" "--emacs")))
  '(migemo-regex-dictionary nil)
  '(migemo-user-dictionary nil)
+ '(package-selected-packages
+   (quote
+    (yaml-mode xcode-mode websocket web-mode volatile-highlights visible-mark use-package undo-tree tumblesocks telephone-line swift-mode solarized-theme smex smeargle smartwin smartparens slim-mode show-marks ruby-hash-syntax ruby-block rtags robe restart-emacs request rainbow-delimiters prodigy popwin point-undo phpunit php-mode pallet open-junk-file omnisharp objc-font-lock oauth2 nyan-mode nlinum nginx-mode magit key-leap jedi ivy idle-highlight-mode hyperbole highlight-indent-guides helm-projectile helm-migemo helm-ls-git helm-git-grep helm-codesearch helm-bm helm-ag go-rename go-eldoc go-autocomplete git-messenger git-gutter-fringe+ ggtags flymake-cursor flycheck-color-mode-line flycheck-cask expand-region exec-path-from-shell es-mode emojify elogcat drag-stuff direx ddskk cursor-in-brackets company-sourcekit company-jedi company-go company-anaconda color-theme coffee-mode codic clang-format circe beacon autofit-frame auto-compile auto-async-byte-compile apache-mode alert ac-clang)))
  '(recentf-max-saved-items 1000)
  '(save-place t nil (saveplace))
  '(savehist-mode t)
  '(show-paren-mode 1)
  '(show-trailing-whitespace t)
+ '(sourcekit-sourcekittendaemon-executable "/usr/local/bin/sourcekittendaemon")
  '(sourcekit-verbose t)
  '(tab-width 4)
  '(tool-bar-mode nil)
  '(volatile-highlights-mode t)
  '(whitespace-display-mappings (quote ((space-mark 12288 [9633]) (tab-mark 9 [187 9]))))
  '(whitespace-space-regexp "\\(　+\\)")
- '(whitespace-style (quote (face tabs tab-mark spaces space-mark))))
+ '(whitespace-style (quote (face tabs tab-mark spaces space-mark)))
+ '(xcode-completing-read-function (quote ivy-completing-read)))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -97,10 +109,12 @@
 (defalias 'yes-or-no-p 'y-or-n-p)
 (defalias 'message-box 'message)
 (when (eq (window-system) 'ns)
-  (set-fontset-font "fontset-default" 'japanese-jisx0208
-                    '("Hiragino_Kaku_Gothic_ProN" . "iso10646-1"))
-  (set-fontset-font "fontset-default" 'katakana-jisx0201
-                    '("Hiragino_Kaku_Gothic_ProN" . "iso10646-1"))
+  (set-face-attribute 'default nil :family "Menlo" :height 120)
+  (set-fontset-font (frame-parameter nil 'font)
+                    'japanese-jisx0208
+                    (font-spec :family "Hiragino Kaku Gothic ProN"))
+  (add-to-list 'face-font-rescale-alist
+               '(".*Hiragino Kaku Gothic ProN.*" . 1.1))
   (nconc default-frame-alist '((width . 120)(height . 40)))
   (defvar xcode:sdk "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk")
   (defvar xcode:frameworks (concat xcode:sdk "/System/Library/Frameworks/"))
@@ -110,7 +124,7 @@
       "-isysroot" xcode:sdk "-I" xcode:headers "-I." "-D__IPHONE_OS_VERSION_MIN_REQUIRED=70000")))
 
 
-(global-font-lock-mode)
+(global-font-lock-mode 1)
 
 (require 'tramp)
 (add-to-list 'tramp-default-proxies-alist '(nil "\\`root\\'" "/ssh:%h:"))
@@ -228,9 +242,7 @@
   :bind (("<f5>" . point-undo)
          ("<f6>" . point-redo)))
 
-(use-package cursor-in-brackets
-  :config
-  (global-cursor-in-brackets-mode t))
+(use-package cursor-in-brackets :config (global-cursor-in-brackets-mode t))
 
 ;; Flymake
 (defun flymake-cc-init ()
@@ -263,7 +275,7 @@
   :config
   (add-hook 'prog-mode-hook 'highlight-indent-guides-mode))
 
-(use-package projectile
+(use-package projectile :disabled
   :config
   (projectile-global-mode)
   (setq projectile-completion-system 'helm)
@@ -446,7 +458,7 @@
 (defun swift-mode-setup()
   (when (and (featurep 'company) (featurep 'company-sourcekit))
     (company-mode t)
-    (add-to-list 'company-backends 'company-sourcekit)
+    (add-to-list 'company-backends '(company-dabbrev-code :with company-sourcekit))
     (local-set-key (kbd "C-;") 'company-complete))
   (when (featurep 'flycheck)
     (flycheck-mode t)
@@ -478,3 +490,6 @@
 (add-hook 'scheme-mode-hook 'scheme-mode-setup)
 
 ;; (load "latex-mode-config")
+
+;; ライブコーディング用設定
+;; (set-face-attribute 'default nil :height 300)
