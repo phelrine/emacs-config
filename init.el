@@ -66,12 +66,13 @@
  '(migemo-user-dictionary nil)
  '(package-selected-packages
    (quote
-    (yaml-mode xcode-mode websocket web-mode volatile-highlights visible-mark use-package undo-tree tumblesocks telephone-line swift-mode solarized-theme smex smeargle smartwin smartparens slim-mode show-marks ruby-hash-syntax ruby-block rtags robe restart-emacs request rainbow-delimiters prodigy popwin point-undo phpunit php-mode pallet open-junk-file omnisharp objc-font-lock oauth2 nyan-mode nlinum nginx-mode magit key-leap jedi ivy idle-highlight-mode hyperbole highlight-indent-guides helm-projectile helm-migemo helm-ls-git helm-git-grep helm-codesearch helm-bm helm-ag go-rename go-eldoc go-autocomplete git-messenger git-gutter-fringe+ ggtags flymake-cursor flycheck-color-mode-line flycheck-cask expand-region exec-path-from-shell es-mode emojify elogcat drag-stuff direx ddskk cursor-in-brackets company-sourcekit company-jedi company-go company-anaconda color-theme coffee-mode codic clang-format circe beacon autofit-frame auto-compile auto-async-byte-compile apache-mode alert ac-clang)))
+    (go-projectile go-errcheck go-gopath go-direx go-complete flycheck-swift yaml-mode xcode-mode websocket web-mode volatile-highlights visible-mark use-package undo-tree tumblesocks telephone-line swift-mode solarized-theme smex smeargle smartwin smartparens slim-mode show-marks ruby-hash-syntax ruby-block rtags robe restart-emacs request rainbow-delimiters prodigy popwin point-undo phpunit php-mode pallet open-junk-file omnisharp objc-font-lock oauth2 nyan-mode nlinum nginx-mode magit key-leap jedi ivy idle-highlight-mode hyperbole highlight-indent-guides helm-projectile helm-migemo helm-ls-git helm-git-grep helm-codesearch helm-bm helm-ag go-rename go-eldoc go-autocomplete git-messenger git-gutter-fringe+ ggtags flymake-cursor flycheck-color-mode-line flycheck-cask expand-region exec-path-from-shell es-mode emojify elogcat drag-stuff direx ddskk cursor-in-brackets company-sourcekit company-jedi company-go company-anaconda color-theme coffee-mode codic clang-format circe beacon autofit-frame auto-compile auto-async-byte-compile apache-mode alert ac-clang)))
  '(recentf-max-saved-items 1000)
  '(save-place t nil (saveplace))
  '(savehist-mode t)
  '(show-paren-mode 1)
  '(show-trailing-whitespace t)
+ '(sort-fold-case t t)
  '(sourcekit-sourcekittendaemon-executable "/usr/local/bin/sourcekittendaemon")
  '(sourcekit-verbose t)
  '(tab-width 4)
@@ -94,7 +95,7 @@
  '(highlight-indent-guides-odd-face ((t (:background "wheat2"))))
  '(objc-font-lock-background ((t (:inherit nil))))
  '(whitespace-space ((t (:foreground "DarkGoldenrod1"))))
- '(whitespace-tab ((t (:foreground "blue")))))
+ '(whitespace-tab ((t (:foreground "dark blue" :inverse-video nil)))))
 
 (setenv "LANG" "ja_JP.UTF-8")
 (add-to-list 'load-path "~/.emacs.d/lisp")
@@ -214,8 +215,7 @@
 
 (use-package exec-path-from-shell
   :config
-  (exec-path-from-shell-initialize)
-  (exec-path-from-shell-copy-env "GOPATH"))
+  (exec-path-from-shell-initialize))
 (use-package open-junk-file :commands open-junk-file)
 (use-package yaml-mode :mode "\\.yml$")
 (use-package telephone-line :config (telephone-line-mode t))
@@ -275,7 +275,7 @@
   :config
   (add-hook 'prog-mode-hook 'highlight-indent-guides-mode))
 
-(use-package projectile :disabled
+(use-package projectile
   :config
   (projectile-global-mode)
   (setq projectile-completion-system 'helm)
@@ -452,6 +452,7 @@
   (local-set-key (kbd "M-,") 'pop-tag-mark))
 
 (use-package go-autocomplete)
+(use-package go-projectile)
 (use-package go-mode :config (add-hook 'go-mode-hook 'go-mode-setup))
 
 (use-package company-sourcekit)
@@ -462,12 +463,12 @@
     (local-set-key (kbd "C-;") 'company-complete))
   (when (featurep 'flycheck)
     (flycheck-mode t)
+    (add-to-list 'flycheck-checkers 'swift)
     (setq flycheck-swift-sdk-path
           (replace-regexp-in-string
            "\n+$" "" (shell-command-to-string
                       "xcrun --show-sdk-path --sdk macosx")))
-    (add-to-list 'flycheck-checkers 'swift))
-  )
+    ))
 
 (use-package swift-mode
   :config (add-hook 'swift-mode-hook 'swift-mode-setup))
