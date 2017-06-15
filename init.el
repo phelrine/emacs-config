@@ -454,6 +454,7 @@
 (use-package go-autocomplete)
 (use-package go-projectile)
 (use-package go-mode :config (add-hook 'go-mode-hook 'go-mode-setup))
+(add-hook 'before-save-hook 'gofmt-before-save)
 
 (use-package company-sourcekit)
 (defun swift-mode-setup()
