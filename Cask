@@ -54,6 +54,7 @@
 (depends-on "git-gutter+")
 (depends-on "git-gutter-fringe+")
 (depends-on "git-messenger")
+(depends-on "gitconfig-mode")
 (depends-on "go-autocomplete")
 (depends-on "go-complete")
 (depends-on "go-direx")
