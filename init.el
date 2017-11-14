@@ -44,7 +44,7 @@
  '(company-async-timeout 0.5 t)
  '(company-backends
    (quote
-    (company-bbdb company-nxml company-css company-eclim company-semantic company-cmake company-capf
+    (company-bbdb company-nxml company-css company-eclim company-semantic company-cmake
                   (company-dabbrev-code :with company-clang)
                   (company-clang company-gtags company-etags company-keywords)
                   company-oddmuse company-files company-dabbrev)))
@@ -66,7 +66,7 @@
  '(migemo-user-dictionary nil)
  '(package-selected-packages
    (quote
-    (escreen apib-mode json-mode http gitconfig-mode go-projectile go-errcheck go-gopath go-direx go-complete flycheck-swift yaml-mode xcode-mode websocket web-mode volatile-highlights visible-mark use-package undo-tree tumblesocks telephone-line swift-mode solarized-theme smex smeargle smartwin smartparens slim-mode show-marks ruby-hash-syntax ruby-block rtags robe restart-emacs request rainbow-delimiters prodigy popwin point-undo phpunit php-mode pallet open-junk-file omnisharp objc-font-lock oauth2 nyan-mode nlinum nginx-mode magit key-leap jedi ivy idle-highlight-mode hyperbole highlight-indent-guides helm-projectile helm-migemo helm-ls-git helm-git-grep helm-codesearch helm-bm helm-ag go-rename go-eldoc go-autocomplete git-messenger git-gutter-fringe+ ggtags flymake-cursor flycheck-color-mode-line flycheck-cask expand-region exec-path-from-shell es-mode emojify elogcat drag-stuff direx ddskk cursor-in-brackets company-sourcekit company-jedi company-go company-anaconda color-theme coffee-mode codic clang-format circe beacon autofit-frame auto-compile auto-async-byte-compile apache-mode alert ac-clang)))
+    (json-reformat http fabric jinja2-mode ssh-tunnels sql-indent edbi golint escreen apib-mode gitconfig-mode go-projectile go-errcheck go-gopath go-direx go-complete flycheck-swift yaml-mode xcode-mode websocket web-mode volatile-highlights visible-mark use-package undo-tree tumblesocks telephone-line swift-mode solarized-theme smex smeargle smartwin smartparens slim-mode show-marks ruby-hash-syntax ruby-block rtags robe restart-emacs request rainbow-delimiters prodigy popwin point-undo phpunit php-mode pallet open-junk-file omnisharp objc-font-lock oauth2 nyan-mode nlinum nginx-mode magit key-leap jedi ivy idle-highlight-mode hyperbole highlight-indent-guides helm-projectile helm-migemo helm-ls-git helm-git-grep helm-codesearch helm-bm helm-ag go-rename go-eldoc go-autocomplete git-messenger git-gutter-fringe+ ggtags flymake-cursor flycheck-color-mode-line flycheck-cask expand-region exec-path-from-shell emojify elogcat drag-stuff direx ddskk cursor-in-brackets company-sourcekit company-jedi company-go color-theme coffee-mode codic clang-format circe beacon autofit-frame auto-compile auto-async-byte-compile apache-mode alert ac-clang)))
  '(recentf-max-saved-items 1000)
  '(save-place t nil (saveplace))
  '(savehist-mode t)
@@ -317,9 +317,9 @@
 
 (require 'cc-mode)
 (require 'semantic)
-(global-semanticdb-minor-mode 1)
-(global-semantic-idle-scheduler-mode 1)
-(semantic-mode 1)
+;; (global-semanticdb-minor-mode 1)
+;; (global-semantic-idle-scheduler-mode 1)
+;; (semantic-mode 1)
 
 (use-package auto-complete-clang-async
   :load-path "~/repos/emacs-clang-complete-async"
@@ -393,13 +393,16 @@
 (use-package clang-format)
 
 (require 'ipython nil t)
-(use-package anaconda-mode :ensure :config (add-to-list 'company-backends 'company-anaconda))
+(use-package jedi)
+(use-package company-jedi)
 (defun python-mode-setup()
-  (when (featurep 'anaconda-mode)
-    (anaconda-mode t))
-  (company-mode t)
-  (local-set-key (kbd "C-;") 'company-complete))
-
+  (when (featurep 'jedi)
+    (jedi:setup)
+    (jedi-mode t)
+    (when (featurep 'company-jedi)
+      (add-to-list 'company-backends 'company-jedi)
+      (company-mode t)
+      (local-set-key (kbd "C-;") 'company-complete))))
 (add-hook 'python-mode-hook 'python-mode-setup)
 
 ;; indent
@@ -448,11 +451,12 @@
   (auto-complete-mode t)
   (flycheck-mode t)
   (local-set-key (kbd "C-;") 'auto-complete)
-  (local-set-key (kbd "M-.") 'godef-jump)
-  (local-set-key (kbd "M-,") 'pop-tag-mark))
+  (local-set-key (kbd "C-c .") 'godef-jump)
+  (local-set-key (kbd "C-c ,") 'pop-tag-mark))
 
 (use-package go-autocomplete)
 (use-package go-projectile)
+(use-package govet)
 (use-package go-mode :config (add-hook 'go-mode-hook 'go-mode-setup))
 (add-hook 'before-save-hook 'gofmt-before-save)
 
@@ -499,7 +503,11 @@
          ("C-z k" . escreen-kill-screen)
          ("C-z d" . escreen-get-current-screen-number)))
 
-;; (load "latex-mode-config")
+(use-package web-mode :mode "\\.html\\'")
+(use-package json-reformat)
+(use-package http-mode :mode "\\.http$")
+(use-package apib-mode :mode "\\.apib$")
 
+;; (load "latex-mode-config")
 ;; ライブコーディング用設定
 ;; (set-face-attribute 'default nil :height 300)
