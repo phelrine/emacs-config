@@ -14,3 +14,5 @@ tramp
 url/cookies
 wget-log
 /twittering-mode.gpg
+/.DS_Store
+/recentf
