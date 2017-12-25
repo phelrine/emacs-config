@@ -67,6 +67,7 @@
 (depends-on "go-projectile")
 (depends-on "go-rename")
 (depends-on "golint")
+(depends-on "gotest")
 (depends-on "helm")
 (depends-on "helm-ag")
 (depends-on "helm-bm")
