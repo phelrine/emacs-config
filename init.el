@@ -7,7 +7,8 @@
 (package-initialize)
 
 (if (eq window-system 'ns)
-    (require 'cask "/usr/local/opt/cask/cask.el"))
+    (require 'cask "/usr/local/opt/cask/cask.el")
+  (require 'cask "~/.cask/cask.el"))
 (cask-initialize)
 (require 'pallet)
 (pallet-mode t)
@@ -353,7 +354,7 @@
                       (setq rtags-completions-enabled t)
                       (rtags-diagnostics))))
 
-(use-package company-rtags
+(use-package company-rtags :disabled
   :config (progn (add-hook
                   'c++-mode-hook
                   (lambda()

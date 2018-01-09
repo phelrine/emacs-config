@@ -124,7 +124,6 @@
 (depends-on "show-marks")
 (depends-on "slim-mode")
 (depends-on "smartparens")
-(depends-on "smartwin")
 (depends-on "smeargle")
 (depends-on "smex")
 (depends-on "solarized-theme")
