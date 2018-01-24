@@ -128,6 +128,11 @@
 
 (global-font-lock-mode 1)
 
+(defadvice isearch-exit (after my-goto-match-beginning activate)
+  "Go to beginning of match."
+  (when (and isearch-forward isearch-other-end)
+    (goto-char isearch-other-end)))
+
 (require 'tramp)
 (add-to-list 'tramp-default-proxies-alist '(nil "\\`root\\'" "/ssh:%h:"))
 (add-to-list 'tramp-default-proxies-alist '("localhost" nil nil))
@@ -448,6 +453,7 @@
   :mode "\\.coffee$")
 
 (defun go-mode-setup()
+  (subword-mode 1)
   (go-eldoc-setup)
   (auto-complete-mode t)
   (flycheck-mode t)
