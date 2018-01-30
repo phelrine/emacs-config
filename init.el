@@ -67,7 +67,7 @@
  '(migemo-user-dictionary nil)
  '(package-selected-packages
    (quote
-    (govet gotest json-reformat http fabric jinja2-mode ssh-tunnels sql-indent edbi golint escreen apib-mode gitconfig-mode go-projectile go-errcheck go-gopath go-direx go-complete flycheck-swift yaml-mode xcode-mode websocket web-mode volatile-highlights visible-mark use-package undo-tree tumblesocks telephone-line swift-mode solarized-theme smex smeargle smartwin smartparens slim-mode show-marks ruby-hash-syntax ruby-block rtags robe restart-emacs request rainbow-delimiters prodigy popwin point-undo phpunit php-mode pallet open-junk-file omnisharp objc-font-lock oauth2 nyan-mode nlinum nginx-mode magit key-leap jedi ivy idle-highlight-mode hyperbole highlight-indent-guides helm-projectile helm-migemo helm-ls-git helm-git-grep helm-codesearch helm-bm helm-ag go-rename go-eldoc go-autocomplete git-messenger git-gutter-fringe+ ggtags flymake-cursor flycheck-color-mode-line flycheck-cask expand-region exec-path-from-shell emojify elogcat drag-stuff direx ddskk cursor-in-brackets company-sourcekit company-jedi company-go color-theme coffee-mode codic clang-format circe beacon autofit-frame auto-compile auto-async-byte-compile apache-mode alert ac-clang)))
+    (go-playground go-gen-test go-tag govet gotest json-reformat http fabric jinja2-mode ssh-tunnels sql-indent edbi golint escreen apib-mode gitconfig-mode go-projectile go-errcheck go-gopath go-direx go-complete flycheck-swift yaml-mode xcode-mode websocket web-mode volatile-highlights visible-mark use-package undo-tree tumblesocks telephone-line swift-mode solarized-theme smex smeargle smartwin smartparens slim-mode show-marks ruby-hash-syntax ruby-block rtags robe restart-emacs request rainbow-delimiters prodigy popwin point-undo phpunit php-mode pallet open-junk-file omnisharp objc-font-lock oauth2 nyan-mode nlinum nginx-mode magit key-leap jedi ivy idle-highlight-mode hyperbole highlight-indent-guides helm-projectile helm-migemo helm-ls-git helm-git-grep helm-codesearch helm-bm helm-ag go-rename go-eldoc go-autocomplete git-messenger git-gutter-fringe+ ggtags flymake-cursor flycheck-color-mode-line flycheck-cask expand-region exec-path-from-shell emojify elogcat drag-stuff direx ddskk cursor-in-brackets company-sourcekit company-jedi company-go color-theme coffee-mode codic clang-format circe beacon autofit-frame auto-compile auto-async-byte-compile apache-mode alert ac-clang)))
  '(recentf-max-saved-items 1000)
  '(save-place t nil (saveplace))
  '(savehist-mode t)
@@ -459,12 +459,17 @@
   (flycheck-mode t)
   (local-set-key (kbd "C-;") 'auto-complete)
   (local-set-key (kbd "C-c .") 'godef-jump)
+  (local-set-key (kbd "C-c `") 'go-tag-add)
+  (local-set-key (kbd "C-u C-c `") 'go-tag-remove)
   (local-set-key (kbd "C-c ,") 'pop-tag-mark))
 
 (use-package go-autocomplete)
 (use-package go-projectile)
 (use-package govet)
 (use-package go-mode :config (add-hook 'go-mode-hook 'go-mode-setup))
+(use-package go-tag)
+(use-package go-impl)
+(use-package go-gen-test)
 (add-hook 'before-save-hook 'gofmt-before-save)
 
 (use-package company-sourcekit)
