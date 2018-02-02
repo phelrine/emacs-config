@@ -1,5 +1,3 @@
-(setq package-check-signature nil)
-
 ;; Added by Package.el.  This must come before configurations of
 ;; installed packages.  Don't delete this line.  If you don't want it,
 ;; just comment it out by adding a semicolon to the start of the line.
@@ -100,6 +98,7 @@
 
 (setenv "LANG" "ja_JP.UTF-8")
 (add-to-list 'load-path "~/.emacs.d/lisp")
+(add-to-list 'load-path "~/.emacs.d/site-lisp")
 
 (global-set-key (kbd "C-o") 'other-window)
 (global-set-key (kbd "C-h") 'delete-backward-char)
@@ -162,10 +161,10 @@
   :config (define-key isearch-mode-map (kbd "C-c g") 'helm-git-grep-from-isearch)
   :bind (("C-c g" . helm-git-grep)))
 
-(setq bm-restore-repository-on-load t)
 (use-package bm
   :commands (bm-buffer-restore bm-buffer-save bm-buffer-save-all bm-repository-save)
   :config
+  (setq bm-restore-repository-on-load t)
   (add-hook 'find-file-hook 'bm-buffer-restore)
   (add-hook 'after-revert-hook 'bm-buffer-restore)
   (add-hook 'kill-buffer-hook 'bm-buffer-save)
@@ -219,9 +218,7 @@
                     ("*compilation*")))
     (add-to-list 'popwin:special-display-config window)))
 
-(use-package exec-path-from-shell
-  :config
-  (exec-path-from-shell-initialize))
+(use-package exec-path-from-shell :config (exec-path-from-shell-initialize))
 (use-package open-junk-file :commands open-junk-file)
 (use-package yaml-mode :mode "\\.yml$")
 (use-package telephone-line :config (telephone-line-mode t))
@@ -230,8 +227,7 @@
 (use-package expand-region :bind ("C-M-SPC" . er/expand-region))
 (use-package undo-tree :config (global-undo-tree-mode t))
 (use-package escreen)
-(use-package auto-async-byte-compile
-  :config (add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode))
+(use-package auto-async-byte-compile :config (add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode))
 (use-package ddskk :bind ("C-x j" . skk-mode))
 (use-package rainbow-delimiters :config (add-hook 'prog-mode-hook 'rainbow-delimiters-mode))
 
@@ -244,11 +240,9 @@
          ((eq system-type 'gnu-linux) "/usr/share/cmigemo/utf-8/migemo-dict")))
   (migemo-init))
 
-(use-package point-undo
-  :bind (("<f5>" . point-undo)
-         ("<f6>" . point-redo)))
-
-(use-package cursor-in-brackets :config (global-cursor-in-brackets-mode t))
+(if (require 'cursor-in-brackets nil t)
+    (global-cursor-in-brackets-mode t)
+  (message "cannot load cursor-in-brackets"))
 
 ;; Flymake
 (defun flymake-cc-init ()
