@@ -3,6 +3,7 @@
 
 (depends-on "ac-clang")
 (depends-on "alert")
+(depends-on "anzu")
 (depends-on "apache-mode")
 (depends-on "apib-mode")
 (depends-on "async")
