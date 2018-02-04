@@ -91,6 +91,7 @@
 (depends-on "json-reformat")
 (depends-on "key-leap")
 (depends-on "log4e")
+(depends-on "lua-mode")
 (depends-on "magit")
 (depends-on "magit-popup")
 (depends-on "markdown-mode")
