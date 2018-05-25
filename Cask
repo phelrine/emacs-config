@@ -132,6 +132,7 @@
 (depends-on "ssh-tunnels")
 (depends-on "swift-mode")
 (depends-on "telephone-line")
+(depends-on "toml-mode")
 (depends-on "tumblesocks")
 (depends-on "undo-tree")
 (depends-on "use-package")
