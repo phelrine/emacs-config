@@ -71,6 +71,7 @@
  '(savehist-mode t)
  '(show-paren-mode 1)
  '(show-trailing-whitespace t)
+ '(skk-use-jisx0201-input-method t)
  '(sort-fold-case t t)
  '(sourcekit-sourcekittendaemon-executable "/usr/local/bin/sourcekittendaemon")
  '(sourcekit-verbose t)
