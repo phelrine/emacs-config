@@ -65,12 +65,13 @@
  '(migemo-user-dictionary nil)
  '(package-selected-packages
    (quote
-    (toml-mode lua-mode govet gotest json-reformat http fabric jinja2-mode ssh-tunnels sql-indent edbi golint escreen apib-mode gitconfig-mode go-projectile go-errcheck go-gopath go-direx go-complete flycheck-swift yaml-mode xcode-mode websocket web-mode volatile-highlights visible-mark use-package undo-tree tumblesocks telephone-line swift-mode solarized-theme smex smeargle smartwin smartparens slim-mode show-marks ruby-hash-syntax ruby-block rtags robe restart-emacs request rainbow-delimiters prodigy popwin point-undo phpunit php-mode pallet open-junk-file omnisharp objc-font-lock oauth2 nyan-mode nlinum nginx-mode magit key-leap jedi ivy idle-highlight-mode highlight-indent-guides helm-projectile helm-migemo helm-ls-git helm-git-grep helm-codesearch helm-bm helm-ag go-rename go-eldoc go-autocomplete git-messenger git-gutter-fringe+ ggtags flymake-cursor flycheck-color-mode-line flycheck-cask expand-region exec-path-from-shell emojify elogcat drag-stuff direx ddskk cursor-in-brackets company-sourcekit company-jedi company-go color-theme coffee-mode codic clang-format circe beacon autofit-frame auto-compile auto-async-byte-compile apache-mode alert ac-clang)))
+    (go-gen-test github-issues go-imports w3m ein go-impl lua-mode govet gotest json-reformat http fabric jinja2-mode ssh-tunnels sql-indent edbi golint escreen apib-mode gitconfig-mode go-projectile go-errcheck go-gopath go-direx go-complete flycheck-swift yaml-mode xcode-mode websocket web-mode volatile-highlights visible-mark use-package undo-tree tumblesocks telephone-line swift-mode solarized-theme smex smeargle smartwin smartparens slim-mode show-marks ruby-hash-syntax ruby-block rtags robe restart-emacs request rainbow-delimiters prodigy popwin point-undo phpunit php-mode pallet open-junk-file omnisharp objc-font-lock oauth2 nyan-mode nlinum nginx-mode magit key-leap jedi ivy idle-highlight-mode highlight-indent-guides helm-projectile helm-migemo helm-ls-git helm-git-grep helm-codesearch helm-bm helm-ag go-rename go-eldoc go-autocomplete git-messenger git-gutter-fringe+ ggtags flymake-cursor flycheck-color-mode-line flycheck-cask expand-region exec-path-from-shell emojify elogcat drag-stuff direx ddskk cursor-in-brackets company-sourcekit company-jedi company-go color-theme coffee-mode codic clang-format circe beacon autofit-frame auto-compile auto-async-byte-compile apache-mode alert ac-clang)))
  '(recentf-max-saved-items 1000)
  '(save-place t nil (saveplace))
  '(savehist-mode t)
  '(show-paren-mode 1)
  '(show-trailing-whitespace t)
+ '(skk-use-jisx0201-input-method t)
  '(sort-fold-case t t)
  '(sourcekit-sourcekittendaemon-executable "/usr/local/bin/sourcekittendaemon")
  '(sourcekit-verbose t)
@@ -88,8 +89,8 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(bm-face ((t (:background "spring green" :overline nil :underline t))))
- '(flymake-errline ((t (:foreground "orange" :background "blue"))))
- '(flymake-warnline ((t (:background "yellow"))))
+ '(flymake-errline ((t (:foreground "orange" :background "blue"))) t)
+ '(flymake-warnline ((t (:background "yellow"))) t)
  '(highlight-indent-guides-even-face ((t (:background "wheat1"))))
  '(highlight-indent-guides-odd-face ((t (:background "wheat2"))))
  '(objc-font-lock-background ((t (:inherit nil))))
@@ -516,6 +517,7 @@
 (use-package http-mode :mode "\\.http$")
 (use-package apib-mode :mode "\\.apib$")
 
+(use-package ein)
 ;; (load "latex-mode-config")
 ;; ライブコーディング用設定
 ;; (set-face-attribute 'default nil :height 300)
