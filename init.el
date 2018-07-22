@@ -66,7 +66,7 @@
  '(migemo-user-dictionary nil)
  '(package-selected-packages
    (quote
-    (anzu yasnippet company-lsp lsp-go go-tag go-gen-test github-issues go-imports w3m ein go-impl lua-mode govet gotest json-reformat http fabric jinja2-mode ssh-tunnels sql-indent edbi golint escreen apib-mode gitconfig-mode go-projectile go-errcheck go-gopath go-direx go-complete flycheck-swift yaml-mode xcode-mode websocket web-mode volatile-highlights visible-mark use-package undo-tree tumblesocks telephone-line swift-mode solarized-theme smex smeargle smartwin smartparens slim-mode show-marks ruby-hash-syntax ruby-block rtags robe restart-emacs request rainbow-delimiters prodigy popwin point-undo phpunit php-mode pallet open-junk-file omnisharp objc-font-lock oauth2 nyan-mode nlinum nginx-mode magit key-leap jedi ivy idle-highlight-mode highlight-indent-guides helm-projectile helm-migemo helm-ls-git helm-git-grep helm-codesearch helm-bm helm-ag go-rename go-eldoc go-autocomplete git-messenger git-gutter-fringe+ ggtags flymake-cursor flycheck-color-mode-line flycheck-cask expand-region exec-path-from-shell emojify elogcat drag-stuff direx ddskk cursor-in-brackets company-sourcekit company-jedi color-theme coffee-mode codic clang-format circe beacon autofit-frame auto-compile auto-async-byte-compile apache-mode alert ac-clang)))
+    (company-statistics anzu yasnippet company-lsp go-tag go-gen-test github-issues go-imports w3m ein go-impl lua-mode govet gotest json-reformat http fabric jinja2-mode ssh-tunnels sql-indent edbi golint escreen apib-mode gitconfig-mode go-projectile go-errcheck go-gopath go-direx go-complete flycheck-swift yaml-mode xcode-mode websocket web-mode volatile-highlights visible-mark use-package undo-tree tumblesocks telephone-line swift-mode solarized-theme smex smeargle smartwin smartparens slim-mode show-marks ruby-hash-syntax ruby-block rtags robe restart-emacs request rainbow-delimiters prodigy popwin point-undo phpunit php-mode pallet open-junk-file omnisharp objc-font-lock oauth2 nyan-mode nlinum nginx-mode magit key-leap jedi ivy idle-highlight-mode highlight-indent-guides helm-projectile helm-migemo helm-ls-git helm-git-grep helm-codesearch helm-bm helm-ag go-rename go-eldoc go-autocomplete git-messenger git-gutter-fringe+ ggtags flymake-cursor flycheck-color-mode-line flycheck-cask expand-region exec-path-from-shell emojify elogcat drag-stuff direx ddskk cursor-in-brackets company-sourcekit company-jedi color-theme coffee-mode codic clang-format circe beacon autofit-frame auto-compile auto-async-byte-compile apache-mode alert ac-clang)))
  '(recentf-max-saved-items 1000)
  '(save-place t nil (saveplace))
  '(savehist-mode t)
@@ -189,6 +189,7 @@
 (use-package company
   :bind ("C-;" . company-complete)
   :hook (prog-mode . company-mode))
+(use-package lsp-mode)
 (use-package company-lsp)
 (use-package company-statistics
   :commands (company-statistics-mode)
@@ -346,15 +347,15 @@
 
 ;;; Python
 (require 'ipython nil t)
-(use-package jedi :commands (jedi:setup jedi-mode))
-(use-package company-jedi)
+(lsp-define-stdio-client
+ lsp-python
+ "python"
+ (lsp-make-traverser #'(lambda (dir) (directory-files dir nil "\\(__init__\\|setup\\)\\.py")))
+ '("pyls"))
 (defun python-mode-setup()
-  (when (featurep 'jedi)
-    (jedi:setup)
-    (jedi-mode t)
-    (when (featurep 'company-jedi)
-      (add-to-list 'company-backends 'company-jedi)
-      )))
+  (set (make-local-variable 'company-backends)
+       '((company-lsp company-keywords company-dabbrev-code)))
+  (lsp-python-enable))
 (add-hook 'python-mode-hook 'python-mode-setup)
 
 ;; indent
@@ -397,12 +398,21 @@
   :config (add-hook 'coffee-mode-hook 'coffee-custom)
   :mode "\\.coffee$")
 
+(use-package go-projectile :commands (go-projectile-set-gopath))
+(lsp-define-stdio-client
+   lsp-go
+   "go"
+   #'(lambda () (print (or go-projectile-project-gopath default-directory)))
+   '("go-langserver" "-mode=stdio" "-gocodecompletion")
+   :ignore-regexps
+   '("^langserver-go: reading on stdin, writing on stdout$"))
 (defun go-mode-setup()
   (subword-mode 1)
   (set (make-local-variable 'company-backends)
-       '((company-lsp company-keywords company-dabbrev-code))))
-(use-package lsp-go :commands (lsp-go-enable) :hook (go-mode . lsp-go-enable))
-(use-package go-projectile)
+       '((company-lsp company-keywords company-dabbrev-code)))
+  (go-projectile-set-gopath)
+  (lsp-go-enable))
+
 (use-package govet)
 (use-package go-tag
   :bind (:map go-mode-map
@@ -414,7 +424,8 @@
 (use-package go-mode
   :hook (before-save . gofmt-before-save)
   :bind (:map go-mode-map (("C-c ." . godef-jump) ("C-c ," . pop-tag-mark)))
-  :config (add-hook 'go-mode-hook 'go-mode-setup))
+  :config
+  (add-hook 'go-mode-hook 'go-mode-setup))
 
 (use-package company-sourcekit)
 (defun swift-mode-setup()
