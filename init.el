@@ -51,6 +51,7 @@
  '(global-auto-revert-mode t)
  '(global-git-gutter+-mode t)
  '(global-hl-line-mode t)
+ '(global-wakatime-mode t)
  '(global-whitespace-mode t)
  '(helm-boring-file-regexp-list (quote ("~$" "\\.meta$")))
  '(helm-ff-skip-boring-files t)
@@ -66,7 +67,7 @@
  '(migemo-user-dictionary nil)
  '(package-selected-packages
    (quote
-    (company-statistics anzu yasnippet company-lsp go-tag go-gen-test github-issues go-imports w3m ein go-impl lua-mode govet gotest json-reformat http fabric jinja2-mode ssh-tunnels sql-indent edbi golint escreen apib-mode gitconfig-mode go-projectile go-errcheck go-gopath go-direx go-complete flycheck-swift yaml-mode xcode-mode websocket web-mode volatile-highlights visible-mark use-package undo-tree tumblesocks telephone-line swift-mode solarized-theme smex smeargle smartwin smartparens slim-mode show-marks ruby-hash-syntax ruby-block rtags robe restart-emacs request rainbow-delimiters prodigy popwin point-undo phpunit php-mode pallet open-junk-file omnisharp objc-font-lock oauth2 nyan-mode nlinum nginx-mode magit key-leap jedi ivy idle-highlight-mode highlight-indent-guides helm-projectile helm-migemo helm-ls-git helm-git-grep helm-codesearch helm-bm helm-ag go-rename go-eldoc go-autocomplete git-messenger git-gutter-fringe+ ggtags flymake-cursor flycheck-color-mode-line flycheck-cask expand-region exec-path-from-shell emojify elogcat drag-stuff direx ddskk cursor-in-brackets company-sourcekit company-jedi color-theme coffee-mode codic clang-format circe beacon autofit-frame auto-compile auto-async-byte-compile apache-mode alert ac-clang)))
+    (dired-hide-dotfiles wakatime-mode company-statistics anzu yasnippet company-lsp go-tag go-gen-test github-issues go-imports w3m ein go-impl lua-mode govet gotest json-reformat http fabric jinja2-mode ssh-tunnels sql-indent edbi golint escreen apib-mode gitconfig-mode go-projectile go-errcheck go-gopath go-direx go-complete flycheck-swift yaml-mode xcode-mode websocket web-mode volatile-highlights visible-mark use-package undo-tree tumblesocks telephone-line swift-mode solarized-theme smex smeargle smartwin smartparens slim-mode show-marks ruby-hash-syntax ruby-block rtags robe restart-emacs request rainbow-delimiters prodigy popwin point-undo phpunit php-mode pallet open-junk-file omnisharp objc-font-lock oauth2 nyan-mode nlinum nginx-mode magit key-leap jedi ivy idle-highlight-mode highlight-indent-guides helm-projectile helm-migemo helm-ls-git helm-git-grep helm-codesearch helm-bm helm-ag go-rename go-eldoc go-autocomplete git-messenger git-gutter-fringe+ ggtags flymake-cursor flycheck-color-mode-line flycheck-cask expand-region exec-path-from-shell emojify elogcat drag-stuff direx ddskk cursor-in-brackets company-sourcekit company-jedi color-theme coffee-mode codic clang-format circe beacon autofit-frame auto-compile auto-async-byte-compile apache-mode alert ac-clang)))
  '(recentf-max-saved-items 1000)
  '(save-place t nil (saveplace))
  '(savehist-mode t)
@@ -185,6 +186,10 @@
          ("M-SPC" . bm-toggle)))
 
 (use-package helm-bm :bind (("C-c m" . helm-bm)))
+
+(use-package dired-hide-dotfiles
+  :bind (:map dired-mode-map (("." . dired-hide-dotfiles-mode)))
+  :hook (dired-mode . dired-hide-dotfiles-mode))
 
 (use-package company
   :bind ("C-;" . company-complete)
@@ -468,6 +473,8 @@
 (use-package apib-mode :mode "\\.apib$")
 
 (use-package ein)
+(use-package wakatime-mode)
+
 ;; (load "latex-mode-config")
 ;; ライブコーディング用設定
 ;; (set-face-attribute 'default nil :height 300)
