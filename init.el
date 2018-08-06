@@ -227,8 +227,9 @@
                     (":home" :position left)
                     ("*compilation*")))
     (add-to-list 'popwin:special-display-config window)))
-
-(use-package exec-path-from-shell :commands (exec-path-from-shell-initialize) :config (exec-path-from-shell-initialize))
+(use-package exec-path-from-shell
+  :commands (exec-path-from-shell-initialize)
+  :config (exec-path-from-shell-initialize))
 (use-package open-junk-file :commands open-junk-file)
 (use-package yaml-mode :mode "\\.yml$")
 (use-package telephone-line :commands (telephone-line-mode) :config (telephone-line-mode t))
@@ -256,7 +257,7 @@
 
 ;; Flymake
 (defun flymake-cc-init ()
-  (let* ((temp-file   (flymake-init-create-temp-buffer-copy 'flymake-create-temp-inplace))
+  (let* ((temp-file   (flymake-proc-init-create-temp-buffer-copy 'flymake-create-temp-inplace))
          (local-file  (file-relative-name temp-file (file-name-directory buffer-file-name))))
     (list "g++" (list "std=c++0x" "-Wall" "-Wextra" "-fsyntax-only" local-file))))
 
