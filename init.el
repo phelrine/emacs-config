@@ -48,6 +48,7 @@
                   company-oddmuse company-files company-dabbrev)))
  '(company-dabbrev-downcase nil)
  '(company-sync-timeout 0.5 t)
+ '(ein:output-type-preference (quote ein:output-type-prefer-pretty-text-over-html))
  '(global-auto-revert-mode t)
  '(global-git-gutter+-mode t)
  '(global-hl-line-mode t)
@@ -92,8 +93,8 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(bm-face ((t (:background "spring green" :overline nil :underline t))))
- '(flymake-errline ((t (:foreground "orange" :background "blue"))))
- '(flymake-warnline ((t (:background "yellow"))))
+ '(flymake-errline ((t (:foreground "orange" :background "blue"))) t)
+ '(flymake-warnline ((t (:background "yellow"))) t)
  '(highlight-indent-guides-even-face ((t (:background "wheat1"))))
  '(highlight-indent-guides-odd-face ((t (:background "wheat2"))))
  '(objc-font-lock-background ((t (:inherit nil))))
