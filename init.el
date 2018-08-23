@@ -278,7 +278,8 @@
 (use-package flycheck-color-mode-line
   :config (eval-after-load "flycheck" '(add-hook 'flychech-mode-hook 'flycheck-color-mode-line-mode)))
 
-(use-package nlinum :hook (prog-mode . nlinum-mode))
+(if (fboundp 'display-line-numbers-mode) (add-hook 'prog-mode-hook 'display-line-numbers-mode))
+(use-package nlinum :if (version< emacs-version "26.0.0") :hook (prog-mode . nlinum-mode))
 (use-package highlight-indent-guides :hook (prog-mode . highlight-indent-guides-mode))
 (use-package projectile
   :commands (projectile-mode helm-projectile-on)
