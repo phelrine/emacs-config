@@ -35,6 +35,8 @@
                   company-oddmuse company-files company-dabbrev)))
  '(company-dabbrev-downcase nil)
  '(ein:output-type-preference (quote ein:output-type-prefer-pretty-text-over-html))
+ '(exec-path-from-shell-arguments (quote ("-l")))
+ '(exec-path-from-shell-variables (quote ("PATH" "MANPATH" "GOPATH")))
  '(global-auto-revert-mode t)
  '(global-git-gutter+-mode t)
  '(global-hl-line-mode t)
@@ -58,7 +60,7 @@
    (quote
     (dumb-jump dumb wakatime-mode apib-mode json-reformat web-mode go-gen-test go-impl go-tag govet go-projectile go-mode ein objc-font-lock omnisharp csharp-mode projectile volatile-highlights highlight-indent-guides nlinum flycheck-color-mode-line flycheck migemo rainbow-delimiters ddskk auto-async-byte-compile undo-tree expand-region doom-modeline solarized-theme color-theme-modern yaml-mode open-junk-file exec-path-from-shell popwin yasnippet git-gutter-fringe+ magit company-lsp lsp-ui company-statistics company dired-hide-dotfiles dired-k bm which-key counsel ivy-posframe ivy use-package)))
  '(recentf-max-saved-items 1000)
- '(save-place-mode t nil (saveplace))
+ '(save-place-mode t)
  '(savehist-mode t)
  '(show-paren-mode 1)
  '(show-trailing-whitespace t)

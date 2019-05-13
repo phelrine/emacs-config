@@ -26,9 +26,10 @@
 (global-set-key (kbd "C-h") 'delete-backward-char)
 (global-set-key (kbd "RET") 'newline-and-indent)
 (global-set-key "\C-z" nil)
-
 (add-to-list 'exec-path (concat (getenv "HOME") "/bin"))
-(add-to-list 'exec-path (concat (getenv "GOPATH") "/bin"))
+(when (getenv "GOPATH")
+  (add-to-list 'exec-path (concat (getenv "GOPATH") "/bin")))
+
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 (defalias 'qrr 'query-replace-regexp)
 (defalias 'yes-or-no-p 'y-or-n-p)
@@ -162,9 +163,13 @@
                     (":home" :position left)
                     ("*compilation*")))
     (add-to-list 'popwin:special-display-config window)))
+
 (use-package exec-path-from-shell
-  :commands (exec-path-from-shell-initialize)
-  :config (exec-path-from-shell-initialize))
+  :if (memq window-system '(mac ns))
+  :config
+  (exec-path-from-shell-initialize)
+  (add-to-list 'exec-path (concat (car (split-string (getenv "GOPATH") ":")) "/bin")))
+
 (use-package open-junk-file :commands open-junk-file)
 (use-package yaml-mode :mode "\\.yml$")
 (use-package color-theme-modern)
