@@ -1,105 +1,22 @@
+;;; Load custom file
+(setq custom-file "~/.emacs.d/custom.el")
+(load custom-file)
+
 ;; Added by Package.el.  This must come before configurations of
 ;; installed packages.  Don't delete this line.  If you don't want it,
 ;; just comment it out by adding a semicolon to the start of the line.
 ;; You may delete these explanatory comments.
+(require 'package)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+(add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/"))
+(add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
 (package-initialize)
 
-(if (eq window-system 'ns)
-    (require 'cask "/usr/local/opt/cask/cask.el")
-  (require 'cask "~/.cask/cask.el"))
-(cask-initialize)
-(require 'pallet)
-(pallet-mode t)
-
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(ac-expand-on-auto-complete t)
- '(ac-show-menu-immediately-on-auto-complete nil)
- '(beacon-color "light green")
- '(beacon-mode t)
- '(bm-buffer-persistence t)
- '(bm-cycle-all-buffers t)
- '(bm-fringe-face (quote bm-face))
- '(bm-fringe-persistent-face (quote bm-face))
- '(bm-highlight-style (quote bm-highlight-line-and-fringe))
- '(bm-persistent-face (quote bm-face))
- '(cc-other-file-alist
-   (quote
-    (("\\.cpp$"
-      (".hpp" ".h"))
-     ("\\.h$"
-      (".c" ".cpp" ".m" ".mm"))
-     ("\\.hpp$"
-      (".cpp" ".c"))
-     ("\\.m$"
-      (".h"))
-     ("\\.mm$"
-      (".h")))))
- '(clang-format-style
-   "{BasedOnStyle: google, IndentWidth: 4, BreakBeforeBraces: Linux, ObjCBlockIndentWidth: 4, ColumnLimit: 0, ObjCSpaceAfterProperty: true}")
- '(company-backends
-   (quote
-    (company-bbdb company-nxml company-css company-eclim company-semantic company-cmake
-                  (company-dabbrev-code :with company-clang)
-                  (company-clang company-gtags company-etags company-keywords)
-                  company-oddmuse company-files company-dabbrev)))
- '(company-dabbrev-downcase nil)
- '(company-sync-timeout 0.5 t)
- '(ein:output-type-preference (quote ein:output-type-prefer-pretty-text-over-html))
- '(global-auto-revert-mode t)
- '(global-git-gutter+-mode t)
- '(global-hl-line-mode t)
- '(global-wakatime-mode t)
- '(global-whitespace-mode t)
- '(helm-boring-file-regexp-list (quote ("~$" "\\.meta$")))
- '(helm-ff-skip-boring-files t)
- '(history-length 5000)
- '(indent-tabs-mode nil)
- '(lsp-go-executable-path "go-langserver")
- '(make-backup-files nil)
- '(menu-bar-mode nil)
- '(migemo-coding-system (quote utf-8))
- '(migemo-command "cmigemo")
- '(migemo-options (quote ("-q" "--emacs")))
- '(migemo-regex-dictionary nil)
- '(migemo-user-dictionary nil)
- '(package-selected-packages
-   (quote
-    (helm-go-package docker-compose-mode dockerfile-mode go-dlv lsp-go dired-hide-dotfiles wakatime-mode company-statistics anzu yasnippet company-lsp go-tag go-gen-test github-issues go-imports w3m ein go-impl lua-mode govet gotest json-reformat http fabric jinja2-mode ssh-tunnels sql-indent edbi golint escreen apib-mode gitconfig-mode go-projectile go-errcheck go-gopath go-direx go-complete flycheck-swift yaml-mode xcode-mode websocket web-mode volatile-highlights visible-mark use-package undo-tree tumblesocks telephone-line swift-mode solarized-theme smex smeargle smartwin smartparens slim-mode show-marks ruby-hash-syntax ruby-block rtags robe restart-emacs request rainbow-delimiters prodigy popwin point-undo phpunit php-mode pallet open-junk-file omnisharp objc-font-lock oauth2 nyan-mode nlinum nginx-mode magit key-leap jedi ivy idle-highlight-mode highlight-indent-guides helm-projectile helm-migemo helm-ls-git helm-git-grep helm-codesearch helm-bm helm-ag go-rename go-eldoc go-autocomplete git-messenger git-gutter-fringe+ ggtags flymake-cursor flycheck-color-mode-line flycheck-cask expand-region exec-path-from-shell emojify elogcat drag-stuff direx ddskk cursor-in-brackets company-sourcekit company-jedi color-theme coffee-mode codic clang-format circe beacon autofit-frame auto-compile auto-async-byte-compile apache-mode alert ac-clang)))
- '(recentf-max-saved-items 1000)
- '(save-place t nil (saveplace))
- '(savehist-mode t)
- '(show-paren-mode 1)
- '(show-trailing-whitespace t)
- '(skk-use-jisx0201-input-method t)
- '(sort-fold-case t t)
- '(sourcekit-sourcekittendaemon-executable "/usr/local/bin/sourcekittendaemon")
- '(sourcekit-verbose t)
- '(tab-width 4)
- '(tool-bar-mode nil)
- '(volatile-highlights-mode t)
- '(whitespace-display-mappings (quote ((space-mark 12288 [9633]) (tab-mark 9 [187 9]))))
- '(whitespace-space-regexp "\\(　+\\)")
- '(whitespace-style (quote (face tabs tab-mark spaces space-mark)))
- '(xcode-completing-read-function (quote ivy-completing-read))
- '(yas-prompt-functions (quote (yas-popup-isearch-prompt yas/completing-prompt))))
-
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(bm-face ((t (:background "spring green" :overline nil :underline t))))
- '(flymake-errline ((t (:foreground "orange" :background "blue"))) t)
- '(flymake-warnline ((t (:background "yellow"))) t)
- '(highlight-indent-guides-even-face ((t (:background "wheat1"))))
- '(highlight-indent-guides-odd-face ((t (:background "wheat2"))))
- '(objc-font-lock-background ((t (:inherit nil))))
- '(whitespace-space ((t (:foreground "DarkGoldenrod1"))))
- '(whitespace-tab ((t (:foreground "dark blue" :inverse-video nil)))))
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+(require 'use-package)
+(setq use-package-always-ensure t)
 
 (setenv "LANG" "ja_JP.UTF-8")
 (add-to-list 'load-path "~/.emacs.d/lisp")
@@ -108,6 +25,8 @@
 (global-set-key (kbd "C-o") 'other-window)
 (global-set-key (kbd "C-h") 'delete-backward-char)
 (global-set-key (kbd "RET") 'newline-and-indent)
+(global-set-key "\C-z" nil)
+
 (add-to-list 'exec-path (concat (getenv "HOME") "/bin"))
 (add-to-list 'exec-path (concat (getenv "GOPATH") "/bin"))
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
@@ -129,15 +48,16 @@
     '("-Wall" "-Wextra" "-fsyntax-only" "-ObjC" "-std=c99" "-fblocks" "-fobjc-arc"
       "-isysroot" xcode:sdk "-I" xcode:headers "-I." "-D__IPHONE_OS_VERSION_MIN_REQUIRED=70000")))
 
-
-(global-font-lock-mode 1)
-(require 'eldoc)
-(global-eldoc-mode t)
-
 (defadvice isearch-exit (after my-goto-match-beginning activate)
   "Go to beginning of match."
   (when (and isearch-forward isearch-other-end)
     (goto-char isearch-other-end)))
+
+(global-font-lock-mode 1)
+(use-package eldoc
+  :diminish eldoc-mod
+  :commands global-eldoc-mode
+  :config (global-eldoc-mode t))
 
 (require 'tramp)
 (nconc tramp-default-proxies-alist
@@ -147,31 +67,38 @@
 
 ;; builtin
 (require 'hl-line)
-(require 'saveplace)
 (require 'savehist)
 (require 'recentf)
-(require 'whitespace)
-(add-hook 'before-save-hook 'delete-trailing-whitespace)
+(use-package saveplace :commands save-place-mode :config (save-place-mode))
+(use-package whitespace :hook (before-save . delete-trailing-whitespace))
 
 ;;; packages
-(require 'use-package)
-(use-package helm-config
-  :commands (helm-mode)
-  :config (helm-mode t)
-  :bind (("C-x C-f" . helm-find-files)
-         ("C-x C-r" . helm-recentf)
-         ("C-x C-i" . helm-imenu)
-         ("C-x C-b" . helm-buffers-list)
-         ("M-x" . helm-M-x)
-         ("M-y" . helm-show-kill-ring)))
+(use-package ivy
+  :commands ivy-mode
+  :config (ivy-mode t))
+(use-package ivy-posframe
+  :after ivy
+  :commands (ivy-posframe-enable ivy-posframe-display-at-point)
+  :custom (ivy-display-function #'ivy-posframe-display-at-point)
+  :config
+  (ivy-posframe-enable))
 
-(use-package helm-git-grep
-  :commands (helm-git-grep-from-isearch)
-  :config (define-key isearch-mode-map (kbd "C-c g") 'helm-git-grep-from-isearch)
-  :bind (("C-c g" . helm-git-grep)))
+(use-package counsel
+  :bind (("C-x C-r" . counsel-recentf)
+         ("C-x C-b" . counsel-ibuffer)
+         ("C-x b"   . counsel-switch-buffer)
+         ("C-x C-g" . counsel-git-grep)
+         ("C-x C-i" . counsel-imenu)))
+(use-package swiper :bind ("C-s" . swiper))
+
+(use-package which-key
+  :diminish which-key-mode
+  :hook (after-init . which-key-mode))
 
 (use-package bm
-  :commands (bm-buffer-restore bm-buffer-save bm-buffer-save-all bm-repository-save)
+  :bind (("M-[" . bm-previous)
+         ("M-]" . bm-next)
+         ("M-SPC" . bm-toggle))
   :config
   (setq bm-restore-repository-on-load t)
   (add-hook 'find-file-hook 'bm-buffer-restore)
@@ -181,50 +108,57 @@
   (add-hook 'vc-before-checkin-hook 'bm-buffer-save)
   (add-hook 'kill-emacs-hook '(lambda ()
                                 (bm-buffer-save-all)
-                                (bm-repository-save)))
-  :bind (("M-[" . bm-previous)
-         ("M-]" . bm-next)
-         ("M-SPC" . bm-toggle)))
+                                (bm-repository-save))))
 
-(use-package helm-bm :bind (("C-c m" . helm-bm)))
-
+;;; Dired
+(use-package dired-k
+  :hook ((dired-initial-position . dired-k)
+         (dired-after-reeadin . #'dired-k-no-revert)))
 (use-package dired-hide-dotfiles
   :bind (:map dired-mode-map (("." . dired-hide-dotfiles-mode)))
   :hook (dired-mode . dired-hide-dotfiles-mode))
 
 (use-package company
   :bind ("C-;" . company-complete)
-  :hook (prog-mode . company-mode))
-(use-package lsp-mode)
-(use-package company-lsp)
+  :hook (prog-mode . company-mode)
+  :defines company-backends)
 (use-package company-statistics
+  :after company
   :commands (company-statistics-mode)
   :config (company-statistics-mode t))
 
-(use-package auto-complete)
+(use-package lsp-mode
+  :hook (go-mode . lsp)
+  :config
+  (use-package lsp-ui
+    :custom (scroll-margin 0)
+    :bind
+    (:map lsp-mode-map
+          ("C-c C-r" . lsp-ui-peek-find-references)
+          ("M-." . lsp-ui-peek-find-definitions)
+          ("C-M-." . lsp-ui-peek-find-implementation)
+          ("C-x C-i"   . lsp-ui-imenu))
+    :hook (lsp-mode . lsp-ui-mode)))
+
+(use-package company-lsp
+  :after (lsp-mode company)
+  :config
+  (push 'company-lsp company-backends))
+
+(use-package dumb-jump
+  :after ivy
+  :bind (("M-." . dumb-jump-go)
+         ("M-," . dumb-jump-back))
+  :config (setq dumb-jump-selector 'ivy))
 
 ;;; git
 (use-package magit :bind (("C-x g" . magit-status)))
 (use-package git-gutter-fringe+ :diminish git-gutter+-mode)
-(use-package popup :commands (popup-menu* popup-make-item))
-(defun yas-popup-isearch-prompt (prompt choices &optional display-fn)
-  (when (featurep 'popup)
-    (popup-menu*
-     (mapcar
-      (lambda (choice)
-        (popup-make-item
-         (or (and display-fn (funcall display-fn choice))
-             choice)
-         :value choice))
-      choices)
-     :prompt prompt
-     ;; start isearch mode immediately
-     :isearch t
-     )))
-(use-package yasnippet :hook (prog-mode . yas-minor-mode) :config (yas-reload-all))
+
+(use-package yasnippet :hook (prog-mode . yas-minor-mode) :commands yas-reload-all :config (yas-reload-all))
 (use-package popwin
   :config
-  (dolist (window '((" *auto-async-byte-compile*")
+  (dolist (window '(("*auto-async-byte-compile*")
                     (":home" :position left)
                     ("*compilation*")))
     (add-to-list 'popwin:special-display-config window)))
@@ -233,14 +167,14 @@
   :config (exec-path-from-shell-initialize))
 (use-package open-junk-file :commands open-junk-file)
 (use-package yaml-mode :mode "\\.yml$")
-(use-package telephone-line :commands (telephone-line-mode) :config (telephone-line-mode t))
-(use-package color-theme)
-(use-package solarized :config (load-theme 'solarized-light t))
+(use-package color-theme-modern)
+(use-package solarized-theme :config (load-theme 'solarized-light t))
+(use-package doom-modeline :hook (after-init . doom-modeline-mode))
 (use-package expand-region :bind ("C-M-SPC" . er/expand-region))
-(use-package undo-tree :commands (global-undo-tree-mode) :config (global-undo-tree-mode t))
-(use-package auto-async-byte-compile :config (add-hook 'emacs-lisp-mode-hook 'enable-auto-async-byte-compile-mode))
+(use-package undo-tree :commands (global-undo-tree-mode undo-tree-visualize) :config (global-undo-tree-mode t))
+(use-package auto-async-byte-compile :hook (emacs-lisp-mode. enable-auto-async-byte-compile-mode))
 (use-package ddskk :bind ("C-x j" . skk-mode))
-(use-package rainbow-delimiters :config (add-hook 'prog-mode-hook 'rainbow-delimiters-mode))
+(use-package rainbow-delimiters :hook (prog-mode . rainbow-delimiters-mode))
 
 (use-package migemo
   :if (executable-find "cmigemo")
@@ -256,39 +190,24 @@
     (global-cursor-in-brackets-mode 1)
   (message "cannot load cursor-in-brackets"))
 
-;; Flymake
-(defun flymake-cc-init ()
-  (let* ((temp-file   (flymake-proc-init-create-temp-buffer-copy 'flymake-create-temp-inplace))
-         (local-file  (file-relative-name temp-file (file-name-directory buffer-file-name))))
-    (list "g++" (list "std=c++0x" "-Wall" "-Wextra" "-fsyntax-only" local-file))))
-
-(use-package flymake :commands (flymake-init-create-temp-buffer-copy) :config (add-to-list 'flymake-allowed-file-name-masks '("\\.cpp$" flymake-cc-init)))
-(use-package flymake-cursor)
-(defun flycheck-setting-c/c++()
-  (flycheck-mode t)
-  ;; (flycheck-select-checker 'c/c++-cppcheck)
-  )
-
+;; flycheck
 (use-package flycheck
   :hook ((c-mode . flycheck-setting-c/c++)
          (c++-mode . flycheck-setting-c/c++)
          (csharp-mode . flycheck-mode)
          (ruby-mode . flycheck-mode)
-         (objc-mode . flycheck-mode)
-         (go-mode . flycheck-mode)))
-(use-package flycheck-color-mode-line
-  :config (eval-after-load "flycheck" '(add-hook 'flychech-mode-hook 'flycheck-color-mode-line-mode)))
+         (go-mode . flychech-mode)
+         (objc-mode . flycheck-mode)))
+(use-package flycheck-color-mode-line :after flycheck :hook (flychech-mode . flycheck-color-mode-line-mode))
 
 (if (fboundp 'display-line-numbers-mode) (add-hook 'prog-mode-hook 'display-line-numbers-mode))
 (use-package nlinum :if (version< emacs-version "26.0.0") :hook (prog-mode . nlinum-mode))
 (use-package highlight-indent-guides :hook (prog-mode . highlight-indent-guides-mode))
-(use-package projectile
-  :commands (projectile-mode helm-projectile-on)
-  :config
-  (projectile-mode t)
-  (helm-projectile-on))
-
-(use-package anzu :commands (global-anzu-mode) :config (global-anzu-mode +1))
+(use-package volatile-highlights
+  :diminish
+  :hook
+  (after-init . volatile-highlights-mode))
+(use-package projectile :bind (("C-x C-p" . projectile-switch-project)))
 
 ;;; CC-Mode
 (defun cc-mode-setup()
@@ -300,8 +219,7 @@
   (c-set-offset 'arglist-intro '+)
   (c-set-offset 'arglist-close 0)
   (local-set-key (kbd "C-c o") 'ff-find-other-file)
-  (local-set-key (kbd "C-c c") 'compile)
-  )
+  (local-set-key (kbd "C-c c") 'compile))
 (add-hook 'c-mode-common-hook 'cc-mode-setup)
 
 ;;; C++
@@ -317,18 +235,10 @@
 
 (require 'cc-mode)
 (require 'semantic)
-;; (global-semanticdb-minor-mode 1)
-;; (global-semantic-idle-scheduler-mode 1)
-;; (semantic-mode 1)
 
 ;;; C#
 (use-package csharp-mode :mode "\\.cs$")
-(defun setup-csharp-mode ()
-  (let ((global-backends company-backends))
-    (set (make-local-variable 'company-backends) (cons 'company-omnisharp global-backends))))
-(use-package omnisharp
-  :hook omnisharp-mode
-  :config (add-hook 'csharp-mode-hook 'setup-csharp-mode))
+(use-package omnisharp :after company-mode :config (push 'company-omnisharp company-backends))
 
 ;;; Obj-C
 (use-package objc-font-lock :config (add-hook 'objc-mode-hook 'objc-font-lock-mode))
@@ -351,21 +261,11 @@
           '("." "../include" "/usr/include" "/usr/local/include/*"
             "/System/Library/Frameworks" "/Library/Frameworks")))
 
-(use-package clang-format)
-
 ;;; Python
 (require 'ipython nil t)
-(lsp-define-stdio-client
- lsp-python
- "python"
- (lsp-make-traverser #'(lambda (dir) (directory-files dir nil "\\(__init__\\|setup\\)\\.py")))
- '("pyls"))
-(defun python-mode-setup()
-  (set (make-local-variable 'company-backends)
-       '((company-lsp company-keywords company-dabbrev-code)))
-  (lsp-python-enable))
-(add-hook 'python-mode-hook 'python-mode-setup)
+(use-package ein)
 
+;;; Ruby
 ;; indent
 (setq-default ruby-deep-indent-paren-style nil)
 (defadvice ruby-indent-line (after unindent-closing-paren activate)
@@ -383,72 +283,23 @@
       (indent-line-to indent)
       (when (> offset 0) (forward-char offset)))))
 
-(use-package robe :config (add-to-list 'company-backends 'company-robe))
-(use-package web-mode :mode ".+\\.erb$")
-
-(defun coffee-custom ()
-  "coffee-mode-hook"
-  ;; CoffeeScript uses two spaces.
-  (set (make-local-variable 'tab-width) 2)
-  ;; If you don't have js2-mode
-  (setq-default
-   coffee-js-mode 'javascript-mode
-   coffee-args-compile '("-c" "--bare")
-   coffee-debug-mode t)
-  ;; Compile '.coffee' files on every save
-  (and (file-exists-p (buffer-file-name))
-       (file-exists-p (coffee-compiled-file-name))
-       (coffee-cos-mode t)))
-
-(use-package coffee-mode
-  :commands (coffee-compiled-file-name coffee-cos-mode)
-  :bind (("M-r" . coffee-compile-buffer))
-  :config (add-hook 'coffee-mode-hook 'coffee-custom)
-  :mode "\\.coffee$")
-
-(use-package go-projectile :commands (go-projectile-set-gopath))
-(lsp-define-stdio-client
-   lsp-go
-   "go"
-   #'(lambda () (print (or go-projectile-project-gopath default-directory)))
-   '("go-langserver" "-mode=stdio" "-gocodecompletion")
-   :ignore-regexps
-   '("^langserver-go: reading on stdin, writing on stdout$"))
-(defun go-mode-setup()
-  (subword-mode 1)
-  (set (make-local-variable 'company-backends)
-       '((company-lsp company-keywords company-dabbrev-code)))
-  (go-projectile-set-gopath)
-  (lsp-go-enable))
-
+;;; Go
+(use-package go-mode :hook ((before-save . gofmt-before-save) (go-mode . subword-mode)))
+(use-package go-projectile
+  :after (go-mode)
+  :hook (go-mode . go-projectile-set-gopath)
+  :commands (go-projectile-set-gopath))
 (use-package govet)
 (use-package go-tag
+  :after go-mode
   :bind (:map go-mode-map
               (("C-c `" . go-tag-add)
                ("C-u C-c `" . go-tag-remove))))
 (use-package go-impl)
 (use-package go-gen-test)
-(use-package go-eldoc :commands (go-eldoc-setup) :hook (go-mode . go-eldoc-setup))
-(use-package go-mode
-  :hook (before-save . gofmt-before-save)
-  :bind (:map go-mode-map (("C-c ." . godef-jump) ("C-c ," . pop-tag-mark)))
-  :config
-  (add-hook 'go-mode-hook 'go-mode-setup))
+(use-package go-eldoc :after go-mode :hook (go-mode . go-eldoc-setup))
 
-(use-package company-sourcekit)
-(defun swift-mode-setup()
-  (when (featurep 'flycheck)
-    (flycheck-mode t)
-    (add-to-list 'flycheck-checkers 'swift)
-    (setq-default flycheck-swift-sdk-path
-          (replace-regexp-in-string
-           "\n+$" "" (shell-command-to-string
-                      "xcrun --show-sdk-path --sdk macosx")))
-    ))
-
-(use-package swift-mode
-  :config (add-hook 'swift-mode-hook 'swift-mode-setup))
-
+;;; Scheme
 (defconst scheme-program-name "gosh -i")
 (autoload 'scheme-mode "cmuscheme" "Major mode for Scheme." t)
 (autoload 'run-scheme "cmuscheme" "Run an inferior Scheme process." t)
@@ -463,14 +314,10 @@
   (local-set-key (kbd "C-c s") 'scheme-other-window))
 (add-hook 'scheme-mode-hook 'scheme-mode-setup)
 
-(global-set-key "\C-z" nil)
-
-(use-package web-mode :mode "\\.html\\'")
-(use-package json-reformat)
+(use-package web-mode :mode ".+\\.(erb|html)$")
 (use-package apib-mode :mode "\\.apib$")
-
-(use-package ein)
 (use-package wakatime-mode)
+(use-package json-reformat)
 
 ;; (load "latex-mode-config")
 ;; ライブコーディング用設定
