@@ -172,7 +172,7 @@
 (use-package doom-modeline :hook (after-init . doom-modeline-mode))
 (use-package expand-region :bind ("C-M-SPC" . er/expand-region))
 (use-package undo-tree :commands (global-undo-tree-mode undo-tree-visualize) :config (global-undo-tree-mode t))
-(use-package auto-async-byte-compile :hook (emacs-lisp-mode. enable-auto-async-byte-compile-mode))
+(use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode))
 (use-package ddskk :bind ("C-x j" . skk-mode))
 (use-package rainbow-delimiters :hook (prog-mode . rainbow-delimiters-mode))
 
@@ -196,7 +196,7 @@
          (c++-mode . flycheck-setting-c/c++)
          (csharp-mode . flycheck-mode)
          (ruby-mode . flycheck-mode)
-         (go-mode . flychech-mode)
+         (go-mode . flycheck-mode)
          (objc-mode . flycheck-mode)))
 (use-package flycheck-color-mode-line :after flycheck :hook (flychech-mode . flycheck-color-mode-line-mode))
 
