@@ -1,10 +1,17 @@
 *.elc
 *~
 .cask/
+/.DS_Store
 /abbrev_defs
 /ac-comphist.dat
 /auto-save-list
+/company-statistics-cache.el
 /id-manager.el
+/network-security.data
+/places
+/projectile-bookmarks.eld
+/recentf
+/twittering-mode.gpg
 el-get/
 elpa/
 eshell/
@@ -13,6 +20,3 @@ semanticdb/
 tramp
 url/cookies
 wget-log
-/twittering-mode.gpg
-/.DS_Store
-/recentf
