@@ -76,21 +76,30 @@
 ;;; packages
 (use-package ivy
   :commands ivy-mode
-  :config (ivy-mode t))
-(use-package ivy-posframe
-  :after ivy
-  :commands (ivy-posframe-enable ivy-posframe-display-at-point)
-  :custom (ivy-display-function #'ivy-posframe-display-at-point)
-  :config
-  (ivy-posframe-enable))
+  :config (ivy-mode t)
+  (use-package ivy-posframe
+    :after ivy
+    :commands (ivy-posframe-enable ivy-posframe-display-at-frame-center)
+    :custom (ivy-display-function #'ivy-posframe-display-at-frame-center)
+    :config
+    (ivy-posframe-enable))
+  (use-package ivy-rich :commands ivy-rich-mode :config (ivy-rich-mode 1)))
 
 (use-package counsel
   :bind (("C-x C-r" . counsel-recentf)
-         ("C-x C-b" . counsel-ibuffer)
-         ("C-x b"   . counsel-switch-buffer)
-         ("C-x C-g" . counsel-git-grep)
+         ("C-x C-b" . ivy-switch-buffer)
+         ("C-x b"   . ivy-switch-buffer)
+         ("C-c g" . counsel-git-grep)
          ("C-x C-i" . counsel-imenu)))
 (use-package swiper :bind ("C-s" . swiper))
+(use-package projectile
+  :bind (("C-x p" . projectile-command-map))
+  :config
+  (use-package counsel-projectile
+    :after projectile
+    :commands counsel-projectile-mode
+    :config
+    (counsel-projectile-mode)))
 
 (use-package which-key
   :diminish which-key-mode
@@ -114,7 +123,7 @@
 ;;; Dired
 (use-package dired-k
   :hook ((dired-initial-position . dired-k)
-         (dired-after-reeadin . #'dired-k-no-revert)))
+         (dired-after-readin . dired-k-no-revert)))
 (use-package dired-hide-dotfiles
   :bind (:map dired-mode-map (("." . dired-hide-dotfiles-mode)))
   :hook (dired-mode . dired-hide-dotfiles-mode))
@@ -122,14 +131,16 @@
 (use-package company
   :bind ("C-;" . company-complete)
   :hook (prog-mode . company-mode)
-  :defines company-backends)
-(use-package company-statistics
-  :after company
-  :commands (company-statistics-mode)
-  :config (company-statistics-mode t))
+  :defines company-backends
+  :config
+  (use-package company-statistics
+    :after company
+    :commands (company-statistics-mode)
+    :config (company-statistics-mode t)))
 
 (use-package lsp-mode
-  :hook (go-mode . lsp)
+  :hook ((go-mode . lsp) (ruby-mode . lsp))
+  :commands lsp
   :config
   (use-package lsp-ui
     :custom (scroll-margin 0)
@@ -141,18 +152,18 @@
           ("C-x C-i"   . lsp-ui-imenu))
     :hook (lsp-mode . lsp-ui-mode)))
 
+(use-package dap-mode
+  :hook ((prog-mode . dap-mode) (prog-mode . dap-ui-mode))
+  :bind (:map dap-mode-map (("C-c d" . dap-debug)))
+  :config
+  (require 'dap-go))
+
 (use-package company-lsp
   :after (lsp-mode company)
   :config
   (push 'company-lsp company-backends))
 
-(use-package dumb-jump
-  :after ivy
-  :bind (("M-." . dumb-jump-go)
-         ("M-," . dumb-jump-back))
-  :config (setq dumb-jump-selector 'ivy))
-
-;;; git
+;; git
 (use-package magit :bind (("C-x g" . magit-status)))
 (use-package git-gutter-fringe+ :diminish git-gutter+-mode)
 
@@ -212,7 +223,6 @@
   :diminish
   :hook
   (after-init . volatile-highlights-mode))
-(use-package projectile :bind (("C-x C-p" . projectile-switch-project)))
 
 ;;; CC-Mode
 (defun cc-mode-setup()
@@ -243,14 +253,11 @@
 
 ;;; C#
 (use-package csharp-mode :mode "\\.cs$")
-(use-package omnisharp :after company-mode :config (push 'company-omnisharp company-backends))
+(use-package omnisharp :after company :config (push 'company-omnisharp company-backends))
 
 ;;; Obj-C
 (use-package objc-font-lock :config (add-hook 'objc-mode-hook 'objc-font-lock-mode))
-(defadvice ff-get-file-name (around ff-get-file-name-framework
-                                    (search-dirs
-                                     fname-stub
-                                     &optional suffix-list))
+(defadvice ff-get-file-name (around ff-get-file-name-framework (search-dirs fname-stub &optional suffix-list))
   "Search for Mac framework headers as well as POSIX headers."
   (or
    (if (string-match "\\(.*?\\)/\\(.*\\)" fname-stub)
@@ -263,8 +270,8 @@
 (ad-activate 'ff-get-file-name)
 (if (eq window-system 'ns)
     (setq-default cc-search-directories
-          '("." "../include" "/usr/include" "/usr/local/include/*"
-            "/System/Library/Frameworks" "/Library/Frameworks")))
+                  '("." "../include" "/usr/include" "/usr/local/include/*"
+                    "/System/Library/Frameworks" "/Library/Frameworks")))
 
 ;;; Python
 (require 'ipython nil t)
@@ -289,20 +296,21 @@
       (when (> offset 0) (forward-char offset)))))
 
 ;;; Go
-(use-package go-mode :hook ((before-save . gofmt-before-save) (go-mode . subword-mode)))
-(use-package go-projectile
-  :after (go-mode)
-  :hook (go-mode . go-projectile-set-gopath)
-  :commands (go-projectile-set-gopath))
-(use-package govet)
-(use-package go-tag
-  :after go-mode
-  :bind (:map go-mode-map
-              (("C-c `" . go-tag-add)
-               ("C-u C-c `" . go-tag-remove))))
-(use-package go-impl)
-(use-package go-gen-test)
-(use-package go-eldoc :after go-mode :hook (go-mode . go-eldoc-setup))
+(use-package go-mode
+  :hook ((before-save . gofmt-before-save) (go-mode . subword-mode))
+  :config
+  (use-package go-projectile
+    :hook (go-mode . go-projectile-set-gopath)
+    :commands (go-projectile-set-gopath))
+  (use-package govet)
+  (use-package go-tag
+    :after go-mode
+    :bind (:map go-mode-map
+                (("C-c `" . go-tag-add)
+                 ("C-u C-c `" . go-tag-remove))))
+  (use-package go-impl)
+  (use-package go-gen-test)
+  (use-package go-eldoc :after go-mode :hook (go-mode . go-eldoc-setup)))
 
 ;;; Scheme
 (defconst scheme-program-name "gosh -i")
