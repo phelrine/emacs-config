@@ -1,7 +1,3 @@
-;;; Load custom file
-(setq custom-file "~/.emacs.d/custom.el")
-(load custom-file)
-
 ;; Added by Package.el.  This must come before configurations of
 ;; installed packages.  Don't delete this line.  If you don't want it,
 ;; just comment it out by adding a semicolon to the start of the line.
@@ -76,14 +72,9 @@
 ;;; packages
 (use-package ivy
   :commands ivy-mode
-  :config (ivy-mode t)
-  (use-package ivy-posframe
-    :after ivy
-    :commands (ivy-posframe-enable ivy-posframe-display-at-frame-center)
-    :custom (ivy-display-function #'ivy-posframe-display-at-frame-center)
-    :config
-    (ivy-posframe-enable))
-  (use-package ivy-rich :commands ivy-rich-mode :config (ivy-rich-mode 1)))
+  :config
+  (use-package ivy-rich :commands ivy-rich-mode :config (ivy-rich-mode 1))
+  (ivy-mode t))
 
 (use-package counsel
   :bind (("C-x C-r" . counsel-recentf)
@@ -92,18 +83,15 @@
          ("C-c g" . counsel-git-grep)
          ("C-x C-i" . counsel-imenu)))
 (use-package swiper :bind ("C-s" . swiper))
-(use-package projectile
+(use-package counsel-projectile
   :bind (("C-x p" . projectile-command-map))
-  :config
-  (use-package counsel-projectile
-    :after projectile
-    :commands counsel-projectile-mode
-    :config
-    (counsel-projectile-mode)))
+  :custom (counsel-projectile-mode t))
 
 (use-package which-key
   :diminish which-key-mode
   :hook (after-init . which-key-mode))
+
+(use-package hydra)
 
 (use-package bm
   :bind (("M-[" . bm-previous)
@@ -130,13 +118,14 @@
 
 (use-package company
   :bind ("C-;" . company-complete)
-  :hook (prog-mode . company-mode)
-  :defines company-backends
+  :defines (company-backends)
+  :custom
+  (company-backends '(company-lsp company-capf company-dabbrev-code company-files))
+  :commands global-company-mode
   :config
-  (use-package company-statistics
-    :after company
-    :commands (company-statistics-mode)
-    :config (company-statistics-mode t)))
+  (require 'company-capf)
+  (global-company-mode)
+  (use-package company-statistics :custom (company-statistics-mode t)))
 
 (use-package lsp-mode
   :hook ((go-mode . lsp) (ruby-mode . lsp))
@@ -158,10 +147,7 @@
   :config
   (require 'dap-go))
 
-(use-package company-lsp
-  :after (lsp-mode company)
-  :config
-  (push 'company-lsp company-backends))
+(use-package company-lsp :after (lsp-mode company))
 
 ;; git
 (use-package magit :bind (("C-x g" . magit-status)))
@@ -253,7 +239,7 @@
 
 ;;; C#
 (use-package csharp-mode :mode "\\.cs$")
-(use-package omnisharp :after company :config (push 'company-omnisharp company-backends))
+(use-package omnisharp)
 
 ;;; Obj-C
 (use-package objc-font-lock :config (add-hook 'objc-mode-hook 'objc-font-lock-mode))
@@ -278,7 +264,11 @@
 (use-package ein)
 
 ;;; Ruby
-;; indent
+(use-package inf-ruby :hook (ruby-mode . inf-ruby-minor-mode))
+(use-package robe :hook (ruby-mode . robe-mode)
+  :config
+  (push 'company-robe company-backends))
+(use-package projectile-rails)
 (setq-default ruby-deep-indent-paren-style nil)
 (defadvice ruby-indent-line (after unindent-closing-paren activate)
   (let ((column (current-column))
@@ -335,3 +325,7 @@
 ;; (load "latex-mode-config")
 ;; ライブコーディング用設定
 ;; (set-face-attribute 'default nil :height 300)
+
+;;; Load custom file
+(setq custom-file "~/.emacs.d/custom.el")
+(load custom-file)

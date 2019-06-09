@@ -29,13 +29,11 @@
    "{BasedOnStyle: google, IndentWidth: 4, BreakBeforeBraces: Linux, ObjCBlockIndentWidth: 4, ColumnLimit: 0, ObjCSpaceAfterProperty: true}")
  '(company-backends
    (quote
-    (company-bbdb company-nxml company-css company-eclim company-semantic company-cmake
-                  (company-dabbrev-code :with company-clang)
-                  (company-clang company-gtags company-etags company-keywords)
-                  company-oddmuse company-files company-dabbrev)))
+    (company-lsp company-capf company-dabbrev-code company-files)))
  '(company-dabbrev-downcase nil)
  '(company-idle-delay nil)
  '(company-lsp-enable-recompletion nil)
+ '(counsel-projectile-mode t nil (counsel-projectile))
  '(ein:output-type-preference (quote ein:output-type-prefer-pretty-text-over-html))
  '(exec-path-from-shell-arguments (quote ("-l")))
  '(exec-path-from-shell-variables (quote ("PATH" "MANPATH" "GOPATH")))
@@ -49,7 +47,7 @@
  '(helm-show-completion-display-function (quote helm-show-completion-default-display-function))
  '(history-length 5000)
  '(indent-tabs-mode nil)
- '(ivy-display-function (quote ivy-posframe-display-at-frame-center))
+ '(ivy-display-function (quote ivy-posframe-display-at-frame-center) t)
  '(ivy-use-virtual-buffers t)
  '(lsp-auto-configure t)
  '(lsp-prefer-flymake nil)
@@ -66,7 +64,7 @@
  '(migemo-user-dictionary nil)
  '(package-selected-packages
    (quote
-    (dumb-jump dumb wakatime-mode apib-mode json-reformat web-mode go-gen-test go-impl go-tag govet go-projectile go-mode ein objc-font-lock omnisharp csharp-mode projectile volatile-highlights highlight-indent-guides nlinum flycheck-color-mode-line flycheck migemo rainbow-delimiters ddskk auto-async-byte-compile undo-tree expand-region doom-modeline solarized-theme color-theme-modern yaml-mode open-junk-file exec-path-from-shell popwin yasnippet git-gutter-fringe+ magit company-lsp lsp-ui company-statistics company dired-hide-dotfiles dired-k bm which-key counsel ivy-posframe ivy use-package)))
+    (rubocopfmt rbenv robe hydra projectile-rails inf-ruby dap-mode counsel-projectile ivy-rich dumb-jump dumb wakatime-mode apib-mode json-reformat web-mode go-gen-test go-impl go-tag govet go-projectile go-mode ein objc-font-lock omnisharp csharp-mode projectile volatile-highlights highlight-indent-guides nlinum flycheck-color-mode-line flycheck migemo rainbow-delimiters ddskk auto-async-byte-compile undo-tree expand-region doom-modeline solarized-theme color-theme-modern yaml-mode open-junk-file exec-path-from-shell popwin yasnippet git-gutter-fringe+ magit company-lsp lsp-ui company-statistics company dired-hide-dotfiles dired-k bm which-key counsel ivy-posframe ivy use-package)))
  '(recentf-max-saved-items 1000)
  '(save-place-mode t)
  '(savehist-mode t)
