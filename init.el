@@ -127,8 +127,10 @@
   (global-company-mode)
   (use-package company-statistics :custom (company-statistics-mode t)))
 
+(use-package yasnippet)
+
 (use-package lsp-mode
-  :hook ((go-mode . lsp) (ruby-mode . lsp))
+  :hook ((go-mode . lsp) (ruby-mode . lsp) (dart-mode . lsp))
   :commands lsp
   :config
   (use-package lsp-ui
@@ -161,11 +163,17 @@
                     ("*compilation*")))
     (add-to-list 'popwin:special-display-config window)))
 
+
 (use-package exec-path-from-shell
   :if (memq window-system '(mac ns))
   :config
   (exec-path-from-shell-initialize)
-  (add-to-list 'exec-path (concat (car (split-string (getenv "GOPATH") ":")) "/bin")))
+  (let ((gopath (getenv "GOPATH")))
+    (if gopath (add-to-list 'exec-path (concat (car (split-string  ":")) "/bin"))))
+  (let ((flutter-path (exec-path-from-shell-copy-env "FLUTTER_PATH")))
+    (when flutter-path
+      (add-to-list 'exec-path (concat flutter-path "/.pub-cache/bin"))
+      (add-to-list 'exec-path (concat flutter-path "/bin/cache/dart-sdk/bin")))))
 
 (use-package open-junk-file :commands open-junk-file)
 (use-package yaml-mode :mode "\\.yml$")
@@ -301,6 +309,9 @@
   (use-package go-impl)
   (use-package go-gen-test)
   (use-package go-eldoc :after go-mode :hook (go-mode . go-eldoc-setup)))
+
+;;; Dart
+(use-package dart-mode)
 
 ;;; Scheme
 (defconst scheme-program-name "gosh -i")
