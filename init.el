@@ -4,7 +4,6 @@
 ;; You may delete these explanatory comments.
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
-(add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/"))
 (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
 (package-initialize)
 
@@ -14,17 +13,29 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
+;;; ENV
 (setenv "LANG" "ja_JP.UTF-8")
-(add-to-list 'load-path "~/.emacs.d/lisp")
-(add-to-list 'load-path "~/.emacs.d/site-lisp")
+(defun flutter-exec-path ()
+  (let ((flutter-path (getenv "FLUTTER_PATH")))
+    (if flutter-path
+        (mapcar (lambda (path) (concat flutter-path path))
+                '("/bin" "/.pub-cache/bin" "/bin/cache/dart-sdk/bin"))
+      nil)))
+
+(defun go-exec-path ()
+  (mapcar (lambda (path)
+            (concat path "/bin"))
+          (remove "" (split-string (or (getenv "GOPATH") "") ":"))))
+
+(nconc exec-path
+       (remove nil `(,(concat (getenv "HOME") "/bin")
+                     ,@(flutter-exec-path)
+                     ,@(go-exec-path))))
 
 (global-set-key (kbd "C-o") 'other-window)
 (global-set-key (kbd "C-h") 'delete-backward-char)
 (global-set-key (kbd "RET") 'newline-and-indent)
 (global-set-key "\C-z" nil)
-(add-to-list 'exec-path (concat (getenv "HOME") "/bin"))
-(when (getenv "GOPATH")
-  (add-to-list 'exec-path (concat (getenv "GOPATH") "/bin")))
 
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 (defalias 'qrr 'query-replace-regexp)
@@ -65,11 +76,19 @@
 ;; builtin
 (require 'hl-line)
 (require 'savehist)
-(require 'recentf)
+(use-package recentf :config (use-package recentf-ext))
 (use-package saveplace :commands save-place-mode :config (save-place-mode))
 (use-package whitespace :hook (before-save . delete-trailing-whitespace))
 
 ;;; packages
+(use-package projectile
+  :diminish
+  :defines projectile-project-root-files-bottom-up
+  :config
+  ;; https://github.com/bradyt/dart-mode/wiki/LSP#lsp-mode
+  (add-to-list 'projectile-project-root-files-bottom-up "pubspec.yaml")
+  (add-to-list 'projectile-project-root-files-bottom-up "BUILD"))
+
 (use-package ivy
   :commands ivy-mode
   :config
@@ -81,9 +100,14 @@
          ("C-x C-b" . ivy-switch-buffer)
          ("C-x b"   . ivy-switch-buffer)
          ("C-c g" . counsel-git-grep)
-         ("C-x C-i" . counsel-imenu)))
+         ("C-x C-i" . counsel-imenu)
+         ("M-x" . counsel-M-x)
+         ("M-y" . counsel-yank-pop)))
+
 (use-package swiper :bind ("C-s" . swiper))
+
 (use-package counsel-projectile
+  :after (projectile counsel)
   :bind (("C-x p" . projectile-command-map))
   :custom (counsel-projectile-mode t))
 
@@ -109,12 +133,20 @@
                                 (bm-repository-save))))
 
 ;;; Dired
-(use-package dired-k
-  :hook ((dired-initial-position . dired-k)
-         (dired-after-readin . dired-k-no-revert)))
 (use-package dired-hide-dotfiles
   :bind (:map dired-mode-map (("." . dired-hide-dotfiles-mode)))
   :hook (dired-mode . dired-hide-dotfiles-mode))
+(use-package all-the-icons-dired
+  :hook (dired-mode . all-the-icons-dired-mode))
+(defun find-file-default-directory ()
+  (interactive)
+  (find-file default-directory))
+(global-set-key (kbd "C-x d") 'find-file-default-directory)
+
+(use-package autorevert
+  :ensure nil
+  :diminish
+  :hook (after-init . global-auto-revert-mode))
 
 (use-package company
   :bind ("C-;" . company-complete)
@@ -130,6 +162,8 @@
 (use-package yasnippet)
 
 (use-package lsp-mode
+  :custom
+  (lsp-auto-guess-root t)
   :hook ((go-mode . lsp) (ruby-mode . lsp) (dart-mode . lsp))
   :commands lsp
   :config
@@ -139,20 +173,23 @@
     (:map lsp-mode-map
           ("C-c C-r" . lsp-ui-peek-find-references)
           ("M-." . lsp-ui-peek-find-definitions)
-          ("C-M-." . lsp-ui-peek-find-implementation)
-          ("C-x C-i"   . lsp-ui-imenu))
+          ("C-M-." . lsp-ui-peek-find-implementation))
     :hook (lsp-mode . lsp-ui-mode)))
 
 (use-package dap-mode
   :hook ((prog-mode . dap-mode) (prog-mode . dap-ui-mode))
   :bind (:map dap-mode-map (("C-c d" . dap-debug)))
   :config
-  (require 'dap-go))
+  (require 'dap-go)
+  (require 'dap-ruby))
 
 (use-package company-lsp :after (lsp-mode company))
 
 ;; git
 (use-package magit :bind (("C-x g" . magit-status)))
+(use-package gitattributes-mode :defer t)
+(use-package gitconfig-mode :defer t)
+(use-package gitignore-mode :defer t)
 (use-package git-gutter-fringe+ :diminish git-gutter+-mode)
 
 (use-package yasnippet :hook (prog-mode . yas-minor-mode) :commands yas-reload-all :config (yas-reload-all))
@@ -166,14 +203,12 @@
 
 (use-package exec-path-from-shell
   :if (memq window-system '(mac ns))
+  :custom (exec-path-from-shell-variables '("PATH" "MANPATH" "GOPATH" "FLUTTER_PATH"))
+  :commands
+  exec-path-from-shell-initialize
   :config
   (exec-path-from-shell-initialize)
-  (let ((gopath (getenv "GOPATH")))
-    (if gopath (add-to-list 'exec-path (concat (car (split-string  ":")) "/bin"))))
-  (let ((flutter-path (exec-path-from-shell-copy-env "FLUTTER_PATH")))
-    (when flutter-path
-      (add-to-list 'exec-path (concat flutter-path "/.pub-cache/bin"))
-      (add-to-list 'exec-path (concat flutter-path "/bin/cache/dart-sdk/bin")))))
+  (nconc exec-path (remove nil `(,@(flutter-exec-path) ,@(go-exec-path)))))
 
 (use-package open-junk-file :commands open-junk-file)
 (use-package yaml-mode :mode "\\.yml$")
@@ -181,7 +216,7 @@
 (use-package solarized-theme :config (load-theme 'solarized-light t))
 (use-package doom-modeline :hook (after-init . doom-modeline-mode))
 (use-package expand-region :bind ("C-M-SPC" . er/expand-region))
-(use-package undo-tree :commands (global-undo-tree-mode undo-tree-visualize) :config (global-undo-tree-mode t))
+(use-package undo-tree :commands (global-undo-tree-mode undo-tree-visualize) :bind ("C-x u" . undo-tree-visualize) :config (global-undo-tree-mode t))
 (use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode))
 (use-package ddskk :bind ("C-x j" . skk-mode))
 (use-package rainbow-delimiters :hook (prog-mode . rainbow-delimiters-mode))
@@ -196,15 +231,15 @@
          ((eq system-type 'gnu-linux) "/usr/share/cmigemo/utf-8/migemo-dict")))
   (migemo-init))
 
-(if (require 'cursor-in-brackets nil t)
-    (global-cursor-in-brackets-mode 1)
-  (message "cannot load cursor-in-brackets"))
+(use-package smartparens
+  :hook
+  (after-init . smartparens-global-mode)
+  :config
+  (require 'smartparens-config))
 
 ;; flycheck
 (use-package flycheck
-  :hook ((c-mode . flycheck-setting-c/c++)
-         (c++-mode . flycheck-setting-c/c++)
-         (csharp-mode . flycheck-mode)
+  :hook ((csharp-mode . flycheck-mode)
          (ruby-mode . flycheck-mode)
          (go-mode . flycheck-mode)
          (objc-mode . flycheck-mode)))
@@ -217,33 +252,6 @@
   :diminish
   :hook
   (after-init . volatile-highlights-mode))
-
-;;; CC-Mode
-(defun cc-mode-setup()
-  (setq-default c-basic-offset 4
-                indent-tabs-mode nil
-                comment-column 40)
-  (c-set-offset 'substatement-open 0)
-  (c-set-offset 'case-label '+)
-  (c-set-offset 'arglist-intro '+)
-  (c-set-offset 'arglist-close 0)
-  (local-set-key (kbd "C-c o") 'ff-find-other-file)
-  (local-set-key (kbd "C-c c") 'compile))
-(add-hook 'c-mode-common-hook 'cc-mode-setup)
-
-;;; C++
-(add-to-list 'auto-mode-alist '(".+\\.h$" . c++-mode))
-(add-to-list 'auto-mode-alist '("\\.mm?$" . objc-mode))
-(add-to-list 'magic-mode-alist
-             `(,(lambda ()
-                  (and (string= (file-name-extension buffer-file-name) "h")
-                       (or (re-search-forward "#\\<import\\>" magic-mode-regexp-match-limit t)
-                           (re-search-forward "@\\<interface\\>" magic-mode-regexp-match-limit t)
-                           (re-search-forward "@\\<protocol\\>" magic-mode-regexp-match-limit t))))
-               . objc-mode))
-
-(require 'cc-mode)
-(require 'semantic)
 
 ;;; C#
 (use-package csharp-mode :mode "\\.cs$")
@@ -267,6 +275,9 @@
                   '("." "../include" "/usr/include" "/usr/local/include/*"
                     "/System/Library/Frameworks" "/Library/Frameworks")))
 
+;;; Swift
+(use-package swift-mode :mode "\\.swift$")
+
 ;;; Python
 (require 'ipython nil t)
 (use-package ein)
@@ -276,7 +287,8 @@
 (use-package robe :hook (ruby-mode . robe-mode)
   :config
   (push 'company-robe company-backends))
-(use-package projectile-rails)
+(use-package rubocopfmt
+  :hook (ruby-mode . rubocopfmt-mode))
 (setq-default ruby-deep-indent-paren-style nil)
 (defadvice ruby-indent-line (after unindent-closing-paren activate)
   (let ((column (current-column))
@@ -292,6 +304,7 @@
     (when indent
       (indent-line-to indent)
       (when (> offset 0) (forward-char offset)))))
+(use-package projectile-rails)
 
 ;;; Go
 (use-package go-mode
@@ -310,8 +323,13 @@
   (use-package go-gen-test)
   (use-package go-eldoc :after go-mode :hook (go-mode . go-eldoc-setup)))
 
-;;; Dart
+;;; Dart & Flutter
 (use-package dart-mode)
+(use-package flutter :requires dart-mode)
+
+;;; Web
+(use-package web-mode :mode ".+\\.(erb|html)$")
+(use-package vue-mode)
 
 ;;; Scheme
 (defconst scheme-program-name "gosh -i")
@@ -328,12 +346,10 @@
   (local-set-key (kbd "C-c s") 'scheme-other-window))
 (add-hook 'scheme-mode-hook 'scheme-mode-setup)
 
-(use-package web-mode :mode ".+\\.(erb|html)$")
 (use-package apib-mode :mode "\\.apib$")
 (use-package wakatime-mode)
 (use-package json-reformat)
 
-;; (load "latex-mode-config")
 ;; ライブコーディング用設定
 ;; (set-face-attribute 'default nil :height 300)
 
