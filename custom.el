@@ -33,6 +33,7 @@
  '(company-dabbrev-downcase nil)
  '(company-idle-delay nil)
  '(company-lsp-enable-recompletion nil)
+ '(company-statistics-mode t)
  '(counsel-projectile-mode t nil (counsel-projectile))
  '(ein:output-type-preference (quote ein:output-type-prefer-pretty-text-over-html))
  '(exec-path-from-shell-arguments (quote ("-l")))
@@ -49,6 +50,7 @@
  '(indent-tabs-mode nil)
  '(ivy-use-virtual-buffers t)
  '(lsp-auto-configure t)
+ '(lsp-auto-guess-root t)
  '(lsp-prefer-flymake nil)
  '(lsp-ui-doc-header nil)
  '(lsp-ui-doc-position (quote top))
@@ -63,10 +65,12 @@
  '(migemo-user-dictionary nil)
  '(package-selected-packages
    (quote
-    (projectile-rails robe inf-ruby hydra haml-mode dart-mode dap-mode counsel-projectile ivy-rich dumb-jump dumb wakatime-mode apib-mode json-reformat web-mode go-gen-test go-impl go-tag govet go-projectile go-mode ein objc-font-lock omnisharp csharp-mode projectile volatile-highlights highlight-indent-guides nlinum flycheck-color-mode-line flycheck migemo ddskk auto-async-byte-compile undo-tree expand-region doom-modeline solarized-theme color-theme-modern yaml-mode open-junk-file exec-path-from-shell popwin yasnippet git-gutter-fringe+ magit company-lsp lsp-ui company-statistics company dired-hide-dotfiles dired-k bm which-key counsel ivy-posframe ivy use-package)))
+    (vue-mode dired-x smartparens swift-mode rubocopfmt all-the-icons-dired recentf-ext rainbow-delimiters flutter projectile-rails robe inf-ruby hydra haml-mode dart-mode dap-mode counsel-projectile ivy-rich dumb-jump dumb wakatime-mode apib-mode json-reformat web-mode go-gen-test go-impl go-tag govet go-projectile go-mode ein objc-font-lock omnisharp csharp-mode projectile volatile-highlights highlight-indent-guides nlinum flycheck-color-mode-line flycheck migemo ddskk auto-async-byte-compile undo-tree expand-region doom-modeline solarized-theme color-theme-modern yaml-mode open-junk-file exec-path-from-shell popwin yasnippet git-gutter-fringe+ magit company-lsp lsp-ui company-statistics company dired-hide-dotfiles dired-k bm which-key counsel ivy-posframe ivy use-package)))
  '(recentf-max-saved-items 1000)
+ '(ruby-insert-encoding-magic-comment nil)
  '(save-place-mode t)
  '(savehist-mode t)
+ '(scroll-margin 0)
  '(show-paren-mode 1)
  '(show-trailing-whitespace t)
  '(skk-use-jisx0201-input-method t)
@@ -88,8 +92,6 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(bm-face ((t (:background "spring green" :overline nil :underline t))))
- '(flymake-errline ((t (:foreground "orange" :background "blue"))) t)
- '(flymake-warnline ((t (:background "yellow"))) t)
  '(highlight-indent-guides-even-face ((t (:background "wheat1"))))
  '(highlight-indent-guides-odd-face ((t (:background "wheat2"))))
  '(objc-font-lock-background ((t (:inherit nil))))
