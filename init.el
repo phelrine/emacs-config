@@ -204,8 +204,6 @@
 (use-package exec-path-from-shell
   :if (memq window-system '(mac ns))
   :custom (exec-path-from-shell-variables '("PATH" "MANPATH" "GOPATH" "FLUTTER_PATH"))
-  :commands
-  exec-path-from-shell-initialize
   :config
   (exec-path-from-shell-initialize)
   (nconc exec-path (remove nil `(,@(flutter-exec-path) ,@(go-exec-path)))))
