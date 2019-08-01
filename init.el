@@ -48,13 +48,7 @@
                     (font-spec :family "Hiragino Kaku Gothic ProN"))
   (add-to-list 'face-font-rescale-alist
                '(".*Hiragino Kaku Gothic ProN.*" . 1.1))
-  (nconc default-frame-alist '((width . 120)(height . 40)))
-  (defvar xcode:sdk "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk")
-  (defvar xcode:frameworks (concat xcode:sdk "/System/Library/Frameworks/"))
-  (defvar xcode:headers (concat xcode:sdk "/usr/include/"))
-  (defvar company-clang-argument
-    '("-Wall" "-Wextra" "-fsyntax-only" "-ObjC" "-std=c99" "-fblocks" "-fobjc-arc"
-      "-isysroot" xcode:sdk "-I" xcode:headers "-I." "-D__IPHONE_OS_VERSION_MIN_REQUIRED=70000")))
+  (nconc default-frame-alist '((width . 120)(height . 40))))
 
 (defadvice isearch-exit (after my-goto-match-beginning activate)
   "Go to beginning of match."
@@ -63,11 +57,14 @@
 
 (global-font-lock-mode 1)
 (use-package eldoc
-  :diminish eldoc-mod
+  :diminish eldoc-mode
   :commands global-eldoc-mode
   :config (global-eldoc-mode t))
 
 (require 'tramp)
+;; /sudo:hostname でリモートログインしてファイルを開ける
+;; リモートのファイルをroot権限で編集する
+;; https://qiita.com/miyakou1982/items/d05e1ce07ad632c94720
 (nconc tramp-default-proxies-alist
        '((nil "\\`root\\'" "/ssh:%h:")
          ("localhost" nil nil)
@@ -195,12 +192,11 @@
 
 (use-package yasnippet :hook (prog-mode . yas-minor-mode) :commands yas-reload-all :config (yas-reload-all))
 (use-package popwin
+  :custom (popwin-mode 1)
   :config
-  (dolist (window '(("*auto-async-byte-compile*")
-                    (":home" :position left)
-                    ("*compilation*")))
-    (add-to-list 'popwin:special-display-config window)))
-
+  (nconc popwin:special-display-config
+         '((" *auto-async-byte-compile*" :noselect t)
+           ("*Rubocopfmt Errors*" :noselect t))))
 
 (use-package exec-path-from-shell
   :if (memq window-system '(mac ns))
@@ -210,7 +206,6 @@
   (nconc exec-path (remove nil `(,@(flutter-exec-path) ,@(go-exec-path)))))
 
 (use-package open-junk-file :commands open-junk-file)
-(use-package yaml-mode :mode "\\.yml$")
 (use-package color-theme-modern)
 (use-package solarized-theme :config (load-theme 'solarized-light t))
 (use-package doom-modeline :hook (after-init . doom-modeline-mode))
@@ -218,23 +213,15 @@
 (use-package undo-tree :commands (global-undo-tree-mode undo-tree-visualize) :bind ("C-x u" . undo-tree-visualize) :config (global-undo-tree-mode t))
 (use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode))
 (use-package ddskk :bind ("C-x j" . skk-mode))
-(use-package rainbow-delimiters :hook (prog-mode . rainbow-delimiters-mode))
 
 (use-package migemo
   :if (executable-find "cmigemo")
-  :commands (migemo-init)
   :config
   (setq migemo-dictionary
         (cond
          ((eq system-type 'darwin) "/usr/local/share/migemo/utf-8/migemo-dict")
          ((eq system-type 'gnu-linux) "/usr/share/cmigemo/utf-8/migemo-dict")))
   (migemo-init))
-
-(use-package smartparens
-  :hook
-  (after-init . smartparens-global-mode)
-  :config
-  (require 'smartparens-config))
 
 ;; flycheck
 (use-package flycheck
@@ -246,11 +233,21 @@
 
 (if (fboundp 'display-line-numbers-mode) (add-hook 'prog-mode-hook 'display-line-numbers-mode))
 (use-package nlinum :if (version< emacs-version "26.0.0") :hook (prog-mode . nlinum-mode))
-(use-package highlight-indent-guides :hook (prog-mode . highlight-indent-guides-mode))
 (use-package volatile-highlights
   :diminish
   :hook
   (after-init . volatile-highlights-mode))
+
+(use-package smartparens
+  :hook
+  (after-init . smartparens-global-mode)
+  :config
+  (require 'smartparens-config))
+(use-package rainbow-delimiters :hook (prog-mode . rainbow-delimiters-mode))
+
+;;; Intent
+(use-package highlight-indent-guides :hook (prog-mode . highlight-indent-guides-mode))
+(use-package indent-tools :bind ("C-c >" . indent-tools-hydra/body))
 
 ;;; C#
 (use-package csharp-mode :mode "\\.cs$")
@@ -307,6 +304,7 @@
   :bind (:map projectile-rails-mode-map (("C-c r" . hydra-projectile-rails/body)))
   :custom (projectile-rails-global-mode t))
 (use-package bundler)
+(use-package haml-mode)
 
 ;;; Go
 (use-package go-mode
@@ -348,10 +346,15 @@
   (local-set-key (kbd "C-c s") 'scheme-other-window))
 (add-hook 'scheme-mode-hook 'scheme-mode-setup)
 
-(use-package apib-mode :mode "\\.apib$")
+;;; config files
+(use-package nginx-mode :mode "/nginx/sites-\\(?:available\\|enabled\\)/" :defer t)
+(use-package dockerfile-mode :defer t)
+(use-package json-mode :defer t)
+(use-package yaml-mode :mode "\\.yml$" :defer t)
+(use-package apib-mode :mode "\\.apib$" :defer t)
+
 (use-package wakatime-mode)
 (use-package json-reformat)
-
 (use-package restart-emacs)
 
 ;; ライブコーディング用設定
