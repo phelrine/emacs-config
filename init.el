@@ -352,6 +352,8 @@
 (use-package wakatime-mode)
 (use-package json-reformat)
 
+(use-package restart-emacs)
+
 ;; ライブコーディング用設定
 ;; (set-face-attribute 'default nil :height 300)
 
