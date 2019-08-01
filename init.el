@@ -83,6 +83,7 @@
 ;;; packages
 (use-package projectile
   :diminish
+  :custom (projectile-completion-system 'ivy)
   :defines projectile-project-root-files-bottom-up
   :config
   ;; https://github.com/bradyt/dart-mode/wiki/LSP#lsp-mode
@@ -302,7 +303,10 @@
     (when indent
       (indent-line-to indent)
       (when (> offset 0) (forward-char offset)))))
-(use-package projectile-rails)
+(use-package projectile-rails
+  :bind (:map projectile-rails-mode-map (("C-c r" . hydra-projectile-rails/body)))
+  :custom (projectile-rails-global-mode t))
+(use-package bundler)
 
 ;;; Go
 (use-package go-mode
