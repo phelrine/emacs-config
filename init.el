@@ -330,6 +330,10 @@
 ;;; Web
 (use-package web-mode :mode ".+\\.(erb|html)$")
 (use-package vue-mode)
+(add-hook 'js-mode-hook
+          (lambda ()
+            (make-local-variable 'js-indent-level)
+            (setq js-indent-level 2)))
 
 ;;; Scheme
 (defconst scheme-program-name "gosh -i")
