@@ -81,7 +81,6 @@
  '(sourcekit-verbose t)
  '(tab-width 4)
  '(tool-bar-mode nil)
- '(view-read-only t)
  '(volatile-highlights-mode t)
  '(whitespace-display-mappings (quote ((space-mark 12288 [9633]) (tab-mark 9 [187 9]))))
  '(whitespace-space-regexp "\\(　+\\)")
