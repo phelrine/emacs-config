@@ -2,6 +2,7 @@
 *~
 .cask/
 .extension/
+.python-environments/
 /.dap-breakpoints
 /.DS_Store
 /.edbi-ds-history
@@ -12,6 +13,7 @@
 /auto-save-list
 /bookmarks
 /company-statistics-cache.el
+/flycheck_init.el
 /id-manager.el
 /network-security.data
 /places
