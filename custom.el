@@ -29,7 +29,7 @@
    "{BasedOnStyle: google, IndentWidth: 4, BreakBeforeBraces: Linux, ObjCBlockIndentWidth: 4, ColumnLimit: 0, ObjCSpaceAfterProperty: true}")
  '(company-backends
    (quote
-    (company-capf company-dabbrev-code company-files company-elisp company-yasnippet)))
+    (company-lsp company-capf company-dabbrev-code company-files)))
  '(company-dabbrev-downcase nil)
  '(company-idle-delay nil)
  '(company-lsp-enable-recompletion nil)
@@ -45,6 +45,7 @@
  '(global-git-gutter+-mode t)
  '(global-hl-line-mode t)
  '(global-wakatime-mode t)
+ '(global-whitespace-mode t)
  '(helm-boring-file-regexp-list (quote ("~$" "\\.meta$")))
  '(helm-ff-skip-boring-files t)
  '(helm-show-completion-display-function (quote helm-show-completion-default-display-function))
@@ -69,7 +70,7 @@
  '(migemo-user-dictionary nil)
  '(package-selected-packages
    (quote
-    (ivy-hydra xpm major-mode-icons company-quickhelp company-box beacon diminish all-the-icons-ivy undo-tree spinner yasnippet yaml-mode which-key web-mode wakatime-mode vue-mode volatile-highlights use-package swift-mode solarized-theme smartparens rubocopfmt robe restart-emacs recentf-ext rainbow-delimiters projectile-rails popwin open-junk-file omnisharp objc-font-lock nlinum nginx-mode migemo magit lsp-ui json-mode ivy-rich indent-tools highlight-indent-guides haml-mode govet go-tag go-projectile go-impl go-gen-test gitignore-mode gitconfig-mode gitattributes-mode git-gutter-fringe+ flyspell-lazy flyspell-correct-ivy flycheck-color-mode-line flutter expand-region exec-path-from-shell ein doom-modeline dockerfile-mode dired-hide-dotfiles ddskk dart-mode dap-mode counsel-projectile company-statistics company-lsp color-theme-modern bundler bm auto-async-byte-compile apib-mode all-the-icons-dired)))
+    (flymake-haml beacon company-quickhelp ivy-hydra all-the-icons-ivy diminish eslintd-fix yarn-mode indent-tools json-mode dockerfile-mode nginx-mode restart-emacs bundler gitignore-mode gitconfig-mode gitattributes-mode vue-mode dired-x smartparens swift-mode rubocopfmt all-the-icons-dired recentf-ext rainbow-delimiters flutter projectile-rails robe inf-ruby hydra haml-mode dart-mode dap-mode counsel-projectile ivy-rich dumb-jump dumb wakatime-mode apib-mode json-reformat web-mode go-gen-test go-impl go-tag govet go-projectile go-mode ein objc-font-lock omnisharp csharp-mode projectile volatile-highlights highlight-indent-guides nlinum flycheck-color-mode-line flycheck migemo ddskk auto-async-byte-compile undo-tree expand-region doom-modeline solarized-theme color-theme-modern yaml-mode open-junk-file exec-path-from-shell popwin yasnippet git-gutter-fringe+ magit company-lsp lsp-ui company-statistics company dired-hide-dotfiles dired-k bm which-key counsel ivy-posframe ivy use-package)))
  '(popwin-mode 1)
  '(projectile-completion-system (quote ivy))
  '(recentf-max-saved-items 1000)
@@ -78,6 +79,7 @@
  '(savehist-mode t)
  '(scroll-margin 0)
  '(show-paren-mode 1)
+ '(show-trailing-whitespace t)
  '(skk-use-jisx0201-input-method t)
  '(sort-fold-case t t)
  '(sourcekit-sourcekittendaemon-executable "/usr/local/bin/sourcekittendaemon")

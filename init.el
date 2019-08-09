@@ -202,8 +202,10 @@
            ("*Rubocopfmt Errors*" :noselect t))))
 
 (use-package exec-path-from-shell
+  :no-require t
   :if (memq window-system '(mac ns))
   :custom (exec-path-from-shell-variables '("PATH" "MANPATH" "GOPATH" "FLUTTER_PATH"))
+  :functions exec-path-from-shell-initialize
   :config
   (exec-path-from-shell-initialize)
   (nconc exec-path (remove nil `(,@(flutter-exec-path) ,@(go-exec-path)))))
@@ -218,11 +220,8 @@
 (use-package nlinum :if (version< emacs-version "26.0.0") :hook (prog-mode . nlinum-mode))
 
 (use-package expand-region :bind ("C-M-SPC" . er/expand-region))
-(use-package undo-tree :custom (global-undo-tree-mode 1) :bind ("C-x u" . undo-tree-visualize))
-(use-package volatile-highlights
-  :diminish
-  :hook
-  (after-init . volatile-highlights-mode))
+(use-package undo-tree :diminish :custom (global-undo-tree-mode 1) :bind ("C-x u" . undo-tree-visualize))
+(use-package volatile-highlights :diminish :hook (after-init . volatile-highlights-mode))
 (use-package beacon :custom (beacon-mode 1))
 
 (use-package ddskk :bind ("C-x j" . skk-mode))
@@ -316,6 +315,7 @@
   :custom (projectile-rails-global-mode t))
 (use-package bundler)
 (use-package haml-mode)
+(use-package flymake-haml :hook (haml-mode . flymake-haml-load))
 
 ;;; Go
 (use-package go-mode
@@ -337,7 +337,12 @@
 
 ;;; Web
 (use-package web-mode :mode ".+\\.(erb|html)$")
-(use-package vue-mode)
+(use-package vue-mode
+  :hook (vue-mode . (lambda ()
+                      (make-local-variable 'js-indent-level)
+                      (setq js-indent-level 2))))
+;; (use-package eslintd-fix :hook (vue-mode . eslintd-fix-mode))
+(use-package yarn-mode)
 (add-hook 'js-mode-hook
           (lambda ()
             (make-local-variable 'js-indent-level)
