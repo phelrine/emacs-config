@@ -313,6 +313,7 @@
               ("C-c r" . hydra-projectile-rails/body)
               ("C-c f" . hydra-projectile-rails-find/body))
   :custom (projectile-rails-global-mode t))
+(use-package rspec-mode)
 (use-package bundler)
 (use-package haml-mode)
 (use-package flymake-haml :hook (haml-mode . flymake-haml-load))
