@@ -70,15 +70,15 @@
  '(migemo-user-dictionary nil)
  '(package-selected-packages
    (quote
-    (rspec-mode flymake-haml beacon company-quickhelp ivy-hydra all-the-icons-ivy diminish eslintd-fix yarn-mode indent-tools json-mode dockerfile-mode nginx-mode restart-emacs bundler gitignore-mode gitconfig-mode gitattributes-mode vue-mode dired-x smartparens swift-mode rubocopfmt all-the-icons-dired recentf-ext rainbow-delimiters flutter projectile-rails robe inf-ruby hydra haml-mode dart-mode dap-mode counsel-projectile ivy-rich dumb-jump dumb wakatime-mode apib-mode json-reformat web-mode go-gen-test go-impl go-tag govet go-projectile go-mode ein objc-font-lock omnisharp csharp-mode projectile volatile-highlights highlight-indent-guides nlinum flycheck-color-mode-line flycheck migemo ddskk auto-async-byte-compile undo-tree expand-region doom-modeline solarized-theme color-theme-modern yaml-mode open-junk-file exec-path-from-shell popwin yasnippet git-gutter-fringe+ magit company-lsp lsp-ui company-statistics company dired-hide-dotfiles dired-k bm which-key counsel ivy-posframe ivy use-package)))
+    (coverage rspec-mode flymake-haml beacon company-quickhelp ivy-hydra all-the-icons-ivy diminish eslintd-fix yarn-mode indent-tools json-mode dockerfile-mode nginx-mode restart-emacs bundler gitignore-mode gitconfig-mode gitattributes-mode vue-mode dired-x smartparens swift-mode rubocopfmt all-the-icons-dired recentf-ext rainbow-delimiters flutter projectile-rails robe inf-ruby hydra haml-mode dart-mode dap-mode counsel-projectile ivy-rich dumb-jump dumb wakatime-mode apib-mode json-reformat web-mode go-gen-test go-impl go-tag govet go-projectile go-mode ein objc-font-lock omnisharp csharp-mode projectile volatile-highlights highlight-indent-guides nlinum flycheck-color-mode-line flycheck migemo ddskk auto-async-byte-compile undo-tree expand-region doom-modeline solarized-theme color-theme-modern yaml-mode open-junk-file exec-path-from-shell popwin yasnippet git-gutter-fringe+ magit company-lsp lsp-ui company-statistics company dired-hide-dotfiles dired-k bm which-key counsel ivy-posframe ivy use-package)))
  '(popwin-mode 1)
  '(projectile-completion-system (quote ivy))
  '(recentf-max-saved-items 1000)
  '(ruby-insert-encoding-magic-comment nil)
- '(save-place-mode t)
+ '(save-place-mode t nil nil "Customized with use-package saveplace")
  '(savehist-mode t)
  '(scroll-margin 0)
- '(show-paren-mode 1)
+ '(show-paren-mode t)
  '(show-trailing-whitespace t)
  '(skk-use-jisx0201-input-method t)
  '(sort-fold-case t t)
