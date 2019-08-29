@@ -315,6 +315,7 @@
   :custom (projectile-rails-global-mode t))
 (use-package rspec-mode)
 (use-package bundler)
+(use-package coverage)
 (use-package haml-mode)
 (use-package flymake-haml :hook (haml-mode . flymake-haml-load))
 
