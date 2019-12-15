@@ -17,23 +17,23 @@
 (use-package diminish)
 (use-package hydra)
 
+(use-package auto-package-update
+  :custom
+  (auto-package-update-delete-old-versions t)
+  (auto-package-update-hide-results t)
+  :commands (auto-package-update-maybe)
+  :config
+  (auto-package-update-maybe))
+
 ;;; ENV
 (setenv "LANG" "ja_JP.UTF-8")
-(defun flutter-exec-path ()
-  (let ((flutter-path (getenv "FLUTTER_PATH")))
-    (if flutter-path
-        (mapcar (lambda (path) (concat flutter-path path))
-                '("/bin" "/.pub-cache/bin" "/bin/cache/dart-sdk/bin"))
-      nil)))
-
-(defun go-exec-path ()
-  (mapcar (lambda (path) (concat path "/bin"))
-          (remove "" (split-string (or (getenv "GOPATH") "") ":"))))
-
-(nconc exec-path
-       (remove nil `(,(concat (getenv "HOME") "/bin")
-                     ,@(flutter-exec-path)
-                     ,@(go-exec-path))))
+(use-package exec-path-from-shell
+  :custom
+  (exec-path-from-shell-check-startup-files nil)
+  (exec-path-from-shell-variables '("PATH" "MANPATH" "GOPATH"))
+  :config
+  (when (memq window-system '(mac ns x))
+    (exec-path-from-shell-initialize)))
 
 (global-set-key (kbd "C-o") 'other-window)
 (global-set-key (kbd "C-h") 'delete-backward-char)
@@ -41,6 +41,7 @@
 (global-set-key "\C-z" nil)
 
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
+(use-package paren :custom (show-paren-mode 1))
 (defalias 'qrr 'query-replace-regexp)
 (defalias 'yes-or-no-p 'y-or-n-p)
 (defalias 'message-box 'message)
@@ -50,16 +51,12 @@
                     'japanese-jisx0208
                     (font-spec :family "Hiragino Kaku Gothic ProN"))
   (add-to-list 'face-font-rescale-alist
-               '(".*Hiragino Kaku Gothic ProN.*" . 1.1))
-  (nconc default-frame-alist '((width . 120) (height . 40))))
-
-(defadvice isearch-exit (after my-goto-match-beginning activate)
-  "Go to beginning of match."
-  (when (and isearch-forward isearch-other-end)
-    (goto-char isearch-other-end)))
+               '(".*Hiragino Kaku Gothic ProN.*" . 1.1)))
 
 (global-font-lock-mode 1)
-(use-package eldoc :diminish eldoc-mode :custom (global-eldoc-mode 1))
+(use-package eldoc
+  :diminish eldoc-mode
+  :custom (global-eldoc-mode 1))
 
 (require 'tramp)
 ;; /sudo:hostname でリモートログインしてファイルを開ける
@@ -72,11 +69,12 @@
 
 ;; builtin
 (require 'hl-line)
-(require 'savehist)
-(use-package recentf :config (use-package recentf-ext))
+(use-package savehist :custom (savehist-mode 1))
+(use-package recentf-ext)
 (use-package saveplace :custom (save-place-mode 1))
 
 ;;; packages
+(use-package all-the-icons)
 (use-package projectile
   :diminish
   :custom (projectile-completion-system 'ivy)
@@ -86,6 +84,13 @@
   ;; https://github.com/bradyt/dart-mode/wiki/LSP#lsp-mode
   (add-to-list 'projectile-project-root-files-bottom-up "pubspec.yaml")
   (add-to-list 'projectile-project-root-files-bottom-up "BUILD"))
+
+(use-package treemacs
+  :defer t
+  :bind
+  (("C-x t t" . treemacs)))
+(use-package treemacs-projectile :after (treemacs projectile))
+(use-package treemacs-magit :after (treemacs magit))
 
 (use-package ivy
   :diminish ivy-mode
@@ -160,8 +165,14 @@
   :diminish
   :custom
   (lsp-auto-guess-root t)
-  :commands lsp
+  (lsp-solargraph-use-bundler t)
+  :commands (lsp)
   :config
+  (require 'lsp-solargraph)
+  (use-package lsp-treemacs
+    :functions lsp-treemacs-sync-mode
+    :config
+    (lsp-treemacs-sync-mode 1))
   (use-package lsp-ui
     :custom (scroll-margin 0)
     :bind (:map lsp-ui-mode-map
@@ -170,12 +181,13 @@
                 ("C-c , ." . lsp-ui-peek-find-definitions)
                 ("C-c , I" . lsp-ui-peek-find-implementation)
                 ("C-c , i" . lsp-ui-imenu)
-                ("C-c , w" . lsp-ui-flycheck-list))
+                ("C-c , w" . lsp-treemacs-errors-list))
     :hook (lsp-mode . lsp-ui-mode)))
 
 (use-package dap-mode
-  :hook ((prog-mode . dap-mode) (prog-mode . dap-ui-mode))
+  :hook ((prog-mode . dap-mode) (prog-mode . dap-ui-mode) (dap-stopped . (lambda (arg) (call-interactively #'dap-hydra))))
   :bind (:map dap-mode-map (("C-c d" . dap-debug)))
+  :commands (dap-hydra dap-register-debug-template)
   :config
   (require 'dap-go)
   (require 'dap-ruby))
@@ -191,6 +203,8 @@
 (use-package gitconfig-mode :defer t)
 (use-package gitignore-mode :defer t)
 (use-package git-gutter-fringe+ :diminish git-gutter+-mode)
+(use-package forge :after magit)
+(use-package github-review)
 
 (use-package yasnippet :diminish yas-minor-mode :hook (prog-mode . yas-minor-mode))
 (use-package popwin
@@ -200,15 +214,6 @@
          '((" *auto-async-byte-compile*" :noselect t)
            ("*Warnings*" :noselect t)
            ("*Rubocopfmt Errors*" :noselect t))))
-
-(use-package exec-path-from-shell
-  :no-require t
-  :if (memq window-system '(mac ns))
-  :custom (exec-path-from-shell-variables '("PATH" "MANPATH" "GOPATH" "FLUTTER_PATH"))
-  :functions exec-path-from-shell-initialize
-  :config
-  (exec-path-from-shell-initialize)
-  (nconc exec-path (remove nil `(,@(flutter-exec-path) ,@(go-exec-path)))))
 
 (use-package open-junk-file :commands open-junk-file)
 (use-package color-theme-modern)
@@ -287,35 +292,44 @@
 (use-package ein)
 
 ;;; Ruby
-(add-hook 'ruby-mode-hook 'lsp)
-(use-package inf-ruby :hook (ruby-mode . inf-ruby-minor-mode))
-(use-package robe :hook (ruby-mode . robe-mode)
-  :config
-  (push 'company-robe company-backends))
+(use-package inf-ruby
+  :hook
+  (ruby-mode . inf-ruby-minor-mode))
+(use-package robe :hook (ruby-mode . robe-mode) :commands company-robe)
+(add-hook 'ruby-mode-hook
+          (lambda ()
+            (lsp)
+            (make-local-variable 'company-backends)
+            (setq company-backends (copy-tree company-backends))
+            (push '(company-lsp company-robe) company-backends)))
+
 (use-package rubocopfmt :hook (ruby-mode . rubocopfmt-mode))
-(setq-default ruby-deep-indent-paren-style nil)
-(defadvice ruby-indent-line (after unindent-closing-paren activate)
-  (let ((column (current-column))
-        indent offset)
-    (save-excursion
-      (back-to-indentation)
-      (let ((state (syntax-ppss)))
-        (setq offset (- column (current-column)))
-        (when (and (eq (char-after) ?\))
-                   (not (zerop (car state))))
-          (goto-char (cadr state))
-          (setq indent (current-indentation)))))
-    (when indent
-      (indent-line-to indent)
-      (when (> offset 0) (forward-char offset)))))
 (use-package projectile-rails
+  :commands (projectile-rails-root)
   :bind (:map projectile-rails-mode-map
               ("C-c r" . hydra-projectile-rails/body)
               ("C-c f" . hydra-projectile-rails-find/body))
   :custom (projectile-rails-global-mode t))
-(use-package rspec-mode)
+
+(defun rails-project-find-file-hook ()
+  (when (projectile-rails-root)
+    (dap-register-debug-template
+     (concat "Debug Rails Server (" (file-name-nondirectory (directory-file-name (projectile-rails-root))) ")")
+     (list :type "Ruby"
+           :request "launch"
+           :cwd (projectile-rails-root)
+           :program (concat (projectile-rails-root) "bin/rails")
+           :pathToBundler (concat (getenv "HOME") "/.rbenv/shims/bundler")
+           :pathToRDebugIDE: (concat (getenv "HOME") "/.rbenv/shims/rdebug-ide")
+           :args '("server" "-p" "3000")
+           ))))
+(add-hook 'find-file-hook #'rails-project-find-file-hook)
+(use-package rspec-mode
+  :custom (rspec-key-command-prefix (kbd "C-c s")))
 (use-package bundler)
 (use-package coverage)
+
+;;; HAML
 (use-package haml-mode)
 (use-package flymake-haml :hook (haml-mode . flymake-haml-load))
 
@@ -334,7 +348,7 @@
   (use-package go-eldoc :hook (go-mode . go-eldoc-setup)))
 
 ;;; Dart & Flutter
-(use-package dart-mode :hook (dart-mode . lsp))
+(use-package dart-mode :hook (dart-mode . lsp) (dart-mode . subword-mode))
 (use-package flutter :requires dart-mode)
 
 ;;; Web
@@ -373,7 +387,7 @@
 (use-package yaml-mode :mode "\\.yml$" :defer t)
 (use-package apib-mode :mode "\\.apib$" :defer t)
 
-(use-package wakatime-mode :diminish)
+;; (use-package wakatime-mode :diminish)
 (use-package json-reformat)
 (use-package restart-emacs)
 

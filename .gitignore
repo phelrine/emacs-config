@@ -1,11 +1,13 @@
 *.elc
 *~
+.cache/
 .cask/
 .extension/
 .python-environments/
 /.dap-breakpoints
 /.DS_Store
 /.edbi-ds-history
+/.last-package-update-day
 /.lsp-session-v1
 /abbrev_defs
 /ac-comphist.dat
