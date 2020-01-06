@@ -74,6 +74,7 @@
 (use-package saveplace :custom (save-place-mode 1))
 
 ;;; packages
+(use-package all-the-icons)
 (use-package projectile
   :diminish
   :custom (projectile-completion-system 'ivy)
@@ -85,13 +86,12 @@
   (add-to-list 'projectile-project-root-files-bottom-up "BUILD"))
 
 (use-package treemacs
+  :defer t
   :bind
-  (("C-x t t" . treemacs))
-  :config
-  (treemacs-follow-mode t))
+  (("C-x t t" . treemacs)))
+(use-package treemacs-projectile :after (treemacs projectile))
+(use-package treemacs-magit :after (treemacs magit))
 
-(use-package treemacs-projectile)
-(use-package treemacs-magit)
 (use-package ivy
   :diminish ivy-mode
   :custom
@@ -166,10 +166,11 @@
   :custom
   (lsp-auto-guess-root t)
   (lsp-solargraph-use-bundler t)
-  :commands lsp
+  :commands (lsp)
   :config
   (require 'lsp-solargraph)
   (use-package lsp-treemacs
+    :functions lsp-treemacs-sync-mode
     :config
     (lsp-treemacs-sync-mode 1))
   (use-package lsp-ui
@@ -202,6 +203,8 @@
 (use-package gitconfig-mode :defer t)
 (use-package gitignore-mode :defer t)
 (use-package git-gutter-fringe+ :diminish git-gutter+-mode)
+(use-package forge :after magit)
+(use-package github-review)
 
 (use-package yasnippet :diminish yas-minor-mode :hook (prog-mode . yas-minor-mode))
 (use-package popwin
@@ -302,6 +305,7 @@
 
 (use-package rubocopfmt :hook (ruby-mode . rubocopfmt-mode))
 (use-package projectile-rails
+  :commands (projectile-rails-root)
   :bind (:map projectile-rails-mode-map
               ("C-c r" . hydra-projectile-rails/body)
               ("C-c f" . hydra-projectile-rails-find/body))
@@ -310,7 +314,7 @@
 (defun rails-project-find-file-hook ()
   (when (projectile-rails-root)
     (dap-register-debug-template
-     (concat "Debug Rails Server (" (file-name-nondirectory (directory-file-name "/home/phelrine/repos/collabo-staff/")) ")")
+     (concat "Debug Rails Server (" (file-name-nondirectory (directory-file-name (projectile-rails-root))) ")")
      (list :type "Ruby"
            :request "launch"
            :cwd (projectile-rails-root)
@@ -344,7 +348,7 @@
   (use-package go-eldoc :hook (go-mode . go-eldoc-setup)))
 
 ;;; Dart & Flutter
-(use-package dart-mode :hook (dart-mode . lsp))
+(use-package dart-mode :hook (dart-mode . lsp) (dart-mode . subword-mode))
 (use-package flutter :requires dart-mode)
 
 ;;; Web

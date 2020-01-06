@@ -69,12 +69,15 @@
  '(migemo-user-dictionary nil)
  '(package-selected-packages
    (quote
-    (yasnippet yarn-mode yaml-mode which-key web-mode vue-mode volatile-highlights use-package undo-tree treemacs-projectile treemacs-magit swift-mode solarized-theme smartparens rubocopfmt rspec-mode robe restart-emacs recentf-ext rainbow-delimiters projectile-rails popwin open-junk-file omnisharp objc-font-lock nlinum nginx-mode migemo lsp-ui lsp-treemacs json-mode ivy-rich ivy-hydra indent-tools highlight-indent-guides haml-mode gradle-mode govet go-tag go-projectile go-impl go-gen-test gitignore-mode gitconfig-mode gitattributes-mode git-gutter-fringe+ flymake-haml flycheck-color-mode-line flutter expand-region exec-path-from-shell ein doom-modeline dockerfile-mode dired-hide-dotfiles diminish ddskk dart-mode dap-mode coverage counsel-projectile company-statistics company-quickhelp company-lsp company-inf-ruby color-theme-modern bundler bm beacon auto-package-update auto-async-byte-compile apib-mode all-the-icons-ivy all-the-icons-dired)))
+    (forge github-review yasnippet yarn-mode yaml-mode which-key web-mode vue-mode volatile-highlights use-package undo-tree treemacs-projectile treemacs-magit swift-mode solarized-theme smartparens rubocopfmt rspec-mode robe restart-emacs recentf-ext rainbow-delimiters projectile-rails popwin open-junk-file omnisharp objc-font-lock nlinum nginx-mode migemo lsp-ui lsp-treemacs json-mode ivy-rich ivy-hydra indent-tools highlight-indent-guides haml-mode gradle-mode govet go-tag go-projectile go-impl go-gen-test gitignore-mode gitconfig-mode gitattributes-mode git-gutter-fringe+ flymake-haml flycheck-color-mode-line flutter expand-region exec-path-from-shell ein doom-modeline dockerfile-mode dired-hide-dotfiles diminish ddskk dart-mode dap-mode coverage counsel-projectile company-statistics company-quickhelp company-lsp company-inf-ruby color-theme-modern bundler bm beacon auto-package-update auto-async-byte-compile apib-mode all-the-icons-ivy all-the-icons-dired)))
  '(popwin-mode 1)
  '(projectile-completion-system (quote ivy))
  '(recentf-max-saved-items 1000)
  '(ruby-insert-encoding-magic-comment nil)
+ '(save-place-mode 1)
+ '(savehist-mode 1)
  '(scroll-margin 0)
+ '(show-paren-mode 1)
  '(show-trailing-whitespace t)
  '(skk-use-jisx0201-input-method t)
  '(sort-fold-case t)
