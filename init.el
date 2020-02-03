@@ -229,7 +229,7 @@
 (use-package volatile-highlights :diminish :hook (after-init . volatile-highlights-mode))
 (use-package beacon :custom (beacon-mode 1))
 
-(use-package ddskk :bind ("C-x j" . skk-mode))
+(use-package ddskk :if (memq window-system '(mac ns x)) :bind ("C-x j" . skk-mode))
 (use-package migemo
   :if (executable-find "cmigemo")
   :commands migemo-init
@@ -300,7 +300,7 @@
           (lambda ()
             (lsp)
             (make-local-variable 'company-backends)
-            (setq company-backends (copy-tree company-backends))
+            (setq company-backends (remq 'company-lsp (copy-tree company-backends)))
             (push '(company-lsp company-robe) company-backends)))
 
 (use-package rubocopfmt :hook (ruby-mode . rubocopfmt-mode))
@@ -353,16 +353,16 @@
 
 ;;; Web
 (use-package web-mode :mode ".+\\.(erb|html)$")
-(use-package vue-mode
-  :hook (vue-mode . (lambda ()
-                      (make-local-variable 'js-indent-level)
-                      (setq js-indent-level 2))))
+(defun set-js-indent-level()
+  (make-local-variable 'js-indent-level)
+  (setq js-indent-level 2))
+(use-package vue-mode :hook (vue-mode . set-js-indent-level) (vue-mode . lsp))
+;; https://github.com/AdamNiederer/vue-mode/issues/74#issuecomment-539711083
+(setq-default mmm-js-mode-enter-hook (lambda () (setq syntax-ppss-table nil)))
+(setq-default mmm-typescript-mode-enter-hook (lambda () (setq syntax-ppss-table nil)))
 ;; (use-package eslintd-fix :hook (vue-mode . eslintd-fix-mode))
-(use-package yarn-mode)
-(add-hook 'js-mode-hook
-          (lambda ()
-            (make-local-variable 'js-indent-level)
-            (setq js-indent-level 2)))
+;; (use-package yarn-mode)
+(add-hook 'js-mode-hook #'set-js-indent-level)
 
 ;;; Scheme
 (defconst scheme-program-name "gosh -i")
