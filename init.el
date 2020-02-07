@@ -5,9 +5,10 @@
 
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+(add-to-list 'package-archives  '("marmalade" . "http://marmalade-repo.org/packages/") t)
 (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
 (package-initialize)
-
+(setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
@@ -258,6 +259,8 @@
 (use-package highlight-indent-guides :diminish :hook (prog-mode . highlight-indent-guides-mode))
 (use-package indent-tools :bind ("C-c >" . indent-tools-hydra/body))
 
+(use-package restclient)
+
 ;;; Emacs Lisp
 (use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode))
 (add-hook 'emacs-lisp-mode-hook '(lambda () (local-set-key (kbd "C-x C-e") 'pp-eval-last-sexp)))
@@ -351,6 +354,9 @@
 (use-package dart-mode :hook (dart-mode . lsp) (dart-mode . subword-mode))
 (use-package flutter :requires dart-mode)
 
+;;; Gradle
+(use-package groovy-mode)
+
 ;;; Web
 (use-package web-mode :mode ".+\\.(erb|html)$")
 (defun set-js-indent-level()
@@ -363,7 +369,12 @@
 ;; (use-package eslintd-fix :hook (vue-mode . eslintd-fix-mode))
 ;; (use-package yarn-mode)
 (add-hook 'js-mode-hook #'set-js-indent-level)
-
+(use-package typescript-mode :hook (typescript-mode . (lambda() (setq-default typescript-indent-level 2))))
+(use-package tide
+  :after (typescript-mode company flycheck)
+  :hook ((typescript-mode . tide-setup)
+         (typescript-mode . tide-hl-identifier-mode)
+         (before-save . tide-format-before-save)))
 ;;; Scheme
 (defconst scheme-program-name "gosh -i")
 (autoload 'scheme-mode "cmuscheme" "Major mode for Scheme." t)
