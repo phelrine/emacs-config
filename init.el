@@ -29,10 +29,11 @@
 ;;; ENV
 (setenv "LANG" "ja_JP.UTF-8")
 (use-package exec-path-from-shell
+  :functions exec-path-from-shell-initialize
   :custom
   (exec-path-from-shell-check-startup-files nil)
   (exec-path-from-shell-variables '("PATH" "MANPATH" "GOPATH"))
-  :config
+  :init
   (when (memq window-system '(mac ns x))
     (exec-path-from-shell-initialize)))
 
@@ -86,13 +87,6 @@
   (add-to-list 'projectile-project-root-files-bottom-up "pubspec.yaml")
   (add-to-list 'projectile-project-root-files-bottom-up "BUILD"))
 
-(use-package treemacs
-  :defer t
-  :bind
-  (("C-x t t" . treemacs)))
-(use-package treemacs-projectile :after (treemacs projectile))
-(use-package treemacs-magit :after (treemacs magit))
-
 (use-package ivy
   :diminish ivy-mode
   :custom
@@ -100,10 +94,10 @@
   (ivy-use-virtual-buffers t)
   (enable-recursive-minibuffers t))
 (use-package counsel
-  :bind (("C-x C-f" . counsel-find-file)
-         ("C-x C-r" . counsel-recentf)
+  :bind (([remap find-file] . counsel-find-file)
+         ([remap switch-to-buffer] . ivy-switch-buffer)
          ("C-x C-b" . ivy-switch-buffer)
-         ("C-x b"   . ivy-switch-buffer)
+         ("C-x C-r" . counsel-recentf)
          ("C-c g"   . counsel-git-grep)
          ("C-x C-i" . counsel-imenu)
          ("M-x"     . counsel-M-x)
@@ -122,21 +116,6 @@
 (use-package which-key
   :diminish which-key-mode
   :hook (after-init . which-key-mode))
-
-(use-package bm
-  :bind (("M-[" . bm-previous)
-         ("M-]" . bm-next)
-         ("M-SPC" . bm-toggle))
-  :config
-  (setq bm-restore-repository-on-load t)
-  (add-hook 'find-file-hook 'bm-buffer-restore)
-  (add-hook 'after-revert-hook 'bm-buffer-restore)
-  (add-hook 'kill-buffer-hook 'bm-buffer-save)
-  (add-hook 'after-save-hook 'bm-buffer-save)
-  (add-hook 'vc-before-checkin-hook 'bm-buffer-save)
-  (add-hook 'kill-emacs-hook '(lambda ()
-                                (bm-buffer-save-all)
-                                (bm-repository-save))))
 
 ;;; Dired
 (use-package dired-hide-dotfiles
@@ -164,26 +143,16 @@
 
 (use-package lsp-mode
   :diminish
+  :init (setq lsp-keymap-prefix "C-c l")
   :custom
   (lsp-auto-guess-root t)
   (lsp-solargraph-use-bundler t)
+  :hook ((lsp-mode . lsp-enable-which-key-integration))
   :commands (lsp)
   :config
-  (require 'lsp-solargraph)
-  (use-package lsp-treemacs
-    :functions lsp-treemacs-sync-mode
-    :config
-    (lsp-treemacs-sync-mode 1))
-  (use-package lsp-ui
-    :custom (scroll-margin 0)
-    :bind (:map lsp-ui-mode-map
-                ("C-c , r" . lsp-ui-peek-find-references)
-                ("C-c , d" . lsp-ui-peek-find-definitions)
-                ("C-c , ." . lsp-ui-peek-find-definitions)
-                ("C-c , I" . lsp-ui-peek-find-implementation)
-                ("C-c , i" . lsp-ui-imenu)
-                ("C-c , w" . lsp-treemacs-errors-list))
-    :hook (lsp-mode . lsp-ui-mode)))
+  (require 'lsp-solargraph))
+(use-package lsp-ui :hook (lsp-mode . lsp-ui-mode))
+(use-package lsp-ivy :commands lsp-ivy-workspace-symbol)
 
 (use-package dap-mode
   :hook ((prog-mode . dap-mode) (prog-mode . dap-ui-mode) (dap-stopped . (lambda (arg) (call-interactively #'dap-hydra))))
@@ -292,7 +261,7 @@
 
 ;;; Python
 (require 'ipython nil t)
-(use-package ein)
+(use-package ein :defer t)
 
 ;;; Ruby
 (use-package inf-ruby
@@ -401,7 +370,6 @@
 ;; (use-package wakatime-mode :diminish)
 (use-package json-reformat)
 (use-package restart-emacs)
-
 ;; ライブコーディング用設定
 ;; (set-face-attribute 'default nil :height 300)
 
