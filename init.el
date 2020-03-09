@@ -76,6 +76,9 @@
 (use-package saveplace :custom (save-place-mode 1))
 
 ;;; packages
+(use-package avy :bind (("C-'" . avy-goto-char-timer)))
+(use-package ace-window :bind (("C-x o" . ace-window)))
+
 (use-package all-the-icons)
 (use-package projectile
   :diminish
