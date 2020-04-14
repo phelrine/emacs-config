@@ -69,10 +69,12 @@
  '(migemo-user-dictionary nil)
  '(package-selected-packages
    (quote
-    (lsp-ivy tide groovy-mode typescript-mode restclient ein yasnippet yarn-mode yaml-mode which-key web-mode vue-mode volatile-highlights use-package undo-tree treemacs-projectile treemacs-magit swift-mode solarized-theme smartparens rubocopfmt rspec-mode robe restart-emacs recentf-ext rainbow-delimiters projectile-rails popwin open-junk-file omnisharp objc-font-lock nlinum nginx-mode migemo lsp-ui lsp-treemacs json-mode ivy-rich ivy-hydra indent-tools highlight-indent-guides haml-mode gradle-mode govet go-tag go-projectile go-impl go-gen-test gitignore-mode gitconfig-mode gitattributes-mode git-gutter-fringe+ flymake-haml flycheck-color-mode-line flutter expand-region exec-path-from-shell doom-modeline dockerfile-mode dired-hide-dotfiles diminish ddskk dart-mode dap-mode coverage counsel-projectile company-statistics company-quickhelp company-lsp company-inf-ruby color-theme-modern bundler bm beacon auto-package-update auto-async-byte-compile apib-mode all-the-icons-ivy all-the-icons-dired)))
+    (ssh lsp-ivy flyspell-correct flyspell-correct-ivy rw-hunspell projectile-rails ein doom-modeline dap-mode lsp-ui counsel ivy yasnippet yarn-mode yaml-mode which-key websocket web-mode wakatime-mode vue-mode volatile-highlights use-package undo-tree treemacs-projectile treemacs-magit tree-mode tide swiper swift-mode spinner solarized-theme smartparens skewer-mode shrink-path rubocopfmt rspec-mode robe restclient restart-emacs request recentf-ext rake rainbow-delimiters popwin polymode open-junk-file omnisharp objc-font-lock nlinum nginx-mode migemo lsp-treemacs json-mode ivy-rich ivy-posframe ivy-hydra inflections indent-tools highlight-indent-guides haml-mode groovy-mode gradle-mode govet go-tag go-projectile go-impl go-gen-test gitignore-mode github-review gitconfig-mode gitattributes-mode git-gutter-fringe+ forge flymake-haml flycheck-color-mode-line flutter expand-region exec-path-from-shell eslintd-fix dumb-jump dockerfile-mode dired-k dired-hide-dotfiles diminish deferred ddskk dart-mode coverage counsel-projectile company-statistics company-quickhelp company-lsp color-theme-modern bundler bui bm beacon avy auto-package-update auto-async-byte-compile apib-mode all-the-icons-ivy all-the-icons-dired)))
  '(popwin-mode 1)
  '(projectile-completion-system (quote ivy))
+ '(projectile-rails-expand-snippet nil)
  '(recentf-max-saved-items 1000)
+ '(ring-bell-function (quote ignore))
  '(ruby-insert-encoding-magic-comment nil)
  '(save-place-mode 1)
  '(savehist-mode 1)
