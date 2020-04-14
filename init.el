@@ -151,7 +151,7 @@
   (lsp-auto-guess-root t)
   (lsp-solargraph-use-bundler t)
   :hook ((lsp-mode . lsp-enable-which-key-integration))
-  :commands (lsp)
+  :commands (lsp-mode)
   :config
   (require 'lsp-solargraph))
 (use-package lsp-ui :hook (lsp-mode . lsp-ui-mode))
@@ -273,7 +273,7 @@
 (use-package robe :hook (ruby-mode . robe-mode) :commands company-robe)
 (add-hook 'ruby-mode-hook
           (lambda ()
-            (lsp)
+            (lsp-mode)
             (make-local-variable 'company-backends)
             (setq company-backends (remq 'company-lsp (copy-tree company-backends)))
             (push '(company-lsp company-robe) company-backends)))
