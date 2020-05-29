@@ -178,6 +178,7 @@
 (use-package git-gutter-fringe+ :diminish git-gutter+-mode)
 (use-package forge :after magit)
 (use-package github-review)
+(use-package gist)
 
 (use-package yasnippet :diminish yas-minor-mode :hook (prog-mode . yas-minor-mode))
 (use-package popwin
@@ -363,9 +364,13 @@
   (local-set-key (kbd "C-c s") 'scheme-other-window))
 (add-hook 'scheme-mode-hook 'scheme-mode-setup)
 
+;;; Docker
+(use-package docker)
+(use-package dockerfile-mode :defer t)
+(use-package docker-compose-mode)
+
 ;;; config files
 (use-package nginx-mode :mode "/nginx/sites-\\(?:available\\|enabled\\)/" :defer t)
-(use-package dockerfile-mode :defer t)
 (use-package json-mode :defer t)
 (use-package yaml-mode :mode "\\.yml$" :defer t)
 (use-package apib-mode :mode "\\.apib$" :defer t)
