@@ -79,6 +79,14 @@
  '(save-place-mode 1)
  '(savehist-mode 1)
  '(scroll-margin 0)
+ '(shell-pop-shell-type
+   (quote
+    ("ansi-term" "*ansi-term*"
+     (lambda nil
+       (ansi-term shell-pop-term-shell)))) t)
+ '(shell-pop-term-shell "/bin/zsh" t)
+ '(shell-pop-window-position "bottom" t)
+ '(shell-pop-window-size 30 t)
  '(show-paren-mode 1)
  '(show-trailing-whitespace t)
  '(skk-use-jisx0201-input-method t)

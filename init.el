@@ -180,6 +180,16 @@
 (use-package github-review)
 (use-package gist)
 
+
+;;; Terminal
+(use-package shell-pop
+  :custom
+  (shell-pop-shell-type (quote ("ansi-term" "*ansi-term*" (lambda nil (ansi-term shell-pop-term-shell)))))
+  (shell-pop-term-shell "/bin/zsh")
+  (shell-pop-window-size 30)
+  (shell-pop-window-position "bottom")
+  :bind (("C-M-p" . shell-pop)))
+
 (use-package yasnippet :diminish yas-minor-mode :hook (prog-mode . yas-minor-mode))
 (use-package popwin
   :custom (popwin-mode 1)
@@ -228,7 +238,13 @@
 
 ;;; Indent
 (use-package whitespace :diminish global-whitespace-mode :custom (global-whitespace-mode 1) :hook (before-save . delete-trailing-whitespace))
-(add-hook 'prog-mode-hook '(lambda () (setq show-trailing-whitespace t)))
+(setq show-trailing-whitespace t)
+(add-hook 'change-major-mode-after-body-hook
+          '(lambda ()
+             (when (derived-mode-p 'term-mode)
+               (setq show-trailing-whitespace nil))))
+(add-hook 'minibuffer-setup-hook (lambda () (setq-local show-trailing-whitespace nil)))
+
 (use-package highlight-indent-guides :diminish :hook (prog-mode . highlight-indent-guides-mode))
 (use-package indent-tools :bind ("C-c >" . indent-tools-hydra/body))
 
@@ -270,7 +286,8 @@
 ;;; Ruby
 (use-package inf-ruby
   :hook
-  (ruby-mode . inf-ruby-minor-mode))
+  (ruby-mode . inf-ruby-minor-mode)
+  (after-init . inf-ruby-switch-setup))
 (use-package robe :hook (ruby-mode . robe-mode) :commands company-robe)
 (add-hook 'ruby-mode-hook
           (lambda ()
@@ -365,9 +382,11 @@
 (add-hook 'scheme-mode-hook 'scheme-mode-setup)
 
 ;;; Docker
-(use-package docker)
+(use-package docker
+  :bind ("C-c C-d" . docker))
+(use-package docker-tramp)
 (use-package dockerfile-mode :defer t)
-(use-package docker-compose-mode)
+(use-package docker-compose-mode :defer t)
 
 ;;; config files
 (use-package nginx-mode :mode "/nginx/sites-\\(?:available\\|enabled\\)/" :defer t)
