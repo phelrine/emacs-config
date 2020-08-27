@@ -165,11 +165,6 @@
   (require 'dap-go)
   (require 'dap-ruby))
 
-(use-package company-lsp
-  :after (lsp-mode company)
-  :config
-  (push 'company-lsp company-backends))
-
 ;; git
 (use-package magit :bind (("C-x g" . magit-status)))
 (use-package gitattributes-mode :defer t)
@@ -293,8 +288,7 @@
           (lambda ()
             (lsp-mode)
             (make-local-variable 'company-backends)
-            (setq company-backends (remq 'company-lsp (copy-tree company-backends)))
-            (push '(company-lsp company-robe) company-backends)))
+            (push 'company-robe company-backends)))
 
 (use-package rubocopfmt :hook (ruby-mode . rubocopfmt-mode))
 (use-package projectile-rails
