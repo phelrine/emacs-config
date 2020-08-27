@@ -13,6 +13,7 @@
 /ac-comphist.dat
 /amx-items
 /auto-save-list
+/bm-repository
 /bookmarks
 /company-statistics-cache.el
 /flycheck_init.el
@@ -20,6 +21,7 @@
 /network-security.data
 /places
 /projectile-bookmarks.eld
+/rake.cache
 /recentf
 /twittering-mode.gpg
 el-get/
