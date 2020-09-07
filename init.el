@@ -76,6 +76,17 @@
 (use-package saveplace :custom (save-place-mode 1))
 
 ;;; packages
+(use-package centaur-tabs
+  :demand
+  :custom
+  (centaur-tabs-set-close-button nil)
+  (centaur-tabs-set-modified-marker t)
+  :bind
+  ("C-{" . centaur-tabs-backward)
+  ("C-}" . centaur-tabs-forward)
+  :config
+  (centaur-tabs-mode t))
+
 (use-package avy :bind (("C-'" . avy-goto-char-timer)))
 (use-package ace-window :bind (("C-x o" . ace-window)))
 
@@ -151,7 +162,7 @@
   (lsp-auto-guess-root t)
   (lsp-solargraph-use-bundler t)
   :hook ((lsp-mode . lsp-enable-which-key-integration))
-  :commands (lsp-mode)
+  :commands (lsp)
   :config
   (require 'lsp-solargraph))
 (use-package lsp-ui :hook (lsp-mode . lsp-ui-mode))
@@ -286,7 +297,7 @@
 (use-package robe :hook (ruby-mode . robe-mode) :commands company-robe)
 (add-hook 'ruby-mode-hook
           (lambda ()
-            (lsp-mode)
+            (lsp)
             (make-local-variable 'company-backends)
             (push 'company-robe company-backends)))
 
@@ -297,6 +308,9 @@
               ("C-c r" . hydra-projectile-rails/body)
               ("C-c f" . hydra-projectile-rails-find/body))
   :custom (projectile-rails-global-mode t))
+(use-package rake
+  :after projectile-rails
+  :custom (rake-compilation-system 'projectile-completion-system))
 
 (defun rails-project-find-file-hook ()
   (when (projectile-rails-root)
@@ -335,7 +349,8 @@
   (use-package go-eldoc :hook (go-mode . go-eldoc-setup)))
 
 ;;; Dart & Flutter
-(use-package dart-mode :hook (dart-mode . lsp) (dart-mode . subword-mode))
+(use-package dart-mode :hook (dart-mode . subword-mode))
+(use-package lsp-dart :hook (dart-mode . lsp))
 (use-package flutter :requires dart-mode)
 
 ;;; Gradle
@@ -393,6 +408,8 @@
 (use-package restart-emacs)
 ;; ライブコーディング用設定
 ;; (set-face-attribute 'default nil :height 300)
+
+(use-package lua-mode)
 
 ;;; Load custom file
 (setq custom-file "~/.emacs.d/custom.el")
