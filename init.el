@@ -357,7 +357,14 @@
 (use-package groovy-mode)
 
 ;;; Web
-(use-package web-mode :mode ".+\\.(erb|html)$")
+(use-package web-mode
+  :custom
+  (web-mode-markup-indent-offset 2)
+  (web-mode-css-indent-offset 2)
+  (web-mode-code-indent-offset 2)
+  :mode (("\\.html?\\'" . web-mode)
+         ("\\.tsx\\'"   . web-mode)
+         ("\\.erb\\'"   . web-mode)))
 (defun set-js-indent-level()
   (make-local-variable 'js-indent-level)
   (setq js-indent-level 2))
@@ -373,7 +380,11 @@
   :after (typescript-mode company flycheck)
   :hook ((typescript-mode . tide-setup)
          (typescript-mode . tide-hl-identifier-mode)
+         (web-mode . (lambda ()
+                       (when (string-equal "tsx" (file-name-extension buffer-file-name))
+                         (setup-tide-mode))))
          (before-save . tide-format-before-save)))
+
 ;;; Scheme
 (defconst scheme-program-name "gosh -i")
 (autoload 'scheme-mode "cmuscheme" "Major mode for Scheme." t)
