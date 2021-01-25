@@ -35,3 +35,4 @@ tramp
 transient/
 url/cookies
 wget-log
+/forge-database.sqlite

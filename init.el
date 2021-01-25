@@ -1,19 +1,22 @@
-;; Added by Package.el.  This must come before configurations of
-;; installed packages.  Don't delete this line.  If you don't want it,
-;; just comment it out by adding a semicolon to the start of the line.
-;; You may delete these explanatory comments.
+;;; init --- Summary
+;;; Commentary:
 
 (require 'package)
+
+;;; Code:
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
-(add-to-list 'package-archives  '("marmalade" . "http://marmalade-repo.org/packages/") t)
-(add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
+;; (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
 (package-initialize)
-(setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
 (require 'use-package)
 (setq use-package-always-ensure t)
+
+(require 'auth-source)
+(when (memq window-system '(mac ns))
+  (add-to-list 'auth-sources 'macos-keychain-generic)
+  (add-to-list 'auth-sources 'macos-keychain-internet))
 
 (use-package diminish)
 (use-package hydra)
@@ -42,6 +45,10 @@
 (global-set-key (kbd "RET") 'newline-and-indent)
 (global-set-key "\C-z" nil)
 
+(use-package multiple-cursors
+  :bind (("C-S-c C-S-c" . 'mc/edit-lines)
+         ("C->" . 'mc/mark-next-like-this)
+         ("C-<" . 'mc/mark-previous-like-this)))
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 (use-package paren :custom (show-paren-mode 1))
 (defalias 'qrr 'query-replace-regexp)
@@ -174,10 +181,14 @@
   :commands (dap-hydra dap-register-debug-template)
   :config
   (require 'dap-go)
-  (require 'dap-ruby))
+  (require 'dap-ruby)
+  (require 'dap-chrome))
 
 ;; git
-(use-package magit :bind (("C-x g" . magit-status)))
+(use-package magit
+  :custom (magit-repository-directories (list (cons (concat (getenv "HOME") "/repos/") 1)))
+  :bind (("C-x g" . magit)))
+
 (use-package gitattributes-mode :defer t)
 (use-package gitconfig-mode :defer t)
 (use-package gitignore-mode :defer t)
@@ -185,7 +196,7 @@
 (use-package forge :after magit)
 (use-package github-review)
 (use-package gist)
-
+(use-package browse-at-remote)
 
 ;;; Terminal
 (use-package shell-pop
@@ -231,7 +242,7 @@
   (migemo-init))
 
 ;; flycheck
-(use-package flycheck :hook (prog-mode . flycheck-mode))
+(use-package flycheck :hook (prog-mode . flycheck-mode) :commands (flycheck-add-mode))
 (use-package flycheck-color-mode-line :after flycheck :hook (flycheck-mode . flycheck-color-mode-line-mode))
 
 (use-package smartparens
@@ -261,11 +272,9 @@
 (add-hook 'emacs-lisp-mode-hook '(lambda () (local-set-key (kbd "C-x C-e") 'pp-eval-last-sexp)))
 
 ;;; C#
-(use-package csharp-mode :mode "\\.cs$")
-(use-package omnisharp)
+(use-package csharp-mode :mode "\\.cs\\'")
 
 ;;; Obj-C
-(use-package objc-font-lock :hook (objc-mode . objc-font-lock-mode))
 (defadvice ff-get-file-name (around ff-get-file-name-framework (search-dirs fname-stub &optional suffix-list))
   "Search for Mac framework headers as well as POSIX headers."
   (or
@@ -283,7 +292,7 @@
                     "/System/Library/Frameworks" "/Library/Frameworks")))
 
 ;;; Swift
-(use-package swift-mode :mode "\\.swift$")
+(use-package swift-mode :mode "\\.swift\\'")
 
 ;;; Python
 (require 'ipython nil t)
@@ -303,6 +312,7 @@
 
 (use-package rubocopfmt :hook (ruby-mode . rubocopfmt-mode))
 (use-package projectile-rails
+  :after (hydra projectile)
   :commands (projectile-rails-root)
   :bind (:map projectile-rails-mode-map
               ("C-c r" . hydra-projectile-rails/body)
@@ -340,6 +350,7 @@
   :config
   (use-package go-projectile :hook (go-mode . go-projectile-set-gopath))
   (use-package govet)
+  (use-package gotest)
   (use-package go-tag
     :bind (:map go-mode-map
                 ("C-c `" . go-tag-add)
@@ -372,18 +383,26 @@
 ;; https://github.com/AdamNiederer/vue-mode/issues/74#issuecomment-539711083
 (setq-default mmm-js-mode-enter-hook (lambda () (setq syntax-ppss-table nil)))
 (setq-default mmm-typescript-mode-enter-hook (lambda () (setq syntax-ppss-table nil)))
-;; (use-package eslintd-fix :hook (vue-mode . eslintd-fix-mode))
-;; (use-package yarn-mode)
 (add-hook 'js-mode-hook #'set-js-indent-level)
-(use-package typescript-mode :hook (typescript-mode . (lambda() (setq-default typescript-indent-level 2))))
+(use-package typescript-mode
+  :hook ((typescript-mode . (lambda() (setq-default typescript-indent-level 2)))))
 (use-package tide
   :after (typescript-mode company flycheck)
-  :hook ((typescript-mode . tide-setup)
+  :hook ((typescript-mode . setup-tide-mode)
          (typescript-mode . tide-hl-identifier-mode)
-         (web-mode . (lambda ()
-                       (when (string-equal "tsx" (file-name-extension buffer-file-name))
-                         (setup-tide-mode))))
-         (before-save . tide-format-before-save)))
+         (beffore-save . tide-format-before-save))
+  :commands (tide-setup tide-hl-identifier-mode))
+(defun setup-tide-mode ()
+  (tide-setup)
+  (eldoc-mode +1)
+  (tide-hl-identifier-mode +1))
+(require 'web-mode)
+(add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
+(add-hook 'web-mode-hook
+          (lambda ()
+            (when (string-equal "tsx" (file-name-extension buffer-file-name))
+              (setup-tide-mode))))
+(flycheck-add-mode 'javascript-eslint 'web-mode)
 
 ;;; Scheme
 (defconst scheme-program-name "gosh -i")
@@ -411,8 +430,8 @@
 ;;; config files
 (use-package nginx-mode :mode "/nginx/sites-\\(?:available\\|enabled\\)/" :defer t)
 (use-package json-mode :defer t)
-(use-package yaml-mode :mode "\\.yml$" :defer t)
-(use-package apib-mode :mode "\\.apib$" :defer t)
+(use-package yaml-mode :mode "\\.yml\\'" :defer t)
+(use-package apib-mode :mode "\\.apib\\'" :defer t)
 
 ;; (use-package wakatime-mode :diminish)
 (use-package json-reformat)

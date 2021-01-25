@@ -35,8 +35,9 @@
  '(counsel-projectile-mode t nil (counsel-projectile))
  '(ein:output-type-preference 'ein:output-type-prefer-pretty-text-over-html)
  '(enable-recursive-minibuffers t)
- '(exec-path-from-shell-check-startup-files nil)
+ '(exec-path-from-shell-check-startup-files nil t)
  '(exec-path-from-shell-variables '("PATH" "MANPATH" "GOPATH"))
+ '(forge-topic-list-limit '(50 . 0))
  '(global-auto-revert-mode t)
  '(global-company-mode 1)
  '(global-eldoc-mode 1)
@@ -66,7 +67,7 @@
  '(migemo-regex-dictionary nil)
  '(migemo-user-dictionary nil)
  '(package-selected-packages
-   '(git-link go-gen-test go-impl go-tag govet go-projectile lua-mode restart-emacs apib-mode nginx-mode docker-compose-mode dockerfile-mode docker tide typescript-mode vue-mode web-mode groovy-mode flutter lsp-dart dart-mode go-mode flymake-haml haml-mode coverage bundler rspec-mode projectile-rails rubocopfmt robe inf-ruby ein swift-mode objc-font-lock omnisharp csharp-mode auto-async-byte-compile restclient indent-tools highlight-indent-guides rainbow-delimiters smartparens flycheck-color-mode-line flycheck migemo ddskk beacon volatile-highlights undo-tree expand-region nlinum doom-modeline solarized-theme color-theme-modern open-junk-file popwin yasnippet shell-pop gist github-review forge git-gutter-fringe+ gitignore-mode gitconfig-mode gitattributes-mode magit dap-mode lsp-ivy lsp-ui lsp-mode company-quickhelp company-statistics company all-the-icons-dired dired-hide-dotfiles which-key counsel-projectile ivy-hydra ivy-rich all-the-icons-ivy counsel ivy projectile all-the-icons ace-window avy centaur-tabs recentf-ext exec-path-from-shell auto-package-update hydra diminish use-package))
+   '(slack npm-mode npm browse-at-remote gotest realgud-pry realgud multiple-cursors prettier-mode prettier go-gen-test go-impl go-tag govet go-projectile lua-mode restart-emacs apib-mode nginx-mode docker-compose-mode dockerfile-mode docker tide typescript-mode vue-mode web-mode groovy-mode flutter lsp-dart dart-mode go-mode flymake-haml haml-mode coverage bundler rspec-mode projectile-rails rubocopfmt robe inf-ruby ein swift-mode objc-font-lock omnisharp csharp-mode auto-async-byte-compile restclient indent-tools highlight-indent-guides rainbow-delimiters smartparens flycheck-color-mode-line flycheck migemo ddskk beacon volatile-highlights undo-tree expand-region nlinum doom-modeline solarized-theme color-theme-modern open-junk-file popwin yasnippet shell-pop gist github-review forge git-gutter-fringe+ gitignore-mode gitconfig-mode gitattributes-mode magit dap-mode lsp-ivy lsp-ui lsp-mode company-quickhelp company-statistics company all-the-icons-dired dired-hide-dotfiles which-key counsel-projectile ivy-hydra ivy-rich all-the-icons-ivy counsel ivy projectile all-the-icons ace-window avy centaur-tabs recentf-ext exec-path-from-shell auto-package-update hydra diminish use-package))
  '(popwin-mode 1)
  '(projectile-completion-system 'ivy)
  '(projectile-rails-expand-snippet nil)
@@ -79,10 +80,10 @@
  '(shell-pop-shell-type
    '("ansi-term" "*ansi-term*"
      (lambda nil
-       (ansi-term shell-pop-term-shell))) t)
- '(shell-pop-term-shell "/bin/zsh" t)
- '(shell-pop-window-position "bottom" t)
- '(shell-pop-window-size 30 t)
+       (ansi-term shell-pop-term-shell))))
+ '(shell-pop-term-shell "/bin/zsh")
+ '(shell-pop-window-position "bottom")
+ '(shell-pop-window-size 30)
  '(show-paren-mode 1)
  '(show-trailing-whitespace t)
  '(skk-use-jisx0201-input-method t)
