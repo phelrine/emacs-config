@@ -10,8 +10,11 @@
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
-(require 'use-package)
-(setq use-package-always-ensure t)
+(eval-when-compile
+  (require 'use-package)
+  (setq use-package-always-ensure t))
+
+(require 'bind-key)
 
 (require 'auth-source)
 (when (memq window-system '(mac ns))
@@ -193,7 +196,7 @@
 (use-package gitconfig-mode :defer t)
 (use-package gitignore-mode :defer t)
 (use-package git-gutter-fringe+ :diminish git-gutter+-mode)
-(use-package forge :after magit)
+(use-package forge :after magit :bind (("C-x f" . forge-list-repositories)))
 (use-package github-review)
 (use-package gist)
 (use-package browse-at-remote)
@@ -312,7 +315,6 @@
 
 (use-package rubocopfmt :hook (ruby-mode . rubocopfmt-mode))
 (use-package projectile-rails
-  :after (hydra projectile)
   :commands (projectile-rails-root)
   :bind (:map projectile-rails-mode-map
               ("C-c r" . hydra-projectile-rails/body)
@@ -391,7 +393,11 @@
   :hook ((typescript-mode . setup-tide-mode)
          (typescript-mode . tide-hl-identifier-mode)
          (beffore-save . tide-format-before-save))
-  :commands (tide-setup tide-hl-identifier-mode))
+  :commands (tide-setup tide-hl-identifier-mode)
+  :config
+  (flycheck-add-next-checker 'tsx-tide 'javascript-eslint 'append)
+  (flycheck-add-mode 'javascript-eslint 'web-mode)
+  )
 (defun setup-tide-mode ()
   (tide-setup)
   (eldoc-mode +1)
@@ -402,7 +408,6 @@
           (lambda ()
             (when (string-equal "tsx" (file-name-extension buffer-file-name))
               (setup-tide-mode))))
-(flycheck-add-mode 'javascript-eslint 'web-mode)
 
 ;;; Scheme
 (defconst scheme-program-name "gosh -i")
