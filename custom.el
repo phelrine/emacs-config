@@ -5,8 +5,8 @@
  ;; If there is more than one, they won't work right.
  '(ac-expand-on-auto-complete t)
  '(ac-show-menu-immediately-on-auto-complete nil)
- '(auto-package-update-delete-old-versions t t)
- '(auto-package-update-hide-results t t)
+ '(auto-package-update-delete-old-versions t)
+ '(auto-package-update-hide-results t)
  '(beacon-color "light green")
  '(beacon-mode t)
  '(bm-buffer-persistence t)
