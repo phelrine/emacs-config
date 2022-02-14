@@ -4,7 +4,7 @@
 (require 'package)
 
 ;;; Code:
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 ;; (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
 (package-initialize)
 (unless (package-installed-p 'use-package)
@@ -21,6 +21,9 @@
   (add-to-list 'auth-sources 'macos-keychain-generic)
   (add-to-list 'auth-sources 'macos-keychain-internet))
 
+(require 'generic-x)
+
+(add-to-list 'load-path (concat (getenv "HOME") "/.emacs.d/site-lisp/"))
 (use-package diminish)
 (use-package hydra)
 
@@ -38,7 +41,7 @@
   :functions exec-path-from-shell-initialize
   :custom
   (exec-path-from-shell-check-startup-files nil)
-  (exec-path-from-shell-variables '("PATH" "MANPATH" "GOPATH"))
+  (exec-path-from-shell-variables '("PATH" "MANPATH" "GOPATH" "FLUTTER_ROOT"))
   :init
   (when (memq window-system '(mac ns x))
     (exec-path-from-shell-initialize)))
@@ -85,18 +88,6 @@
 (use-package recentf-ext)
 (use-package saveplace :custom (save-place-mode 1))
 
-;;; packages
-(use-package centaur-tabs
-  :demand
-  :custom
-  (centaur-tabs-set-close-button nil)
-  (centaur-tabs-set-modified-marker t)
-  :bind
-  ("C-{" . centaur-tabs-backward)
-  ("C-}" . centaur-tabs-forward)
-  :config
-  (centaur-tabs-mode t))
-
 (use-package avy :bind (("C-'" . avy-goto-char-timer)))
 (use-package ace-window :bind (("C-x o" . ace-window)))
 
@@ -105,11 +96,7 @@
   :diminish
   :custom (projectile-completion-system 'ivy)
   :defines projectile-project-root-files-bottom-up
-  :bind (("C-x p" . projectile-command-map))
-  :config
-  ;; https://github.com/bradyt/dart-mode/wiki/LSP#lsp-mode
-  (add-to-list 'projectile-project-root-files-bottom-up "pubspec.yaml")
-  (add-to-list 'projectile-project-root-files-bottom-up "BUILD"))
+  :bind (("C-x p" . projectile-command-map)))
 
 (use-package ivy
   :diminish ivy-mode
@@ -163,7 +150,8 @@
   :config
   (require 'company-capf)
   (use-package company-statistics :custom (company-statistics-mode 1))
-  (use-package company-quickhelp :hook (company-mode . company-quickhelp-mode)))
+  (use-package company-quickhelp :hook (company-mode . company-quickhelp-mode))
+  )
 
 (use-package lsp-mode
   :diminish
@@ -171,7 +159,8 @@
   :custom
   (lsp-auto-guess-root t)
   (lsp-solargraph-use-bundler t)
-  :hook ((lsp-mode . lsp-enable-which-key-integration))
+  :hook ((lsp-mode . lsp-enable-which-key-integration)
+         (before-save . lsp-organize-imports))
   :commands (lsp)
   :config
   (require 'lsp-solargraph))
@@ -189,13 +178,11 @@
 
 ;; git
 (use-package magit
+  :ensure t
   :custom (magit-repository-directories (list (cons (concat (getenv "HOME") "/repos/") 1)))
   :bind (("C-x g" . magit)))
 
-(use-package gitattributes-mode :defer t)
-(use-package gitconfig-mode :defer t)
-(use-package gitignore-mode :defer t)
-(use-package git-gutter-fringe+ :diminish git-gutter+-mode)
+(use-package git-gutter-fringe :diminish git-gutter-mode)
 (use-package forge :after magit :bind (("C-x f" . forge-list-repositories)))
 (use-package github-review)
 (use-package gist)
@@ -208,6 +195,7 @@
   (shell-pop-term-shell "/bin/zsh")
   (shell-pop-window-size 30)
   (shell-pop-window-position "bottom")
+
   :bind (("C-M-p" . shell-pop)))
 
 (use-package yasnippet :diminish yas-minor-mode :hook (prog-mode . yas-minor-mode))
@@ -365,6 +353,11 @@
 (use-package dart-mode :hook (dart-mode . subword-mode))
 (use-package lsp-dart :hook (dart-mode . lsp))
 (use-package flutter :requires dart-mode)
+(with-eval-after-load 'projectile
+  (add-to-list 'projectile-project-root-files-bottom-up "pubspec.yaml")
+  (add-to-list 'projectile-project-root-files-bottom-up "BUILD"))
+(setq lsp-dart-flutter-sdk-dir (getenv "FLUTTER_ROOT"))
+;;(setq lsp-dart-sdk-dir (concat (getenv "FLUTTER_ROOT") "bin/cache/dart-sdk/bin"))
 
 ;;; Gradle
 (use-package groovy-mode)
@@ -390,24 +383,27 @@
   :hook ((typescript-mode . (lambda() (setq-default typescript-indent-level 2)))))
 (use-package tide
   :after (typescript-mode company flycheck)
-  :hook ((typescript-mode . setup-tide-mode)
+  :hook ((typescript-mode . tide-setup)
          (typescript-mode . tide-hl-identifier-mode)
-         (beffore-save . tide-format-before-save))
+         (typescript-mode . eldoc-mode)
+         )
   :commands (tide-setup tide-hl-identifier-mode)
   :config
   (flycheck-add-next-checker 'tsx-tide 'javascript-eslint 'append)
   (flycheck-add-mode 'javascript-eslint 'web-mode)
   )
-(defun setup-tide-mode ()
-  (tide-setup)
-  (eldoc-mode +1)
-  (tide-hl-identifier-mode +1))
+(use-package prettier :hook ((after-init . global-prettier-mode)))
 (require 'web-mode)
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
 (add-hook 'web-mode-hook
-          (lambda ()
-            (when (string-equal "tsx" (file-name-extension buffer-file-name))
-              (setup-tide-mode))))
+          '(lambda ()
+             (when (string-equal "tsx" (file-name-extension buffer-file-name))
+               (tide-setup)
+               (lsp)
+               (flycheck-mode +1)
+               (setq flycheck-check-syntax-automatically '(save mode-enabled))
+               (eldoc-mode +1)
+               (tide-hl-identifier-mode +1))))
 
 ;;; Scheme
 (defconst scheme-program-name "gosh -i")
@@ -431,6 +427,9 @@
 (use-package docker-tramp)
 (use-package dockerfile-mode :defer t)
 (use-package docker-compose-mode :defer t)
+
+(use-package cfn-mode :hook (cfn-mode . flycheck-mode))
+(use-package flycheck-cfn :commands flycheck-cfn-setup)
 
 ;;; config files
 (use-package nginx-mode :mode "/nginx/sites-\\(?:available\\|enabled\\)/" :defer t)
