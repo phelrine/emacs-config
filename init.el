@@ -14,6 +14,19 @@
   (require 'use-package)
   (setq use-package-always-ensure t))
 
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 5))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
 (require 'bind-key)
 
 (require 'auth-source)
@@ -35,8 +48,13 @@
   :config
   (auto-package-update-maybe))
 
+(use-package string-inflection)
+
 ;;; ENV
 (setenv "LANG" "ja_JP.UTF-8")
+(setq temporary-file-directory (concat (getenv "HOME") "/.tmp"))
+(if (memq window-system '(mac ns))
+    (setenv "TMPDIR" (concat (getenv "HOME") "/.tmp")))
 (use-package exec-path-from-shell
   :functions exec-path-from-shell-initialize
   :custom
@@ -61,7 +79,7 @@
 (defalias 'yes-or-no-p 'y-or-n-p)
 (defalias 'message-box 'message)
 (when (eq (window-system) 'ns)
-  (set-face-attribute 'default nil :family "Menlo" :height 120)
+  (set-face-attribute 'default nil :family "Menlo" :height 180)
   (set-fontset-font (frame-parameter nil 'font)
                     'japanese-jisx0208
                     (font-spec :family "Hiragino Kaku Gothic ProN"))
@@ -153,14 +171,28 @@
   (use-package company-quickhelp :hook (company-mode . company-quickhelp-mode))
   )
 
+(use-package copilot
+  :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
+  :ensure t
+  :hook ((prog-mode . copilot-mode))
+  :bind (("C-M-;" . copilot-complete))
+  :custom (copilot-disable-predicates '((lambda () t))))
+
+(defun my/copilot-tab ()
+  (interactive)
+  (or (copilot-accept-completion)
+      (indent-for-tab-command)))
+
+(with-eval-after-load 'copilot
+  (define-key copilot-mode-map (kbd "<tab>") #'my/copilot-tab))
+
 (use-package lsp-mode
   :diminish
   :init (setq lsp-keymap-prefix "C-c l")
   :custom
   (lsp-auto-guess-root t)
   (lsp-solargraph-use-bundler t)
-  :hook ((lsp-mode . lsp-enable-which-key-integration)
-         (before-save . lsp-organize-imports))
+  :hook ((lsp-mode . lsp-enable-which-key-integration))
   :commands (lsp)
   :config
   (require 'lsp-solargraph))
@@ -174,7 +206,8 @@
   :config
   (require 'dap-go)
   (require 'dap-ruby)
-  (require 'dap-chrome))
+  (require 'dap-chrome)
+  (require 'dap-node))
 
 ;; git
 (use-package magit
@@ -386,14 +419,18 @@
   :hook ((typescript-mode . tide-setup)
          (typescript-mode . tide-hl-identifier-mode)
          (typescript-mode . eldoc-mode)
-         )
+         (typescript-mode . lsp))
   :commands (tide-setup tide-hl-identifier-mode)
   :config
   (flycheck-add-next-checker 'tsx-tide 'javascript-eslint 'append)
   (flycheck-add-mode 'javascript-eslint 'web-mode)
   )
-(use-package prettier :hook ((after-init . global-prettier-mode)))
+(use-package npm :ensure t)
+(use-package deno-fmt :hook (typescript-mode web-mode))
+;; (use-package prettier :hook ((after-init . global-prettier-mode)))
 (require 'web-mode)
+(setq web-mode-enable-auto-indentation nil)
+
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
 (add-hook 'web-mode-hook
           '(lambda ()
@@ -404,6 +441,51 @@
                (setq flycheck-check-syntax-automatically '(save mode-enabled))
                (eldoc-mode +1)
                (tide-hl-identifier-mode +1))))
+(require 'prisma-mode)
+
+(defun get-current-word ()
+  "Get-current-word gets the symbol near the cursor."
+  (let* ((start (if (use-region-p)
+                    (region-end)
+                  (progn
+                    (skip-chars-forward string-inflection-word-chars)
+
+                    ;; https://github.com/akicho8/string-inflection/issues/30
+                    ;;
+                    ;;   objectName->method --> "objectName-" NG
+                    ;;                      --> "objectName"  OK
+                    (when (and (not (eobp)) (not (bobp)))
+                      (when (string= (buffer-substring (1- (point)) (1+ (point))) "->")
+                        (forward-char -1)))
+
+                    (point))))
+         (end (if (use-region-p)
+                  (region-beginning)
+                (progn
+                  (skip-chars-backward string-inflection-word-chars)
+                  (point))))
+         (str (buffer-substring start end)))
+    (prog1
+        (progn
+          (when (use-region-p)
+            ;; https://github.com/akicho8/string-inflection/issues/31
+            ;; Multiple lines will be one line because [:space:] are included to line breaks
+            (setq str (replace-regexp-in-string (concat "[" string-inflection-erase-chars-when-region "]+") "_" str)) ; 'aa::bb.cc dd/ee' => 'aa_bb_cc dd_ee'
+
+            ;; kebabing a region can insert an unexpected hyphen
+            ;; https://github.com/akicho8/string-inflection/issues/34
+            (with-syntax-table (copy-syntax-table)
+              (modify-syntax-entry ?_ "w")
+              (setq str (replace-regexp-in-string "_+\\b" "" str)) ; '__aA__ __aA__' => '__aA __aA'
+              (setq str (replace-regexp-in-string "\\b_+" "" str)) ; '__aA __aA'     => 'aA aA'
+              )
+            )
+          str)
+      )))
+
+(defun lsp-rename-snake-to-camel ()
+  (interactive)
+  (lsp-rename (string-inflection-camelcase-function (get-current-word))))
 
 ;;; Scheme
 (defconst scheme-program-name "gosh -i")
