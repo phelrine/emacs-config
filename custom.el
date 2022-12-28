@@ -92,6 +92,7 @@
  '(sourcekit-verbose t)
  '(tab-width 4)
  '(tool-bar-mode nil)
+ '(undo-tree-auto-save-history nil)
  '(whitespace-display-mappings '((space-mark 12288 [9633]) (tab-mark 9 [187 9])))
  '(whitespace-space-regexp "\\(　+\\)")
  '(whitespace-style '(face tabs tab-mark spaces space-mark))

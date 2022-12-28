@@ -171,20 +171,23 @@
   (use-package company-quickhelp :hook (company-mode . company-quickhelp-mode))
   )
 
+(defun my/copilot-tab ()
+  "Tab completion for copilot."
+  (interactive)
+  (or (copilot-accept-completion)
+      (indent-for-tab-command)))
+
 (use-package copilot
   :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
   :ensure t
   :hook ((prog-mode . copilot-mode))
   :bind (("C-M-;" . copilot-complete))
-  :custom (copilot-disable-predicates '((lambda () t))))
-
-(defun my/copilot-tab ()
-  (interactive)
-  (or (copilot-accept-completion)
-      (indent-for-tab-command)))
-
-(with-eval-after-load 'copilot
-  (define-key copilot-mode-map (kbd "<tab>") #'my/copilot-tab))
+  :custom
+  (copilot-disable-predicates '((lambda () t)))
+  (copilot-node-executable (concat (getenv "HOME") "/.asdf/installs/nodejs/16.18.1/bin/node"))
+  :config
+  (with-eval-after-load 'copilot
+    (define-key copilot-mode-map (kbd "TAB") 'my/copilot-tab)))
 
 (use-package lsp-mode
   :diminish
@@ -250,7 +253,12 @@
 (use-package nlinum :if (version< emacs-version "26.0.0") :hook (prog-mode . nlinum-mode))
 
 (use-package expand-region :bind ("C-M-SPC" . er/expand-region))
-(use-package undo-tree :diminish :custom (global-undo-tree-mode 1) :bind ("C-x u" . undo-tree-visualize))
+(use-package undo-tree :diminish
+  :custom
+  (global-undo-tree-mode 1)
+  (undo-tree-auto-save-history nil)
+  :bind ("C-x u" . undo-tree-visualize))
+(setq undo-tree-history-directory-alist '(("." . "~/.emacs.d/undo")))
 (use-package volatile-highlights :diminish :hook (after-init . volatile-highlights-mode))
 (use-package beacon :custom (beacon-mode 1))
 
@@ -281,9 +289,9 @@
 (use-package whitespace :diminish global-whitespace-mode :custom (global-whitespace-mode 1) :hook (before-save . delete-trailing-whitespace))
 (setq show-trailing-whitespace t)
 (add-hook 'change-major-mode-after-body-hook
-          '(lambda ()
-             (when (derived-mode-p 'term-mode)
-               (setq show-trailing-whitespace nil))))
+          #'(lambda ()
+              (when (derived-mode-p 'term-mode)
+                (setq show-trailing-whitespace nil))))
 (add-hook 'minibuffer-setup-hook (lambda () (setq-local show-trailing-whitespace nil)))
 
 (use-package highlight-indent-guides :diminish :hook (prog-mode . highlight-indent-guides-mode))
@@ -293,7 +301,7 @@
 
 ;;; Emacs Lisp
 (use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode))
-(add-hook 'emacs-lisp-mode-hook '(lambda () (local-set-key (kbd "C-x C-e") 'pp-eval-last-sexp)))
+(add-hook 'emacs-lisp-mode-hook #'(lambda () (local-set-key (kbd "C-x C-e") 'pp-eval-last-sexp)))
 
 ;;; C#
 (use-package csharp-mode :mode "\\.cs\\'")
@@ -421,26 +429,29 @@
          (typescript-mode . eldoc-mode)
          (typescript-mode . lsp))
   :commands (tide-setup tide-hl-identifier-mode)
+  :custom (tide-sync-request-timeout 3)
   :config
   (flycheck-add-next-checker 'tsx-tide 'javascript-eslint 'append)
   (flycheck-add-mode 'javascript-eslint 'web-mode)
   )
+(use-package flycheck-deno :ensure t
+  :config
+  (with-eval-after-load 'flycheck (flycheck-deno-setup)))
 (use-package npm :ensure t)
-(use-package deno-fmt :hook (typescript-mode web-mode))
-;; (use-package prettier :hook ((after-init . global-prettier-mode)))
+;; (use-package deno-fmt :hook (typescript-mode web-mode))
 (require 'web-mode)
 (setq web-mode-enable-auto-indentation nil)
 
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
 (add-hook 'web-mode-hook
-          '(lambda ()
-             (when (string-equal "tsx" (file-name-extension buffer-file-name))
-               (tide-setup)
-               (lsp)
-               (flycheck-mode +1)
-               (setq flycheck-check-syntax-automatically '(save mode-enabled))
-               (eldoc-mode +1)
-               (tide-hl-identifier-mode +1))))
+          #'(lambda ()
+              (when (string-equal "tsx" (file-name-extension buffer-file-name))
+                (tide-setup)
+                (lsp)
+                (flycheck-mode +1)
+                (setq flycheck-check-syntax-automatically '(save mode-enabled))
+                (eldoc-mode +1)
+                (tide-hl-identifier-mode +1))))
 (require 'prisma-mode)
 
 (defun get-current-word ()
