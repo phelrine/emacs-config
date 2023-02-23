@@ -153,6 +153,7 @@
 (use-package all-the-icons-dired
   :hook (dired-mode . all-the-icons-dired-mode))
 (defun find-file-default-directory ()
+  "Open current directory in Dired."
   (interactive)
   (find-file default-directory))
 (global-set-key (kbd "C-x d") 'find-file-default-directory)
@@ -171,12 +172,6 @@
   (use-package company-quickhelp :hook (company-mode . company-quickhelp-mode))
   )
 
-(defun my/copilot-tab ()
-  "Tab completion for copilot."
-  (interactive)
-  (or (copilot-accept-completion)
-      (indent-for-tab-command)))
-
 (use-package copilot
   :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
   :ensure t
@@ -184,10 +179,14 @@
   :bind (("C-M-;" . copilot-complete))
   :custom
   (copilot-disable-predicates '((lambda () t)))
-  (copilot-node-executable (concat (getenv "HOME") "/.asdf/installs/nodejs/16.18.1/bin/node"))
+  (copilot-node-executable (concat (getenv "HOME") "/.asdf/installs/nodejs/lts-gallium/bin/node"))
   :config
-  (with-eval-after-load 'copilot
-    (define-key copilot-mode-map (kbd "TAB") 'my/copilot-tab)))
+  (defun my/copilot-tab ()
+    "Tab completion for copilot."
+    (interactive)
+    (or (copilot-accept-completion)
+        (indent-for-tab-command)))
+  (define-key copilot-mode-map (kbd "TAB") 'my/copilot-tab))
 
 (use-package lsp-mode
   :diminish
@@ -197,8 +196,12 @@
   (lsp-solargraph-use-bundler t)
   :hook ((lsp-mode . lsp-enable-which-key-integration))
   :commands (lsp)
+  :after string-inflection
   :config
-  (require 'lsp-solargraph))
+  (require 'lsp-solargraph)
+  (defun lsp-rename-snake-to-camel ()
+    (interactive)
+    (lsp-rename (string-inflection-camelcase-function (get-current-word)))))
 (use-package lsp-ui :hook (lsp-mode . lsp-ui-mode))
 (use-package lsp-ivy :commands lsp-ivy-workspace-symbol)
 
@@ -348,24 +351,27 @@
   :bind (:map projectile-rails-mode-map
               ("C-c r" . hydra-projectile-rails/body)
               ("C-c f" . hydra-projectile-rails-find/body))
-  :custom (projectile-rails-global-mode t))
+  :custom (projectile-rails-global-mode t)
+  :config
+  (defun rails-project-find-file-hook ()
+    (when (projectile-rails-root)
+      (dap-register-debug-template
+       (concat "Debug Rails Server (" (file-name-nondirectory (directory-file-name (projectile-rails-root))) ")")
+       (list :type "Ruby"
+             :request "launch"
+             :cwd (projectile-rails-root)
+             :program (concat (projectile-rails-root) "bin/rails")
+             :pathToBundler (concat (getenv "HOME") "/.rbenv/shims/bundler")
+             :pathToRDebugIDE: (concat (getenv "HOME") "/.rbenv/shims/rdebug-ide")
+             :args '("server" "-p" "3000")
+             ))))
+  (add-hook 'find-file-hook #'rails-project-find-file-hook))
+
 (use-package rake
   :after projectile-rails
   :custom (rake-compilation-system 'projectile-completion-system))
 
-(defun rails-project-find-file-hook ()
-  (when (projectile-rails-root)
-    (dap-register-debug-template
-     (concat "Debug Rails Server (" (file-name-nondirectory (directory-file-name (projectile-rails-root))) ")")
-     (list :type "Ruby"
-           :request "launch"
-           :cwd (projectile-rails-root)
-           :program (concat (projectile-rails-root) "bin/rails")
-           :pathToBundler (concat (getenv "HOME") "/.rbenv/shims/bundler")
-           :pathToRDebugIDE: (concat (getenv "HOME") "/.rbenv/shims/rdebug-ide")
-           :args '("server" "-p" "3000")
-           ))))
-(add-hook 'find-file-hook #'rails-project-find-file-hook)
+
 (use-package rspec-mode
   :custom (rspec-key-command-prefix (kbd "C-c s")))
 (use-package bundler)
@@ -412,7 +418,8 @@
   :mode (("\\.html?\\'" . web-mode)
          ("\\.tsx\\'"   . web-mode)
          ("\\.erb\\'"   . web-mode)))
-(defun set-js-indent-level()
+(defun set-js-indent-level ()
+  "Confirue indent level for js files."
   (make-local-variable 'js-indent-level)
   (setq js-indent-level 2))
 (use-package vue-mode :hook (vue-mode . set-js-indent-level) (vue-mode . lsp))
@@ -434,9 +441,7 @@
   (flycheck-add-next-checker 'tsx-tide 'javascript-eslint 'append)
   (flycheck-add-mode 'javascript-eslint 'web-mode)
   )
-(use-package flycheck-deno :ensure t
-  :config
-  (with-eval-after-load 'flycheck (flycheck-deno-setup)))
+(use-package flycheck-deno :ensure t :config (flycheck-deno-setup))
 (use-package npm :ensure t)
 ;; (use-package deno-fmt :hook (typescript-mode web-mode))
 (require 'web-mode)
@@ -494,10 +499,6 @@
           str)
       )))
 
-(defun lsp-rename-snake-to-camel ()
-  (interactive)
-  (lsp-rename (string-inflection-camelcase-function (get-current-word))))
-
 ;;; Scheme
 (defconst scheme-program-name "gosh -i")
 (autoload 'scheme-mode "cmuscheme" "Major mode for Scheme." t)
@@ -541,3 +542,5 @@
 ;;; Load custom file
 (setq custom-file "~/.emacs.d/custom.el")
 (load custom-file)
+(provide 'init)
+;;; init.el ends here
