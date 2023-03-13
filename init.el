@@ -176,17 +176,17 @@
   :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
   :ensure t
   :hook ((prog-mode . copilot-mode))
-  :bind (("C-M-;" . copilot-complete))
+  :bind (("C-M-;" . copilot-complete)
+         ("TAB" . my/copilot-accept-completion)
+         ("<backtab>" . copilot-next-completion))
   :custom
   (copilot-disable-predicates '((lambda () t)))
   (copilot-node-executable (concat (getenv "HOME") "/.asdf/installs/nodejs/lts-gallium/bin/node"))
   :config
-  (defun my/copilot-tab ()
-    "Tab completion for copilot."
+  (defun my/copilot-accept-completion ()
     (interactive)
     (or (copilot-accept-completion)
-        (indent-for-tab-command)))
-  (define-key copilot-mode-map (kbd "TAB") 'my/copilot-tab))
+        (indent-for-tab-command))))
 
 (use-package lsp-mode
   :diminish
@@ -199,6 +199,7 @@
   :after string-inflection
   :config
   (require 'lsp-solargraph)
+  (require 'lsp-javascript)
   (defun lsp-rename-snake-to-camel ()
     (interactive)
     (lsp-rename (string-inflection-camelcase-function (get-current-word)))))
@@ -303,7 +304,7 @@
 (use-package restclient)
 
 ;;; Emacs Lisp
-(use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode))
+(use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode) :disabled)
 (add-hook 'emacs-lisp-mode-hook #'(lambda () (local-set-key (kbd "C-x C-e") 'pp-eval-last-sexp)))
 
 ;;; C#
@@ -436,14 +437,17 @@
          (typescript-mode . eldoc-mode)
          (typescript-mode . lsp))
   :commands (tide-setup tide-hl-identifier-mode)
-  :custom (tide-sync-request-timeout 3)
-  :config
-  (flycheck-add-next-checker 'tsx-tide 'javascript-eslint 'append)
-  (flycheck-add-mode 'javascript-eslint 'web-mode)
-  )
-(use-package flycheck-deno :ensure t :config (flycheck-deno-setup))
+  :custom (tide-sync-request-timeout 5))
+
+(use-package flycheck-deno :ensure t
+  :config (flycheck-deno-setup)
+  (require 'lsp-diagnostics)
+  (lsp-diagnostics-flycheck-enable)
+  (flycheck-add-mode 'deno-lint 'web-mode)
+  (flycheck-add-next-checker 'lsp 'deno-lint 'append))
+
 (use-package npm :ensure t)
-;; (use-package deno-fmt :hook (typescript-mode web-mode))
+(use-package deno-fmt :ensure t)
 (require 'web-mode)
 (setq web-mode-enable-auto-indentation nil)
 
@@ -458,6 +462,7 @@
                 (eldoc-mode +1)
                 (tide-hl-identifier-mode +1))))
 (require 'prisma-mode)
+(use-package graphql-mode)
 
 (defun get-current-word ()
   "Get-current-word gets the symbol near the cursor."
