@@ -48,7 +48,7 @@
   :config
   (auto-package-update-maybe))
 
-(use-package string-inflection)
+(use-package string-inflection :commands string-inflection-camelcase-function)
 
 ;;; ENV
 (setenv "LANG" "ja_JP.UTF-8")
@@ -166,11 +166,13 @@
   :custom
   (global-company-mode 1)
   (company-backends '(company-capf company-dabbrev-code company-files company-elisp company-yasnippet))
+  (company-dabbrev-downcase nil)
+  (company-idle-delay nil)
+  (company-lsp-enable-recompletion nil)
   :config
   (require 'company-capf)
   (use-package company-statistics :custom (company-statistics-mode 1))
-  (use-package company-quickhelp :hook (company-mode . company-quickhelp-mode))
-  )
+  (use-package company-quickhelp :hook (company-mode . company-quickhelp-mode)))
 
 (use-package copilot
   :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
@@ -195,7 +197,7 @@
   (lsp-auto-guess-root t)
   (lsp-solargraph-use-bundler t)
   :hook ((lsp-mode . lsp-enable-which-key-integration))
-  :commands (lsp)
+  :commands (lsp lsp-rename)
   :after string-inflection
   :config
   (require 'lsp-solargraph)
@@ -264,7 +266,7 @@
   :bind ("C-x u" . undo-tree-visualize))
 (setq undo-tree-history-directory-alist '(("." . "~/.emacs.d/undo")))
 (use-package volatile-highlights :diminish :hook (after-init . volatile-highlights-mode))
-(use-package beacon :custom (beacon-mode 1))
+(use-package beacon :custom (beacon-mode t) (beacon-color "light green"))
 
 (use-package ddskk :if (memq window-system '(mac ns x)) :bind ("C-x j" . skk-mode))
 (use-package migemo
@@ -278,7 +280,7 @@
   (migemo-init))
 
 ;; flycheck
-(use-package flycheck :hook (prog-mode . flycheck-mode) :commands (flycheck-add-mode))
+(use-package flycheck :hook (prog-mode . flycheck-mode) :commands (flycheck-add-mode flycheck-add-next-checker))
 (use-package flycheck-color-mode-line :after flycheck :hook (flycheck-mode . flycheck-color-mode-line-mode))
 
 (use-package smartparens
@@ -353,6 +355,7 @@
               ("C-c r" . hydra-projectile-rails/body)
               ("C-c f" . hydra-projectile-rails-find/body))
   :custom (projectile-rails-global-mode t)
+  :hook (find-file . rails-project-find-file-hook)
   :config
   (defun rails-project-find-file-hook ()
     (when (projectile-rails-root)
@@ -365,8 +368,7 @@
              :pathToBundler (concat (getenv "HOME") "/.rbenv/shims/bundler")
              :pathToRDebugIDE: (concat (getenv "HOME") "/.rbenv/shims/rdebug-ide")
              :args '("server" "-p" "3000")
-             ))))
-  (add-hook 'find-file-hook #'rails-project-find-file-hook))
+             )))))
 
 (use-package rake
   :after projectile-rails
@@ -416,9 +418,10 @@
   (web-mode-markup-indent-offset 2)
   (web-mode-css-indent-offset 2)
   (web-mode-code-indent-offset 2)
-  :mode (("\\.html?\\'" . web-mode)
-         ("\\.tsx\\'"   . web-mode)
-         ("\\.erb\\'"   . web-mode)))
+  (web-mode-enable-auto-indentation nil)
+  (web-mode-auto-quote-style 3)
+  :mode "\\.html?\\'" "\\.erb\\'" "\\.tsx\\'")
+
 (defun set-js-indent-level ()
   "Confirue indent level for js files."
   (make-local-variable 'js-indent-level)
@@ -436,22 +439,9 @@
          (typescript-mode . tide-hl-identifier-mode)
          (typescript-mode . eldoc-mode)
          (typescript-mode . lsp))
-  :commands (tide-setup tide-hl-identifier-mode)
-  :custom (tide-sync-request-timeout 5))
+  :custom (tide-sync-request-timeout 5)
+  :commands (tide-setup tide-hl-identifier-mode))
 
-(use-package flycheck-deno :ensure t
-  :config (flycheck-deno-setup)
-  (require 'lsp-diagnostics)
-  (lsp-diagnostics-flycheck-enable)
-  (flycheck-add-mode 'deno-lint 'web-mode)
-  (flycheck-add-next-checker 'lsp 'deno-lint 'append))
-
-(use-package npm :ensure t)
-(use-package deno-fmt :ensure t)
-(require 'web-mode)
-(setq web-mode-enable-auto-indentation nil)
-
-(add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
 (add-hook 'web-mode-hook
           #'(lambda ()
               (when (string-equal "tsx" (file-name-extension buffer-file-name))
@@ -461,7 +451,23 @@
                 (setq flycheck-check-syntax-automatically '(save mode-enabled))
                 (eldoc-mode +1)
                 (tide-hl-identifier-mode +1))))
-(require 'prisma-mode)
+
+(use-package flycheck-deno
+  :ensure t
+  :config
+  (flycheck-deno-setup)
+  (require 'lsp-diagnostics)
+  (lsp-diagnostics-flycheck-enable)
+  (flycheck-add-mode 'deno-lint 'web-mode)
+  (flycheck-add-next-checker 'lsp 'deno-lint 'append))
+
+(use-package npm :ensure t)
+(use-package deno-fmt
+  :ensure t
+  :commands deno-fmt)
+
+(use-package prisma-mode
+  :straight (:host github :repo "pimeys/emacs-prisma-mode" :files ("*.el")))
 (use-package graphql-mode)
 
 (defun get-current-word ()
