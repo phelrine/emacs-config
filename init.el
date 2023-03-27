@@ -533,6 +533,10 @@
 (use-package dockerfile-mode :defer t)
 (use-package docker-compose-mode :defer t)
 
+;;; asdf
+(use-package asdf
+  :straight (:host github :repo "tabfugnic/asdf.el" :files ("asdf.el")))
+
 (use-package cfn-mode :hook (cfn-mode . flycheck-mode))
 (use-package flycheck-cfn :commands flycheck-cfn-setup)
 
