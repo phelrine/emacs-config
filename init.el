@@ -87,9 +87,7 @@
                '(".*Hiragino Kaku Gothic ProN.*" . 1.1)))
 
 (global-font-lock-mode 1)
-(use-package eldoc
-  :diminish eldoc-mode
-  :custom (global-eldoc-mode 1))
+(use-package eldoc :diminish eldoc-mode :custom (global-eldoc-mode 1))
 
 (require 'tramp)
 ;; /sudo:hostname でリモートログインしてファイルを開ける
@@ -116,31 +114,31 @@
   :defines projectile-project-root-files-bottom-up
   :bind (("C-x p" . projectile-command-map)))
 
-(use-package ivy
-  :diminish ivy-mode
+(use-package vertico :init (vertico-mode))
+(use-package orderless
+  :ensure t
   :custom
-  (ivy-mode 1)
-  (ivy-use-virtual-buffers t)
-  (enable-recursive-minibuffers t))
-(use-package counsel
-  :bind (([remap find-file] . counsel-find-file)
-         ([remap switch-to-buffer] . ivy-switch-buffer)
-         ("C-x C-b" . ivy-switch-buffer)
-         ("C-x C-r" . counsel-recentf)
-         ("C-c g"   . counsel-git-grep)
-         ("C-x C-i" . counsel-imenu)
-         ("M-x"     . counsel-M-x)
-         ("M-y"     . counsel-yank-pop)
+  (completion-styles '(orderless basic))
+  (completion-category-overrides '((file (styles basic partial-completion)))))
+(use-package marginalia
+  ;; Either bind `marginalia-cycle' globally or only in the minibuffer
+  :bind (("M-A" . marginalia-cycle)
          :map minibuffer-local-map
-         ("C-r" . counsel-minibuffer-history)))
-(use-package all-the-icons-ivy :after (all-the-icons) :functions all-the-icons-ivy-setup :config (all-the-icons-ivy-setup))
-(use-package ivy-rich :after (ivy) :custom (ivy-rich-mode 1))
-(use-package ivy-hydra :after (ivy hydra))
-(use-package swiper :bind ("C-s" . swiper))
-
-(use-package counsel-projectile
-  :after (projectile counsel)
-  :custom (counsel-projectile-mode t))
+         ("M-A" . marginalia-cycle))
+  ;; The :init configuration is always executed (Not lazy!)
+  :init
+  ;; Must be in the :init section of use-package such that the mode gets
+  ;; enabled right away. Note that this forces loading the package.
+  (marginalia-mode))
+(use-package all-the-icons-completion :init (all-the-icons-completion-mode))
+(use-package consult
+  :bind (("C-x C-r" . consult-recent-file)
+         ([remap switch-to-buffer] . consult-buffer)
+         ([remap isearch-forward] . consult-line)
+         ("C-x C-b" . consult-buffer)
+         ("C-c g" . consult-git-grep)
+         ("C-x C-i" . consult-imenu)
+         ("M-y" . consult-yank-pop)))
 
 (use-package which-key
   :diminish which-key-mode
@@ -535,7 +533,8 @@
 
 ;;; asdf
 (use-package asdf
-  :straight (:host github :repo "tabfugnic/asdf.el" :files ("asdf.el")))
+  :straight (:host github :repo "tabfugnic/asdf.el" :files ("asdf.el"))
+  :config (asdf-enable))
 
 (use-package cfn-mode :hook (cfn-mode . flycheck-mode))
 (use-package flycheck-cfn :commands flycheck-cfn-setup)
