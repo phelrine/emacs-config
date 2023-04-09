@@ -9,6 +9,7 @@
 /.edbi-ds-history
 /.last-package-update-day
 /.lsp-session-v1
+/.mc-lists.el
 /abbrev_defs
 /ac-comphist.dat
 /amx-items
@@ -17,12 +18,14 @@
 /bookmarks
 /company-statistics-cache.el
 /flycheck_init.el
+/forge-database.sqlite
 /id-manager.el
 /network-security.data
 /places
 /projectile-bookmarks.eld
 /rake.cache
 /recentf
+/straight/
 /twittering-mode.gpg
 el-get/
 elpa/
@@ -35,4 +38,3 @@ tramp
 transient/
 url/cookies
 wget-log
-/forge-database.sqlite
