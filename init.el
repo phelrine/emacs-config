@@ -214,8 +214,9 @@
          ([remap switch-to-buffer] . consult-buffer)
          ([remap isearch-forward] . consult-line)
          ("C-x C-b" . consult-buffer)
-         ("C-c g" . consult-git-grep)
          ("C-x C-i" . consult-imenu)
+         ("C-c e" . consult-flymake)
+         ("C-c g" . consult-git-grep)
          ("M-y" . consult-yank-pop)))
 
 (use-package which-key
@@ -304,10 +305,11 @@
   :custom (magit-repository-directories (list (cons (concat (getenv "HOME") "/repos/") 1)))
   :bind (("C-x g" . magit-status)))
 (use-package forge :after magit :custom (forge-topic-list-limit '(50 . 0)))
-(use-package emacsql-sqlite-module :defer t)
+;; (use-package emacsql-sqlite-module :defer t)
 (use-package git-gutter :init (global-git-gutter-mode +1))
 (use-package git-gutter-fringe :diminish git-gutter-mode)
 (use-package github-review :defer t)
+(use-package code-review :defer t)
 (use-package gist :defer t)
 (use-package browse-at-remote :defer t)
 
@@ -336,7 +338,7 @@
 (use-package color-theme-modern)
 (use-package solarized-theme :config (load-theme 'solarized-light t))
 (use-package doom-modeline :custom (doom-modeline-minor-modes t) :hook after-init)
-(if (fboundp 'display-line-numbers-mode) (add-hook 'prog-mode-hook 'display-line-numbers-mode))
+(add-hook 'prog-mode-hook 'display-line-numbers-mode)
 
 (use-package expand-region :bind ("C-M-SPC" . er/expand-region))
 (use-package undo-tree :diminish
@@ -486,7 +488,7 @@
   :defer t
   :hook ((before-save . gofmt-before-save) )
   :init
-  (add-hook 'go-mode
+  (add-hook 'go-mode-hook
             #'(lambda ()
                 (subword-mode)
                 (eglot-ensure)))
@@ -545,7 +547,7 @@
                 (cov-mode)
                 (eglot-ensure))))
 (use-package tide
-  :requires lsp-mode flycheck web-mode
+  :after lsp-mode flycheck web-mode
   :custom (tide-sync-request-timeout 5)
   :init
   (add-hook 'web-mode-hook
@@ -583,7 +585,8 @@
 
 ;;; Docker
 (use-package docker :bind ("C-c C-d" . docker) :defer t)
-(use-package docker-tramp :defer t)
+(use-package docker-tramp :defer t :if (not (featurep 'tramp-container)))
+(if (featurep 'tramp-container) (require 'tramp-container))
 (use-package dockerfile-mode
   :defer t
   :init (add-hook 'dockerfile-mode-hook #'(lambda () (eglot-ensure))))
