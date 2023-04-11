@@ -183,9 +183,11 @@
 (use-package all-the-icons)
 (use-package projectile
   :diminish
-  :custom (projectile-completion-system 'ivy)
   :defines projectile-project-root-files-bottom-up
   :bind (("C-x p" . projectile-command-map))
+  :init
+  (projectile-mode +1)
+  :commands projectile-project-root
   :config
   ;; FLUTTER
   (add-to-list 'projectile-project-root-files-bottom-up "pubspec.yaml")
@@ -335,7 +337,6 @@
 (use-package solarized-theme :config (load-theme 'solarized-light t))
 (use-package doom-modeline :custom (doom-modeline-minor-modes t) :hook after-init)
 (if (fboundp 'display-line-numbers-mode) (add-hook 'prog-mode-hook 'display-line-numbers-mode))
-(use-package nlinum :if (version< emacs-version "26.0.0") :hook prog-mode)
 
 (use-package expand-region :bind ("C-M-SPC" . er/expand-region))
 (use-package undo-tree :diminish
@@ -366,6 +367,7 @@
   (flycheck-add-mode 'deno-lint 'web-mode)
   (flycheck-add-next-checker 'lsp 'deno-lint 'append))
 (use-package flycheck-cfn :after flycheck-cfn :init (flycheck-cfn-setup))
+(use-package cov :custom (cov-coverage-mode t) :defer t)
 
 (use-package smartparens
   :diminish
@@ -394,7 +396,7 @@
 (use-package indent-tools :bind ("C-c >" . indent-tools-hydra/body))
 (autoload 'ansi-color-apply-on-region "ansi-color" "Translates SGR control sequences into overlays or extents." t)
 (add-hook 'compilation-filter-hook #'(lambda () (ansi-color-apply-on-region compilation-filter-start (point))))
-(use-package restclient)
+(use-package restclient :defer t)
 
 ;;; Emacs Lisp
 (use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode) :disabled)
@@ -490,24 +492,26 @@
                 (eglot-ensure)))
   :config
   (use-package go-projectile :hook (go-mode . go-projectile-set-gopath))
-  (use-package govet)
-  (use-package gotest)
+  (use-package govet :defer t)
+  (use-package gotest :defer t)
   (use-package go-tag
     :bind (:map go-mode-map
                 ("C-c `" . go-tag-add)
                 ("C-u C-c `" . go-tag-remove)))
-  (use-package go-impl)
-  (use-package go-gen-test)
+  (use-package go-impl :defer t)
+  (use-package go-gen-test :defer t)
   (use-package go-eldoc :hook (go-mode . go-eldoc-setup)))
 
 ;;; Dart & Flutter
 (use-package dart-mode
   :defer t
   :init
-  (add-hook 'dart-mode-hook #'subword-mode))
-;; (use-package lsp-dart :hook (dart-mode . lsp) :defer t)
+  (add-hook 'dart-mode-hook
+            #'(lambda ()
+                (subword-mode)
+                (lsp))))
+(use-package lsp-dart :defer t)
 (use-package flutter :requires dart-mode :defer t)
-(setq lsp-dart-flutter-sdk-dir (getenv "FLUTTER_ROOT"))
 
 ;;; Gradle
 (use-package groovy-mode :defer t)
@@ -536,6 +540,9 @@
   (add-hook 'typescript-mode-hook
             #'(lambda()
                 (setq-default typescript-indent-level 2)
+                (make-local-variable 'cov-lcov-file-name)
+                (setq cov-lcov-file-name (concat (projectile-project-root) "lcov.info"))
+                (cov-mode)
                 (eglot-ensure))))
 (use-package tide
   :requires lsp-mode flycheck web-mode
