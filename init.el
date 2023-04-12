@@ -135,10 +135,11 @@
   (when (memq window-system '(mac ns x))
     (exec-path-from-shell-initialize)))
 
+(winner-mode 1)
+(global-set-key (kbd "C-z") 'winner-undo)
 (global-set-key (kbd "C-o") 'other-window)
 (global-set-key (kbd "C-h") 'delete-backward-char)
 (global-set-key (kbd "RET") 'newline-and-indent)
-(global-set-key "\C-z" nil)
 
 (use-package multiple-cursors
   :defer t
@@ -234,7 +235,6 @@
   (interactive)
   (find-file default-directory))
 (global-set-key (kbd "C-x d") 'find-file-default-directory)
-
 (use-package autorevert :diminish :hook (after-init . global-auto-revert-mode))
 
 (use-package company
@@ -331,7 +331,6 @@
   (nconc popwin:special-display-config
          '((" *auto-async-byte-compile*" :noselect t)
            ("*Warnings*" :noselect t)
-           ("*Pp Eval Output*" :noselect t)
            ("*Rubocopfmt Errors*" :noselect t))))
 
 (use-package open-junk-file :defer t)
@@ -370,6 +369,14 @@
   (flycheck-add-next-checker 'lsp 'deno-lint 'append))
 (use-package flycheck-cfn :after flycheck-cfn :init (flycheck-cfn-setup))
 (use-package cov :custom (cov-coverage-mode t) :defer t)
+(autoload 'ansi-color-apply-on-region "ansi-color" "Translates SGR control sequences into overlays or extents." t)
+(add-hook 'compilation-filter-hook #'(lambda () (ansi-color-apply-on-region compilation-filter-start (point))))
+(defvar node-error-regexp "^[ ]+at \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
+(defvar vitest-error-regexp "^ ❯ \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
+(add-to-list 'compilation-error-regexp-alist-alist `(nodejs ,node-error-regexp 1 2 3))
+(add-to-list 'compilation-error-regexp-alist 'nodejs)
+(add-to-list 'compilation-error-regexp-alist-alist `(vitest ,vitest-error-regexp 1 2 3))
+(add-to-list 'compilation-error-regexp-alist 'vitest)
 
 (use-package smartparens
   :diminish
@@ -396,8 +403,6 @@
 (add-hook 'minibuffer-setup-hook (lambda () (setq-local show-trailing-whitespace nil)))
 (use-package highlight-indent-guides :diminish :hook prog-mode)
 (use-package indent-tools :bind ("C-c >" . indent-tools-hydra/body))
-(autoload 'ansi-color-apply-on-region "ansi-color" "Translates SGR control sequences into overlays or extents." t)
-(add-hook 'compilation-filter-hook #'(lambda () (ansi-color-apply-on-region compilation-filter-start (point))))
 (use-package restclient :defer t)
 
 ;;; Emacs Lisp
@@ -537,6 +542,15 @@
 (setq-default mmm-js-mode-enter-hook (lambda () (setq syntax-ppss-table nil)))
 (setq-default mmm-typescript-mode-enter-hook (lambda () (setq syntax-ppss-table nil)))
 (add-hook 'js-mode-hook #'set-js-indent-level)
+(defun kill-jest-process-and-buffer ()
+  "Kill jest process and buffer."
+  (interactive)
+  (delete-process (buffer-name (current-buffer)))
+  (kill-buffer))
+(use-package jest :defer t
+  :config
+  (bind-key "q" #'kill-jest-process-and-buffer jest-mode-map))
+
 (use-package typescript-mode
   :init
   (add-hook 'typescript-mode-hook
@@ -545,6 +559,7 @@
                 (make-local-variable 'cov-lcov-file-name)
                 (setq cov-lcov-file-name (concat (projectile-project-root) "lcov.info"))
                 (cov-mode)
+                (jest-minor-mode 1)
                 (eglot-ensure))))
 (use-package tide
   :after lsp-mode flycheck web-mode
