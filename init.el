@@ -138,12 +138,10 @@
   (add-to-list 'projectile-project-root-files-bottom-up "BUILD"))
 
 (use-package vertico :init (vertico-mode))
-(use-package fussy
-  :defer t
+(use-package orderless
   :custom
-  (completion-styles '(fussy basic))
-  (completion-category-defaults nil)
-  (completion-category-overrides nil))
+  (completion-styles '(orderless basic))
+  (completion-category-overrides '((file (styles basic partial-completion)))))
 (use-package marginalia
   ;; Either bind `marginalia-cycle' globally or only in the minibuffer
   :bind (("M-A" . marginalia-cycle)
