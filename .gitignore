@@ -16,10 +16,13 @@
 /auto-save-list
 /bm-repository
 /bookmarks
+/code-review-db-file.sqlite
+/code-review-error.log
 /company-statistics-cache.el
 /elpa/
 /eshell/
 /flycheck_init.el
+/forge-database-v7-*.sql
 /forge-database.sqlite
 /gotools/
 /history
@@ -36,4 +39,5 @@
 /tramp
 /transient/
 /twittering-mode.gpg
+/url/
 /var/
