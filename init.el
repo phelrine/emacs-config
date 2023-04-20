@@ -115,14 +115,14 @@
   :bind (("C-S-c C-S-c" . 'mc/edit-lines)
          ("C->" . 'mc/mark-next-like-this)
          ("C-<" . 'mc/mark-previous-like-this)))
-(use-package eldoc :diminish eldoc-mode :init (global-eldoc-mode 1))
+(global-eldoc-mode 1)
 (use-package eldoc-box
+  :after (eldoc)
   :bind ("C-c h" . eldoc-box-help-at-point)
   :config (eldoc-box-hover-at-point-mode 1))
 
 (use-package recentf-ext)
 
-(use-package avy :bind (("C-'" . avy-goto-char-timer)))
 (use-package ace-window :bind (("C-x o" . ace-window)))
 
 (use-package all-the-icons :defer t)
@@ -202,14 +202,13 @@
   :custom
   (copilot-disable-predicates '((lambda () t)))
   (copilot-node-executable (concat (getenv "HOME") "/.asdf/installs/nodejs/lts-gallium/bin/node"))
-  :autload copilot-accept-completion
-  :config
+  :autoload copilot-accept-completion
+  :init
   (defun my/copilot-accept-completion ()
     (interactive)
     (or (copilot-accept-completion)
         (indent-for-tab-command))))
 
-(use-package eglot :defer t)
 (use-package lsp-mode
   :diminish
   :defer t
@@ -232,7 +231,7 @@
   :bind (:map dap-mode-map (("C-c d" . dap-debug)))
   :commands dap-register-debug-template
   :config
-  (require 'dap-go)
+  (require 'dap-dlv-go)
   (require 'dap-ruby)
   (require 'dap-chrome)
   (require 'dap-node))
