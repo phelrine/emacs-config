@@ -30,6 +30,7 @@
  '(make-backup-files nil)
  '(menu-bar-mode nil)
  '(recentf-max-saved-items 1000)
+ '(recentf-auto-cleanup 'never)
  '(ring-bell-function 'ignore)
  '(scroll-margin 0)
  '(sort-fold-case t t)
@@ -115,17 +116,22 @@
   :bind (("C-S-c C-S-c" . 'mc/edit-lines)
          ("C->" . 'mc/mark-next-like-this)
          ("C-<" . 'mc/mark-previous-like-this)))
+
 (global-eldoc-mode 1)
 (use-package eldoc-box
   :after (eldoc)
   :bind ("C-c h" . eldoc-box-help-at-point)
   :config (eldoc-box-hover-at-point-mode 1))
 
+(recentf-mode 1)
 (use-package recentf-ext)
 
 (use-package ace-window :bind (("C-x o" . ace-window)))
 
 (use-package all-the-icons :defer t)
+(use-package all-the-icons-completion :init (all-the-icons-completion-mode))
+(use-package all-the-icons-dired :diminish :hook dired-mode)
+
 (use-package projectile
   :diminish
   :defines projectile-project-root-files-bottom-up
@@ -152,7 +158,24 @@
   ;; Must be in the :init section of use-package such that the mode gets
   ;; enabled right away. Note that this forces loading the package.
   (marginalia-mode))
-(use-package all-the-icons-completion :init (all-the-icons-completion-mode))
+
+(use-package embark
+  :bind
+  (("C-." . embark-act)         ;; pick some comfortable binding
+   ("M-." . embark-dwim)        ;; good alternative: M-.
+   ([remap describe-bindings] . embark-bindings)) ;; alternative for `describe-bindings'
+  :init
+  (setq prefix-help-command #'embark-prefix-help-command)
+  ;; Show the Embark target at point via Eldoc.  You may adjust the Eldoc
+  ;; strategy, if you want to see the documentation from multiple providers.
+  (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
+  ;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
+  :config
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none)))))
 (use-package consult
   :bind (("C-x C-r" . consult-recent-file)
          ([remap switch-to-buffer] . consult-buffer)
@@ -165,6 +188,7 @@
   :after (consult flycheck)
   :bind (("C-c C-e" . consult-flycheck)
          ("C-c e" . consult-flycheck)))
+(use-package embark-consult :hook (embark-collect-mode . consult-preview-at-point-mode))
 
 (use-package which-key :diminish which-key-mode :hook after-init)
 
@@ -172,7 +196,6 @@
 (use-package dired-hide-dotfiles
   :bind (:map dired-mode-map (("." . dired-hide-dotfiles-mode)))
   :hook dired-mode)
-(use-package all-the-icons-dired :diminish :hook dired-mode)
 (defun find-file-default-directory ()
   "Open current directory in Dired."
   (interactive)
@@ -241,6 +264,7 @@
   :custom (magit-repository-directories (list (cons (concat (getenv "HOME") "/repos/") 1)))
   :bind (("C-x g" . magit-status)
          ([remap vc-dir] . magit-status)))
+(use-package magit-delta :hook (magit-mode . magit-delta-mode))
 (use-package forge :after magit :custom (forge-topic-list-limit '(50 . 0)))
 ;; (use-package emacsql-sqlite-module :defer t)
 (use-package git-gutter :init (global-git-gutter-mode +1))
@@ -310,6 +334,11 @@
   (add-to-list 'compilation-error-regexp-alist 'nodejs)
   (add-to-list 'compilation-error-regexp-alist-alist `(vitest ,vitest-error-regexp 1 2 3))
   (add-to-list 'compilation-error-regexp-alist 'vitest))
+(use-package fancy-compilation
+  :after compile
+  :custom (fancy-compilation-override-colors nil)
+  :config
+  (fancy-compilation-mode))
 
 (use-package smartparens
   :diminish
@@ -339,7 +368,7 @@
 
 ;;; Emacs Lisp
 (use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode) :disabled)
-(add-hook 'emacs-lisp-mode-hook #'(lambda () (local-set-key (kbd "C-x C-e") 'pp-eval-last-sexp)))
+(use-package eros :init (eros-mode) :defer t)
 
 ;;; C#
 (use-package csharp-mode :mode "\\.cs\\'")
@@ -423,8 +452,7 @@
 (use-package go-mode
   :hook ((before-save . gofmt-before-save))
   :config
-  (add-hook 'go-mode-hook
-            #'(lambda () (subword-mode) (eglot-ensure))))
+  (add-hook 'go-mode-hook #'(lambda () (subword-mode) (eglot-ensure))))
 (use-package govet :defer t)
 (use-package gotest :defer t)
 (use-package go-impl :defer t)
@@ -435,6 +463,13 @@
               ("C-u C-c `" . go-tag-remove)))
 (use-package go-eldoc :after (go-mode eldoc) :hook (go-mode . go-eldoc-setup))
 (use-package go-projectile :after (go-mode projectile))
+(use-package go-playground
+  :defer t
+  :custom (go-playground-init-command "go mod init snippet")
+  :init
+  (add-hook 'go-playground-mode-hook #'(lambda () (subword-mode) (eglot-ensure))))
+(use-package flycheck-golangci-lint :hook (go-mode . flycheck-golangci-lint-setup))
+(use-package go-fill-struct)
 
 ;;; Dart & Flutter
 (use-package dart-mode
