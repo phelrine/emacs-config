@@ -82,7 +82,6 @@
     (setenv "TMPDIR" (concat (getenv "HOME") "/.tmp")))
 (use-package exec-path-from-shell
   :custom
-  (exec-path-from-shell-check-startup-files nil)
   (exec-path-from-shell-variables '("PATH" "MANPATH"))
   :config
   (when (memq window-system '(mac ns x))
