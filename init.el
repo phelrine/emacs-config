@@ -129,7 +129,7 @@
 
 (use-package all-the-icons :defer t)
 (use-package all-the-icons-completion :init (all-the-icons-completion-mode))
-(use-package all-the-icons-dired :diminish :hook dired-mode)
+(use-package all-the-icons-dired :diminish :hook (dired-mode . all-the-icons-dired-mode))
 
 (use-package projectile
   :diminish
@@ -189,12 +189,12 @@
          ("C-c e" . consult-flycheck)))
 (use-package embark-consult :hook (embark-collect-mode . consult-preview-at-point-mode))
 
-(use-package which-key :diminish which-key-mode :hook after-init)
+(use-package which-key :diminish which-key-mode :hook (after-init . which-key-mode))
 
 ;;; Dired
 (use-package dired-hide-dotfiles
   :bind (:map dired-mode-map (("." . dired-hide-dotfiles-mode)))
-  :hook dired-mode)
+  :hook (dired-mode . dired-hide-dotfiles-mode))
 (defun find-file-default-directory ()
   "Open current directory in Dired."
   (interactive)
@@ -205,19 +205,18 @@
 (use-package company
   :bind ("C-;" . company-complete)
   :defines company-backends
+  :hook (after-init . global-company-mode)
   :custom
   (company-backends '(company-capf company-dabbrev-code company-files company-elisp company-yasnippet))
   (company-dabbrev-downcase nil)
   (company-idle-delay nil)
-  (company-lsp-enable-recompletion nil)
-  :config
-  (global-company-mode 1))
-(use-package company-box :after company :diminish :hook company-mode)
-(use-package company-quickhelp :after company :hook company-mode)
+  (company-lsp-enable-recompletion nil))
+(use-package company-box :after company :diminish :hook (company-mode . company-box-mode))
+(use-package company-quickhelp :after company :hook (company-mode . company-quickhelp-mode))
 
 (use-package copilot
   :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
-  :hook prog-mode
+  :hook (prog-mode . copilot-mode)
   :bind (("C-M-;" . copilot-complete)
          ("TAB" . my/copilot-accept-completion)
          ("<backtab>" . copilot-next-completion))
@@ -239,7 +238,7 @@
   (lsp-solargraph-use-bundler t)
   :hook
   (lsp-mode . lsp-enable-which-key-integration)
-  :commands lsp-rename
+  :commands lsp lsp-rename lsp-diagnostics-mode
   :config
   (setq lsp-keymap-prefix "C-c l")
   (defun lsp-rename-snake-to-camel ()
@@ -247,7 +246,7 @@
     (interactive)
     (lsp-rename (string-inflection-camelcase-function (thing-at-point 'symbol)))))
 (use-package string-inflection :autoload string-inflection-camelcase-function)
-(use-package lsp-ui :after lsp-mode :hook lsp-mode)
+(use-package lsp-ui :after lsp-mode :hook (lsp-mode . lsp-ui-mode))
 (use-package dap-mode
   :hook ((prog-mode . dap-mode) (prog-mode . dap-ui-mode) (dap-stopped . (lambda (arg) (call-interactively #'dap-hydra))))
   :bind (:map dap-mode-map (("C-c d" . dap-debug)))
@@ -293,14 +292,14 @@
 (use-package open-junk-file :defer t)
 (use-package color-theme-modern)
 (use-package solarized-theme :config (load-theme 'solarized-light t))
-(use-package doom-modeline :custom (doom-modeline-minor-modes t) :hook after-init)
+(use-package doom-modeline :custom (doom-modeline-minor-modes t) :hook (after-init . doom-modeline-mode))
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 
 (use-package expand-region :bind ("C-M-SPC" . er/expand-region))
 (use-package vundo :bind ("C-x u" . vundo))
 
-(use-package volatile-highlights :diminish :hook after-init)
-(use-package beacon :diminish beacon-mode :config (beacon-mode t) :custom (beacon-color "light green"))
+(use-package volatile-highlights :diminish :hook (after-init . volatile-highlights-mode))
+(use-package beacon :diminish beacon-mode :hook (after-init . beacon-mode) :custom (beacon-color "light green"))
 
 (use-package ddskk
   :if (memq window-system '(mac ns x))
@@ -308,8 +307,8 @@
   :bind ("C-x j" . skk-mode))
 
 ;; flycheck
-(use-package flycheck :hook prog-mode :diminish flycheck-mode :commands flycheck-add-mode flycheck-add-next-checker)
-(use-package flycheck-color-mode-line :after flycheck :hook flycheck-mode)
+(use-package flycheck :hook (prog-mode . flycheck-mode) :diminish flycheck-mode :commands flycheck-add-mode flycheck-add-next-checker)
+(use-package flycheck-color-mode-line :after flycheck :hook (flycheck-mode . flycheck-color-mode-line-mode))
 (use-package flycheck-deno
   :after (flycheck lsp-mode)
   :config
@@ -345,7 +344,7 @@
   (after-init . smartparens-global-mode)
   :config
   (require 'smartparens-config))
-(use-package rainbow-delimiters :hook prog-mode)
+(use-package rainbow-delimiters :hook (prog-mode . rainbow-delimiters-mode))
 
 ;;; Indent
 (use-package whitespace
@@ -354,15 +353,16 @@
   (whitespace-display-mappings '((space-mark 12288 [9633]) (tab-mark 9 [187 9])))
   (whitespace-space-regexp "\\(　+\\)")
   (whitespace-style '(face tabs tab-mark spaces space-mark))
-  :hook (before-save . delete-trailing-whitespace)
-  :config (global-whitespace-mode 1))
+  :hook
+  (before-save . delete-trailing-whitespace)
+  (after-init . global-whitespace-mode))
 (setq show-trailing-whitespace t)
 (add-hook 'change-major-mode-after-body-hook
           #'(lambda ()
               (when (derived-mode-p 'term-mode)
                 (setq show-trailing-whitespace nil))))
-(add-hook 'minibuffer-setup-hook (lambda () (setq-local show-trailing-whitespace nil)))
-(use-package highlight-indent-guides :diminish :hook prog-mode)
+(add-hook 'minibuffer-setup-hook #'(lambda () (setq-local show-trailing-whitespace nil)))
+(use-package highlight-indent-guides :diminish :hook (prog-mode . highlight-indent-guides-mode))
 (use-package indent-tools :bind ("C-c >" . indent-tools-hydra/body))
 
 ;;; Emacs Lisp
@@ -408,13 +408,13 @@
    (compilation-filter . inf-ruby-auto-enter-and-focus)))
 (use-package robe
   :after ruby-mode
-  :hook ruby-mode
+  :hook (ruby-mode . robe-mode)
   :config
   (add-hook 'ruby-mode-hook
             #'(lambda ()
                 (make-local-variable 'company-backends)
                 (push 'company-robe company-backends))))
-(use-package rubocopfmt :after ruby-mode :hook ruby-mode)
+(use-package rubocopfmt :after ruby-mode :hook (ruby-mode . rubocopfmt-mode))
 (use-package projectile-rails
   :after (ruby-mode projectile)
   :bind (:map projectile-rails-mode-map
@@ -523,7 +523,6 @@
   (kill-buffer))
 (use-package jest :bind (:map jest-mode-map ("q" . #'kill-jest-process-and-buffer)))
 (use-package typescript-mode
-  :defer t
   :config
   (add-hook 'typescript-mode-hook
             #'(lambda()
@@ -532,7 +531,7 @@
                 (cov-mode)
                 (jest-minor-mode 1)
                 (eglot-ensure))))
-(use-package tide :defer t :custom (tide-sync-request-timeout 5))
+(use-package tide :defer t :custom (tide-sync-request-timeout 5) :commands tide-setup tide-hl-identifier-mode)
 
 (use-package npm)
 (use-package deno-fmt :commands deno-fmt)
@@ -566,7 +565,7 @@
   (use-package docker-tramp :defer t))
 (use-package dockerfile-mode
   :defer t
-  :config (add-hook 'dockerfile-mode-hook #'(lambda () (eglot-ensure))))
+  :config (add-hook 'dockerfile-mode-hook #'eglot-ensure))
 
 ;;; asdf
 (use-package asdf
