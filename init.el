@@ -36,6 +36,8 @@
  '(sort-fold-case t t)
  '(tab-width 4)
  '(tool-bar-mode nil)
+ '(dabbrev-case-fold-search 'case-fold-search)
+ '(dabbrev-case-replace nil)
  '(warning-suppress-log-types '((use-package)))
  '(warning-suppress-types '((use-package))))
 
@@ -74,6 +76,7 @@
   :config
   (auto-package-update-maybe))
 (use-package bind-key)
+(use-package which-key :diminish which-key-mode :hook (after-init . which-key-mode))
 
 ;;; ENV
 (setenv "LANG" "ja_JP.UTF-8")
@@ -92,14 +95,18 @@
 (global-hl-line-mode 1)
 (savehist-mode 1)
 (save-place-mode 1)
+(global-auto-revert-mode 1)
 (global-font-lock-mode 1)
 (when (memq window-system '(mac ns))
   (add-to-list 'auth-sources 'macos-keychain-generic)
   (add-to-list 'auth-sources 'macos-keychain-internet))
-(global-set-key (kbd "C-z") 'winner-undo)
-(global-set-key (kbd "C-o") 'other-window)
-(global-set-key (kbd "C-h") 'delete-backward-char)
-(global-set-key (kbd "RET") 'newline-and-indent)
+(bind-key "RET" 'newline-and-indent)
+(autoload 'winner-undo "winner" "Load winner-undo" t nil)
+(bind-keys*
+ ("C-z" . winner-undo)
+ ("C-o" . other-window)
+ ("C-h" . delete-backward-char)
+ ("C-;" . completion-at-point))
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 (defalias 'qrr 'query-replace-regexp)
 (defalias 'yes-or-no-p 'y-or-n-p)
@@ -115,7 +122,6 @@
   :bind (("C-S-c C-S-c" . 'mc/edit-lines)
          ("C->" . 'mc/mark-next-like-this)
          ("C-<" . 'mc/mark-previous-like-this)))
-
 (global-eldoc-mode 1)
 (use-package eldoc-box
   :after (eldoc)
@@ -128,7 +134,10 @@
 (use-package ace-window :bind (("C-x o" . ace-window)))
 
 (use-package all-the-icons :defer t)
-(use-package all-the-icons-completion :init (all-the-icons-completion-mode))
+(use-package all-the-icons-completion
+  :hook
+  (after-init . all-the-icons-completion-mode)
+  (marginalia-mode . all-the-icons-completion-marginalia-setup))
 (use-package all-the-icons-dired :diminish :hook (dired-mode . all-the-icons-dired-mode))
 
 (use-package projectile
@@ -154,27 +163,31 @@
          ("M-A" . marginalia-cycle))
   ;; The :init configuration is always executed (Not lazy!)
   :init
-  ;; Must be in the :init section of use-package such that the mode gets
-  ;; enabled right away. Note that this forces loading the package.
   (marginalia-mode))
-
-(use-package embark
-  :bind
-  (("C-." . embark-act)         ;; pick some comfortable binding
-   ("M-." . embark-dwim)        ;; good alternative: M-.
-   ([remap describe-bindings] . embark-bindings)) ;; alternative for `describe-bindings'
+(use-package corfu :hook (after-init . global-corfu-mode))
+(use-package cape
+  ;; Bind dedicated completion commands
+  ;; Alternative prefix keys: C-c p, M-p, M-+, ...
   :init
-  (setq prefix-help-command #'embark-prefix-help-command)
-  ;; Show the Embark target at point via Eldoc.  You may adjust the Eldoc
-  ;; strategy, if you want to see the documentation from multiple providers.
-  (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
-  ;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
+  ;; Add `completion-at-point-functions', used by `completion-at-point'.
+  ;; NOTE: The order matters!
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+  (add-to-list 'completion-at-point-functions #'cape-file)
+  (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+  (add-to-list 'completion-at-point-functions #'cape-keyword))
+(use-package kind-icon
+  :after corfu
+  :custom
+  (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
   :config
-  ;; Hide the mode line of the Embark live/completions buffers
-  (add-to-list 'display-buffer-alist
-               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
-                 nil
-                 (window-parameters (mode-line-format . none)))))
+  (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
+(use-package dabbrev
+  ;; Swap M-/ and C-M-/
+  :bind (("M-/" . dabbrev-completion)
+         ("C-M-/" . dabbrev-expand))
+  ;; Other useful Dabbrev configurations.
+  :custom
+  (dabbrev-ignored-buffer-regexps '("\\.\\(?:pdf\\|jpe?g\\|png\\)\\'")))
 (use-package consult
   :bind (("C-x C-r" . consult-recent-file)
          ([remap switch-to-buffer] . consult-buffer)
@@ -187,32 +200,34 @@
   :after (consult flycheck)
   :bind (("C-c C-e" . consult-flycheck)
          ("C-c e" . consult-flycheck)))
+
+(use-package embark
+  :bind
+  (("C-." . embark-act)         ;; pick some comfortable binding
+   ("M-." . embark-dwim)        ;; good alternative: M-.
+   ([remap describe-bindings] . embark-bindings)) ;; alternative for `describe-bindings'
+  :custom
+  (embark-prompter 'embark-completing-read-prompter)
+  :init
+  (setq prefix-help-command #'embark-prefix-help-command)
+  ;; Show the Embark target at point via Eldoc.  You may adjust the Eldoc
+  ;; strategy, if you want to see the documentation from multiple providers.
+  (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
+  ;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
+  :config
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none)))))
 (use-package embark-consult :hook (embark-collect-mode . consult-preview-at-point-mode))
 
-(use-package which-key :diminish which-key-mode :hook (after-init . which-key-mode))
 
 ;;; Dired
 (use-package dired-hide-dotfiles
   :bind (:map dired-mode-map (("." . dired-hide-dotfiles-mode)))
   :hook (dired-mode . dired-hide-dotfiles-mode))
-(defun find-file-default-directory ()
-  "Open current directory in Dired."
-  (interactive)
-  (find-file default-directory))
-(global-set-key (kbd "C-x d") 'find-file-default-directory)
-(use-package autorevert :diminish :hook (after-init . global-auto-revert-mode))
-
-(use-package company
-  :bind ("C-;" . company-complete)
-  :defines company-backends
-  :hook (after-init . global-company-mode)
-  :custom
-  (company-backends '(company-capf company-dabbrev-code company-files company-elisp company-yasnippet))
-  (company-dabbrev-downcase nil)
-  (company-idle-delay nil)
-  (company-lsp-enable-recompletion nil))
-(use-package company-box :after company :diminish :hook (company-mode . company-box-mode))
-(use-package company-quickhelp :after company :hook (company-mode . company-quickhelp-mode))
+(bind-key "C-x d" #'(lambda () (interactive) (find-file default-directory)))
 
 (use-package copilot
   :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
@@ -238,6 +253,7 @@
   (lsp-solargraph-use-bundler t)
   :hook
   (lsp-mode . lsp-enable-which-key-integration)
+  (lsp-mode . lsp-completion-mode)
   :commands lsp lsp-rename lsp-diagnostics-mode
   :config
   (setq lsp-keymap-prefix "C-c l")
@@ -264,8 +280,8 @@
          ([remap vc-dir] . magit-status)))
 (use-package magit-delta :hook (magit-mode . magit-delta-mode))
 (use-package forge :after magit :custom (forge-topic-list-limit '(50 . 0)))
-;; (use-package emacsql-sqlite-module :defer t)
-(use-package git-gutter :init (global-git-gutter-mode +1))
+(use-package emacsql-sqlite-module)
+(use-package git-gutter :hook (after-init . global-git-gutter-mode))
 (use-package git-gutter-fringe :diminish git-gutter-mode)
 (use-package github-review :defer t)
 (use-package code-review :defer t)
@@ -367,7 +383,7 @@
 
 ;;; Emacs Lisp
 (use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode) :disabled)
-(use-package eros :init (eros-mode) :defer t)
+(use-package eros :hook (emacs-lisp-mode . eros-mode))
 
 ;;; C#
 (use-package csharp-mode :mode "\\.cs\\'")
@@ -400,20 +416,13 @@
   :defer t
   :custom (ruby-insert-encoding-magic-comment nil)
   :config
-  (add-hook 'ruby-mode-hook #'(lambda () (eglot-ensure))))
+  (add-hook 'ruby-mode-hook #'eglot-ensure))
 (use-package inf-ruby
   :after ruby-mode
   :hook
   ((ruby-mode . inf-ruby-minor-mode)
    (compilation-filter . inf-ruby-auto-enter-and-focus)))
-(use-package robe
-  :after ruby-mode
-  :hook (ruby-mode . robe-mode)
-  :config
-  (add-hook 'ruby-mode-hook
-            #'(lambda ()
-                (make-local-variable 'company-backends)
-                (push 'company-robe company-backends))))
+(use-package robe :after ruby-mode :hook (ruby-mode . robe-mode))
 (use-package rubocopfmt :after ruby-mode :hook (ruby-mode . rubocopfmt-mode))
 (use-package projectile-rails
   :after (ruby-mode projectile)
@@ -477,8 +486,7 @@
   (add-hook 'dart-mode-hook
             #'(lambda ()
                 (subword-mode)
-                (lsp))))
-(use-package lsp-dart :after (lsp-mode dart-mode))
+                (eglot-ensure))))
 (use-package flutter :after (dart-mode))
 
 ;;; Gradle
@@ -492,27 +500,17 @@
   (web-mode-code-indent-offset 2)
   (web-mode-enable-auto-indentation nil)
   (web-mode-auto-quote-style 3)
-  :mode "\\.html?\\'" "\\.erb\\'" "\\.tsx\\'"
-  :config
-  (add-hook 'web-mode-hook
-            #'(lambda ()
-                (when (string-equal "tsx" (file-name-extension buffer-file-name))
-                  (tide-setup)
-                  (lsp)
-                  (flycheck-mode +1)
-                  (setq flycheck-check-syntax-automatically '(save mode-enabled))
-                  (tide-hl-identifier-mode +1)))))
+  :mode "\\.html?\\'" "\\.erb\\'")
+(add-hook 'web-mode-hook
+          #'(lambda ()
+              (when (string-equal "tsx" (file-name-extension buffer-file-name))
+                ;; eglot-server-programs をロードするために require する
+                (require 'eglot)
+                (add-to-list 'eglot-server-programs '(web-mode . ("typescript-language-server" "--stdio")))
+                (eglot-ensure))))
 (defun set-js-indent-level ()
   "Confirue indent level for js files."
   (setq-local js-indent-level 2))
-(use-package vue-mode
-  :defer t
-  :config
-  (add-hook 'vue-mode-hook
-            #'(lambda ()
-                (set-js-indent-level)
-                (lsp))))
-;; https://github.com/AdamNiederer/vue-mode/issues/74#issuecomment-539711083
 (setq-default mmm-js-mode-enter-hook (lambda () (setq syntax-ppss-table nil)))
 (setq-default mmm-typescript-mode-enter-hook (lambda () (setq syntax-ppss-table nil)))
 (add-hook 'js-mode-hook #'set-js-indent-level)
@@ -524,15 +522,17 @@
 (use-package jest :bind (:map jest-mode-map ("q" . #'kill-jest-process-and-buffer)))
 (use-package typescript-mode
   :config
-  (add-hook 'typescript-mode-hook
-            #'(lambda()
-                (setq-default typescript-indent-level 2)
-                (setq-local cov-lcov-file-name (concat (projectile-project-root) "lcov.info"))
-                (cov-mode)
-                (jest-minor-mode 1)
-                (eglot-ensure))))
-(use-package tide :defer t :custom (tide-sync-request-timeout 5) :commands tide-setup tide-hl-identifier-mode)
-
+  ;; tsx は web-mode で起動する
+  (add-to-list 'auto-mode-alist '("\\.tsx?\\'" . web-mode))
+  ;; ts が typescript-mode で起動しなくなるので再追加する
+  (add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-mode)))
+(add-hook 'typescript-mode-hook
+          #'(lambda()
+              (setq-default typescript-indent-level 2)
+              (setq-local cov-lcov-file-name (concat (projectile-project-root) "lcov.info"))
+              (cov-mode)
+              (jest-minor-mode 1)
+              (eglot-ensure)))
 (use-package npm)
 (use-package deno-fmt :commands deno-fmt)
 (use-package prisma-mode
