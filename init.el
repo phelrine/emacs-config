@@ -1,7 +1,6 @@
 ;;; init --- Summary
 ;;; Commentary:
 
-(require 'package)
 (require 'generic-x)
 
 ;;; Code:
@@ -24,7 +23,6 @@
       (".h"))))
  '(create-lockfiles nil)
  '(enable-recursive-minibuffers t)
- '(gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
  '(history-length 1000)
  '(indent-tabs-mode nil)
  '(make-backup-files nil)
@@ -33,11 +31,11 @@
  '(recentf-auto-cleanup 'never)
  '(ring-bell-function 'ignore)
  '(scroll-margin 0)
- '(sort-fold-case t t)
  '(tab-width 4)
  '(tool-bar-mode nil)
  '(dabbrev-case-fold-search 'case-fold-search)
  '(dabbrev-case-replace nil)
+ '(use-package-always-ensure t)
  '(warning-suppress-log-types '((use-package)))
  '(warning-suppress-types '((use-package))))
 
@@ -53,17 +51,13 @@
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
-(eval-when-compile
-  (require 'use-package)
-  (setq use-package-always-ensure t))
-(defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
-      (bootstrap-version 5))
+      (bootstrap-version 6))
   (unless (file-exists-p bootstrap-file)
     (with-current-buffer
         (url-retrieve-synchronously
-         "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
          'silent 'inhibit-cookies)
       (goto-char (point-max))
       (eval-print-last-sexp)))
@@ -93,6 +87,7 @@
 (winner-mode 1)
 (show-paren-mode 1)
 (global-hl-line-mode 1)
+(recentf-mode 1)
 (savehist-mode 1)
 (save-place-mode 1)
 (global-auto-revert-mode 1)
@@ -125,11 +120,7 @@
 (global-eldoc-mode 1)
 (use-package eldoc-box
   :after (eldoc)
-  :bind ("C-c h" . eldoc-box-help-at-point)
-  :config (eldoc-box-hover-at-point-mode 1))
-
-(recentf-mode 1)
-(use-package recentf-ext)
+  :bind ("C-c h" . eldoc-box-help-at-point))
 
 (use-package ace-window :bind (("C-x o" . ace-window)))
 
@@ -195,7 +186,11 @@
          ("C-x C-b" . consult-buffer)
          ("C-x C-i" . consult-imenu)
          ("C-c g" . consult-git-grep)
-         ("M-y" . consult-yank-pop)))
+         ("M-y" . consult-yank-pop))
+  :hook (completion-list-mode . consult-preview-at-point-mode)
+  :custom
+  (xref-show-xrefs-function #'consult-xref)
+  (xref-show-definitions-function #'consult-xref))
 (use-package consult-flycheck
   :after (consult flycheck)
   :bind (("C-c C-e" . consult-flycheck)
@@ -210,9 +205,6 @@
   (embark-prompter 'embark-completing-read-prompter)
   :init
   (setq prefix-help-command #'embark-prefix-help-command)
-  ;; Show the Embark target at point via Eldoc.  You may adjust the Eldoc
-  ;; strategy, if you want to see the documentation from multiple providers.
-  (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
   ;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
   :config
   ;; Hide the mode line of the Embark live/completions buffers
@@ -222,10 +214,9 @@
                  (window-parameters (mode-line-format . none)))))
 (use-package embark-consult :hook (embark-collect-mode . consult-preview-at-point-mode))
 
-
 ;;; Dired
 (use-package dired-hide-dotfiles
-  :bind (:map dired-mode-map (("." . dired-hide-dotfiles-mode)))
+  :bind (:map dired-mode-map (("." . 'dired-hide-dotfiles-mode)))
   :hook (dired-mode . dired-hide-dotfiles-mode))
 (bind-key "C-x d" #'(lambda () (interactive) (find-file default-directory)))
 
@@ -280,7 +271,7 @@
          ([remap vc-dir] . magit-status)))
 (use-package magit-delta :hook (magit-mode . magit-delta-mode))
 (use-package forge :after magit :custom (forge-topic-list-limit '(50 . 0)))
-(use-package emacsql-sqlite-module)
+(use-package emacsql-sqlite-module :if (version< emacs-version "29.0") :ensure (version< emacs-version "29.0"))
 (use-package git-gutter :hook (after-init . global-git-gutter-mode))
 (use-package git-gutter-fringe :diminish git-gutter-mode)
 (use-package github-review :defer t)
@@ -317,10 +308,14 @@
 (use-package volatile-highlights :diminish :hook (after-init . volatile-highlights-mode))
 (use-package beacon :diminish beacon-mode :hook (after-init . beacon-mode) :custom (beacon-color "light green"))
 
-(use-package ddskk
-  :if (memq window-system '(mac ns x))
-  :custom (skk-use-jisx0201-input-method t)
-  :bind ("C-x j" . skk-mode))
+(if (featurep 'skk-autoloads)
+    (progn (require 'skk-autoloads)
+           (bind-key "C-x j" 'skk-mode))
+  (use-package ddskk
+    :if (memq window-system '(mac ns x))
+    :custom (skk-use-jisx0201-input-method t)
+    :bind ("C-x j" . skk-mode)))
+(use-package ddskk-posframe :diminish :config (ddskk-posframe-mode t))
 
 ;; flycheck
 (use-package flycheck :hook (prog-mode . flycheck-mode) :diminish flycheck-mode :commands flycheck-add-mode flycheck-add-next-checker)
