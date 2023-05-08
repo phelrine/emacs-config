@@ -10,34 +10,27 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(cc-other-file-alist
-   '(("\\.cpp$"
-      (".hpp" ".h"))
-     ("\\.h$"
-      (".c" ".cpp" ".m" ".mm"))
-     ("\\.hpp$"
-      (".cpp" ".c"))
-     ("\\.m$"
-      (".h"))
-     ("\\.mm$"
-      (".h"))))
  '(create-lockfiles nil)
+ '(dabbrev-case-fold-search 'case-fold-search)
+ '(dabbrev-case-replace nil)
  '(enable-recursive-minibuffers t)
  '(history-length 1000)
  '(indent-tabs-mode nil)
+ '(js-indent-level 2)
  '(make-backup-files nil)
  '(menu-bar-mode nil)
- '(recentf-max-saved-items 1000)
+ '(gc-cons-threshold 16000000)
  '(recentf-auto-cleanup 'never)
+ '(recentf-max-saved-items 1000)
  '(ring-bell-function 'ignore)
  '(scroll-margin 0)
+ '(show-trailing-whitespace t)
  '(tab-width 4)
  '(tool-bar-mode nil)
- '(dabbrev-case-fold-search 'case-fold-search)
- '(dabbrev-case-replace nil)
  '(use-package-always-ensure t)
  '(warning-suppress-log-types '((use-package)))
- '(warning-suppress-types '((use-package))))
+ '(warning-suppress-types '((use-package)))
+ `(temporary-file-directory ,(concat (getenv "HOME") "/.tmp")))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -62,6 +55,7 @@
       (goto-char (point-max))
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
+
 (use-package diminish)
 (use-package auto-package-update
   :custom
@@ -70,11 +64,10 @@
   :config
   (auto-package-update-maybe))
 (use-package bind-key)
-(use-package which-key :diminish which-key-mode :hook (after-init . which-key-mode))
+(use-package which-key :diminish :hook (after-init . which-key-mode))
 
 ;;; ENV
 (setenv "LANG" "ja_JP.UTF-8")
-(setq temporary-file-directory (concat (getenv "HOME") "/.tmp"))
 (if (memq window-system '(mac ns))
     (setenv "TMPDIR" (concat (getenv "HOME") "/.tmp")))
 (use-package exec-path-from-shell
@@ -114,14 +107,13 @@
   (add-to-list 'face-font-rescale-alist
                '(".*Hiragino Kaku Gothic ProN.*" . 1.1)))
 (use-package multiple-cursors
-  :bind (("C-S-c C-S-c" . 'mc/edit-lines)
-         ("C->" . 'mc/mark-next-like-this)
-         ("C-<" . 'mc/mark-previous-like-this)))
+  :bind (("C-S-c C-S-c" . mc/edit-lines)
+         ("C->" . mc/mark-next-like-this)
+         ("C-<" . mc/mark-previous-like-this)))
 (global-eldoc-mode 1)
 (use-package eldoc-box
   :after (eldoc)
   :bind ("C-c h" . eldoc-box-help-at-point))
-
 (use-package ace-window :bind (("C-x o" . ace-window)))
 
 (use-package all-the-icons :defer t)
@@ -133,11 +125,10 @@
 
 (use-package projectile
   :diminish
-  :defines projectile-project-root-files-bottom-up
   :bind (("C-x p" . projectile-command-map))
+  :hook (after-init . projectile-mode)
   :autoload projectile-project-root
   :config
-  (projectile-mode +1)
   ;; FLUTTER
   (add-to-list 'projectile-project-root-files-bottom-up "pubspec.yaml")
   (add-to-list 'projectile-project-root-files-bottom-up "BUILD"))
@@ -157,15 +148,17 @@
   (marginalia-mode))
 (use-package corfu :hook (after-init . global-corfu-mode))
 (use-package cape
+  :defer t
   ;; Bind dedicated completion commands
   ;; Alternative prefix keys: C-c p, M-p, M-+, ...
   :init
   ;; Add `completion-at-point-functions', used by `completion-at-point'.
   ;; NOTE: The order matters!
-  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
-  (add-to-list 'completion-at-point-functions #'cape-file)
-  (add-to-list 'completion-at-point-functions #'cape-elisp-block)
-  (add-to-list 'completion-at-point-functions #'cape-keyword))
+  (with-eval-after-load 'minibuffer
+    (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+    (add-to-list 'completion-at-point-functions #'cape-file)
+    (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+    (add-to-list 'completion-at-point-functions #'cape-keyword)))
 (use-package kind-icon
   :after corfu
   :custom
@@ -204,7 +197,7 @@
   :custom
   (embark-prompter 'embark-completing-read-prompter)
   :init
-  (setq prefix-help-command #'embark-prefix-help-command)
+  (add-hook 'which-key-mode-hook #'(lambda () (setq prefix-help-command #'embark-prefix-help-command)))
   ;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
   :config
   ;; Hide the mode line of the Embark live/completions buffers
@@ -216,7 +209,7 @@
 
 ;;; Dired
 (use-package dired-hide-dotfiles
-  :bind (:map dired-mode-map (("." . 'dired-hide-dotfiles-mode)))
+  :bind (:map dired-mode-map (("." . dired-hide-dotfiles-mode)))
   :hook (dired-mode . dired-hide-dotfiles-mode))
 (bind-key "C-x d" #'(lambda () (interactive) (find-file default-directory)))
 
@@ -229,7 +222,7 @@
   :custom
   (copilot-disable-predicates '((lambda () t)))
   (copilot-node-executable (concat (getenv "HOME") "/.asdf/installs/nodejs/lts-gallium/bin/node"))
-  :autoload copilot-accept-completion
+  :commands copilot-accept-completion
   :init
   (defun my/copilot-accept-completion ()
     (interactive)
@@ -242,27 +235,32 @@
   :custom
   (lsp-auto-guess-root t)
   (lsp-solargraph-use-bundler t)
+  (lsp-keymap-prefix "C-c l")
   :hook
   (lsp-mode . lsp-enable-which-key-integration)
   (lsp-mode . lsp-completion-mode)
-  :commands lsp lsp-rename lsp-diagnostics-mode
-  :config
-  (setq lsp-keymap-prefix "C-c l")
+  :autoload lsp-rename
+  :init
   (defun lsp-rename-snake-to-camel ()
     "Rename symbol from snake_case to camelCase."
     (interactive)
     (lsp-rename (string-inflection-camelcase-function (thing-at-point 'symbol)))))
-(use-package string-inflection :autoload string-inflection-camelcase-function)
+(use-package string-inflection :autoload string-inflection-camelcase-function :defer t)
 (use-package lsp-ui :after lsp-mode :hook (lsp-mode . lsp-ui-mode))
 (use-package dap-mode
-  :hook ((prog-mode . dap-mode) (prog-mode . dap-ui-mode) (dap-stopped . (lambda (arg) (call-interactively #'dap-hydra))))
+  :hook
+  (((go-mode ruby-mode typescript-mode) . dap-mode)
+   ((go-mode ruby-mode typescript-mode) . dap-ui-mode))
   :bind (:map dap-mode-map (("C-c d" . dap-debug)))
-  :commands dap-register-debug-template
+  :autoload dap-register-debug-template
   :config
-  (require 'dap-dlv-go)
-  (require 'dap-ruby)
-  (require 'dap-chrome)
-  (require 'dap-node))
+  (with-eval-after-load 'dap-hydra (add-hook 'dap-stopped-hook #'dap-hydra))
+  (require 'dap-hydra)
+  (with-eval-after-load 'go-mode (require 'dap-dlv-go))
+  (with-eval-after-load 'ruby-mode (require 'dap-ruby))
+  (with-eval-after-load 'typescript-mode
+    (require 'dap-chrome)
+    (require 'dap-node)))
 
 ;; git
 (use-package magit
@@ -271,17 +269,21 @@
          ([remap vc-dir] . magit-status)))
 (use-package magit-delta :hook (magit-mode . magit-delta-mode))
 (use-package forge :after magit :custom (forge-topic-list-limit '(50 . 0)))
-(use-package emacsql-sqlite-module :if (version< emacs-version "29.0") :ensure (version< emacs-version "29.0"))
-(use-package git-gutter :hook (after-init . global-git-gutter-mode))
-(use-package git-gutter-fringe :diminish git-gutter-mode)
+(use-package emacsql-sqlite-module :if (version< emacs-version "29.0") :ensure (version< emacs-version "29.0") :defer t)
+(use-package git-gutter :diminish
+  :config
+  (with-eval-after-load 'git-gutter-fringe
+    (global-git-gutter-mode t)))
+(use-package git-gutter-fringe :after git-gutter)
 (use-package github-review :defer t)
 (use-package code-review :defer t)
 (use-package gist :defer t)
 (use-package browse-at-remote :defer t)
+
 ;;; Terminal
 (use-package shell-pop
   :custom
-  (shell-pop-shell-type (quote ("ansi-term" "*ansi-term*" (lambda nil (ansi-term shell-pop-term-shell)))))
+  (shell-pop-shell-type (quote ("ansi-term" "*ansi-term*" #'(lambda nil (ansi-term shell-pop-term-shell)))))
   (shell-pop-term-shell "/bin/zsh")
   (shell-pop-window-size 30)
   (shell-pop-window-position "bottom")
@@ -297,7 +299,6 @@
            ("*Rubocopfmt Errors*" :noselect t))))
 
 (use-package open-junk-file :defer t)
-(use-package color-theme-modern)
 (use-package solarized-theme :config (load-theme 'solarized-light t))
 (use-package doom-modeline :custom (doom-modeline-minor-modes t) :hook (after-init . doom-modeline-mode))
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
@@ -318,25 +319,21 @@
 (use-package ddskk-posframe :diminish :config (ddskk-posframe-mode t))
 
 ;; flycheck
-(use-package flycheck :hook (prog-mode . flycheck-mode) :diminish flycheck-mode :commands flycheck-add-mode flycheck-add-next-checker)
+(use-package flycheck :hook (prog-mode . flycheck-mode) :diminish flycheck-mode :autoload flycheck-add-mode flycheck-add-next-checker)
 (use-package flycheck-color-mode-line :after flycheck :hook (flycheck-mode . flycheck-color-mode-line-mode))
 (use-package flycheck-deno
-  :after (flycheck lsp-mode)
+  :after (flycheck)
   :config
-  (lsp-diagnostics-mode 1)
   (flycheck-deno-setup)
   (flycheck-add-mode 'deno-lint 'web-mode)
-  (flycheck-add-next-checker 'lsp 'deno-lint 'append))
+  (flycheck-add-next-checker 'eglot-check 'deno-lint 'append))
 (use-package flycheck-cfn :after (flycheck cfn-mode) :hook (cfn-mode . flycheck-cfn-setup))
-(use-package flycheck-eglot
-  :after (flycheck eglot)
-  :config (global-flycheck-eglot-mode 1))
+(use-package flycheck-eglot :after (flycheck eglot) :config (global-flycheck-eglot-mode 1))
 
 (use-package cov :custom (cov-coverage-mode t) :defer t)
 (autoload 'ansi-color-apply-on-region "ansi-color" "Translates SGR control sequences into overlays or extents." t)
-(use-package compile
-  :config
-  (add-hook 'compilation-filter-hook #'(lambda () (ansi-color-apply-on-region compilation-filter-start (point))))
+(add-hook 'compilation-filter-hook #'(lambda () (ansi-color-apply-on-region compilation-filter-start (point))))
+(with-eval-after-load 'compile
   (defvar node-error-regexp "^[ ]+at \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
   (defvar vitest-error-regexp "^ ❯ \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
   (add-to-list 'compilation-error-regexp-alist-alist `(nodejs ,node-error-regexp 1 2 3))
@@ -346,8 +343,7 @@
 (use-package fancy-compilation
   :after compile
   :custom (fancy-compilation-override-colors nil)
-  :config
-  (fancy-compilation-mode))
+  :config (fancy-compilation-mode))
 
 (use-package smartparens
   :diminish
@@ -365,15 +361,14 @@
   (whitespace-space-regexp "\\(　+\\)")
   (whitespace-style '(face tabs tab-mark spaces space-mark))
   :hook
-  (before-save . delete-trailing-whitespace)
   (after-init . global-whitespace-mode))
-(setq show-trailing-whitespace t)
+(add-hook 'before-save-hook #'delete-trailing-whitespace)
 (add-hook 'change-major-mode-after-body-hook
           #'(lambda ()
-              (when (derived-mode-p 'term-mode)
-                (setq show-trailing-whitespace nil))))
+              (when (or (derived-mode-p 'term-mode) (derived-mode-p 'magit-popup-mode))
+                (setq-local show-trailing-whitespace nil))))
 (add-hook 'minibuffer-setup-hook #'(lambda () (setq-local show-trailing-whitespace nil)))
-(use-package highlight-indent-guides :diminish :hook (prog-mode . highlight-indent-guides-mode))
+(use-package highlight-indent-guides :diminish :if window-system :hook (prog-mode . highlight-indent-guides-mode))
 (use-package indent-tools :bind ("C-c >" . indent-tools-hydra/body))
 
 ;;; Emacs Lisp
@@ -396,9 +391,9 @@
 (ad-enable-advice 'ff-get-file-name 'around 'ff-get-file-name-framework)
 (ad-activate 'ff-get-file-name)
 (if (eq window-system 'ns)
-    (setq-default cc-search-directories
-                  '("." "../include" "/usr/include" "/usr/local/include/*"
-                    "/System/Library/Frameworks" "/Library/Frameworks")))
+    (with-eval-after-load 'find-file
+      (defvar cc-search-directories)
+      (nconc cc-search-directories '("/System/Library/Frameworks" "/Library/Frameworks"))))
 
 ;;; Swift
 (use-package swift-mode :mode "\\.swift\\'")
@@ -407,11 +402,8 @@
 (use-package ein :defer t)
 
 ;;; Ruby
-(use-package ruby-mode
-  :defer t
-  :custom (ruby-insert-encoding-magic-comment nil)
-  :config
-  (add-hook 'ruby-mode-hook #'eglot-ensure))
+(use-package ruby-mode :defer t :custom (ruby-insert-encoding-magic-comment nil))
+(add-hook 'ruby-mode-hook #'eglot-ensure)
 (use-package inf-ruby
   :after ruby-mode
   :hook
@@ -425,7 +417,7 @@
               ("C-c r" . hydra-projectile-rails/body)
               ("C-c f" . hydra-projectile-rails-find/body))
   :hook (find-file . rails-project-find-file-hook)
-  :commands projectile-rails-root
+  :autoload projectile-rails-root
   :config
   (projectile-rails-global-mode t)
   (defun rails-project-find-file-hook ()
@@ -452,10 +444,8 @@
 (use-package flymake-haml :after haml-mode :hook (haml-mode . flymake-haml-load))
 
 ;;; Go
-(use-package go-mode
-  :hook ((before-save . gofmt-before-save))
-  :config
-  (add-hook 'go-mode-hook #'(lambda () (subword-mode) (eglot-ensure))))
+(use-package go-mode :hook ((before-save . gofmt-before-save)))
+(add-hook 'go-mode-hook #'(lambda () (subword-mode) (eglot-ensure)))
 (use-package govet :defer t)
 (use-package gotest :defer t)
 (use-package go-impl :defer t)
@@ -472,12 +462,12 @@
   :init
   (add-hook 'go-playground-mode-hook #'(lambda () (subword-mode) (eglot-ensure))))
 (use-package flycheck-golangci-lint :hook (go-mode . flycheck-golangci-lint-setup))
-(use-package go-fill-struct)
+(use-package go-fill-struct :defer t)
 
 ;;; Dart & Flutter
 (use-package dart-mode
   :defer t
-  :config
+  :init
   (add-hook 'dart-mode-hook
             #'(lambda ()
                 (subword-mode)
@@ -495,45 +485,36 @@
   (web-mode-code-indent-offset 2)
   (web-mode-enable-auto-indentation nil)
   (web-mode-auto-quote-style 3)
-  :mode "\\.html?\\'" "\\.erb\\'")
+  :mode "\\.html?\\'" "\\.erb\\'" "\\.tsx\\'")
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs '(web-mode . ("typescript-language-server" "--stdio"))))
 (add-hook 'web-mode-hook
           #'(lambda ()
               (when (string-equal "tsx" (file-name-extension buffer-file-name))
-                ;; eglot-server-programs をロードするために require する
-                (require 'eglot)
-                (add-to-list 'eglot-server-programs '(web-mode . ("typescript-language-server" "--stdio")))
                 (eglot-ensure))))
-(defun set-js-indent-level ()
-  "Confirue indent level for js files."
-  (setq-local js-indent-level 2))
-(setq-default mmm-js-mode-enter-hook (lambda () (setq syntax-ppss-table nil)))
-(setq-default mmm-typescript-mode-enter-hook (lambda () (setq syntax-ppss-table nil)))
-(add-hook 'js-mode-hook #'set-js-indent-level)
 (defun kill-jest-process-and-buffer ()
   "Kill jest process and buffer."
   (interactive)
   (delete-process (buffer-name (current-buffer)))
   (kill-buffer))
-(use-package jest :bind (:map jest-mode-map ("q" . #'kill-jest-process-and-buffer)))
+(use-package jest :bind (:map jest-mode-map ("q" . kill-jest-process-and-buffer)))
 (use-package typescript-mode
+  :mode "\\.ts\\'"
+  :custom (typescript-indent-level 2)
   :config
-  ;; tsx は web-mode で起動する
-  (add-to-list 'auto-mode-alist '("\\.tsx?\\'" . web-mode))
-  ;; ts が typescript-mode で起動しなくなるので再追加する
-  (add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-mode)))
+  ;; tsx が ts-mode で起動する設定が追加されるので削除する
+  (setq auto-mode-alist (assoc-delete-all "\\.tsx?\\'" auto-mode-alist)))
 (add-hook 'typescript-mode-hook
           #'(lambda()
-              (setq-default typescript-indent-level 2)
-              (setq-local cov-lcov-file-name (concat (projectile-project-root) "lcov.info"))
               (cov-mode)
+              (setq-local cov-lcov-file-name (concat (projectile-project-root) "lcov.info"))
               (jest-minor-mode 1)
               (eglot-ensure)))
 (use-package npm)
-(use-package deno-fmt :commands deno-fmt)
+(use-package deno-fmt :commands deno-fmt :defer t)
 (use-package prisma-mode
   :straight (:host github :repo "pimeys/emacs-prisma-mode" :files ("*.el"))
   :hook (prisma-mode . lsp))
-
 (use-package restclient :defer t)
 (use-package graphql-mode :defer t)
 
@@ -557,10 +538,9 @@
 (use-package docker :bind ("C-c C-d" . docker))
 (if (featurep 'tramp-container)
     (require 'tramp-container)
-  (use-package docker-tramp :defer t))
-(use-package dockerfile-mode
-  :defer t
-  :config (add-hook 'dockerfile-mode-hook #'eglot-ensure))
+  (use-package docker-tramp))
+(use-package dockerfile-mode :defer t)
+(add-hook 'dockerfile-mode-hook #'eglot-ensure)
 
 ;;; asdf
 (use-package asdf
