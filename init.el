@@ -360,12 +360,13 @@
   (whitespace-display-mappings '((space-mark 12288 [9633]) (tab-mark 9 [187 9])))
   (whitespace-space-regexp "\\(　+\\)")
   (whitespace-style '(face tabs tab-mark spaces space-mark))
-  :hook
-  (after-init . global-whitespace-mode))
+  (whitespace-global-modes '(not dired-mode))
+  :config
+  (global-whitespace-mode 1))
 (add-hook 'before-save-hook #'delete-trailing-whitespace)
 (add-hook 'change-major-mode-after-body-hook
           #'(lambda ()
-              (when (or (derived-mode-p 'term-mode) (derived-mode-p 'magit-popup-mode))
+              (when (or (mapcar #'(lambda (mode) (derived-mode-p mode)) '(term-mode magit-popup-mode)))
                 (setq-local show-trailing-whitespace nil))))
 (add-hook 'minibuffer-setup-hook #'(lambda () (setq-local show-trailing-whitespace nil)))
 (use-package highlight-indent-guides :diminish :if window-system :hook (prog-mode . highlight-indent-guides-mode))
