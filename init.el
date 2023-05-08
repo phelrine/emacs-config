@@ -116,12 +116,13 @@
   :bind ("C-c h" . eldoc-box-help-at-point))
 (use-package ace-window :bind (("C-x o" . ace-window)))
 
-(use-package all-the-icons :defer t)
-(use-package all-the-icons-completion
+;; https://github.com/rainstormstudio/nerd-icons.el#installing-fonts
+;; M-x nerd-icons-install-fonts
+(use-package nerd-icons-completion
   :hook
-  (after-init . all-the-icons-completion-mode)
-  (marginalia-mode . all-the-icons-completion-marginalia-setup))
-(use-package all-the-icons-dired :diminish :hook (dired-mode . all-the-icons-dired-mode))
+  (after-init . nerd-icons-completion-mode)
+  (marginalia-mode . nerd-icons-completion-marginalia-setup))
+(use-package nerd-icons-dired :diminish :hook (dired-mode . nerd-icons-dired-mode))
 
 (use-package projectile
   :diminish
