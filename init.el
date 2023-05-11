@@ -210,6 +210,7 @@
 
 ;;; Dired
 (use-package dired-hide-dotfiles
+  :diminish
   :bind (:map dired-mode-map (("." . dired-hide-dotfiles-mode)))
   :hook (dired-mode . dired-hide-dotfiles-mode))
 (bind-key "C-x d" #'(lambda () (interactive) (find-file default-directory)))
@@ -538,9 +539,7 @@
 
 ;;; Docker
 (use-package docker :bind ("C-c C-d" . docker))
-(if (featurep 'tramp-container)
-    (require 'tramp-container)
-  (use-package docker-tramp))
+(use-package docker-tramp :if (not (locate-library "tramp-container")))
 (use-package dockerfile-mode :defer t)
 (add-hook 'dockerfile-mode-hook #'eglot-ensure)
 
