@@ -1,9 +1,9 @@
 *.elc
 *~
+/.DS_Store
 /.cache/
 /.cask/
 /.dap-breakpoints
-/.DS_Store
 /.edbi-ds-history
 /.extension/
 /.last-package-update-day
@@ -20,6 +20,7 @@
 /code-review-error.log
 /company-statistics-cache.el
 /elpa/
+/emojis/
 /eshell/
 /flycheck_init.el
 /forge-database-v7-*.sql
@@ -27,6 +28,7 @@
 /gotools/
 /history
 /id-manager.el
+/image-dired/
 /network-security.data
 /places
 /projectile-bookmarks.eld
