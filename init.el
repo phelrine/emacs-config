@@ -2,6 +2,7 @@
 ;;; Commentary:
 
 (require 'generic-x)
+(require 'package)
 
 ;;; Code:
 ;;; Custom variables
@@ -21,6 +22,7 @@
  '(menu-bar-mode nil)
  '(gc-cons-threshold 16000000)
  '(recentf-auto-cleanup 'never)
+ '(recentf-max-menu-items 1000)
  '(recentf-max-saved-items 1000)
  '(ring-bell-function 'ignore)
  '(scroll-margin 0)
@@ -31,7 +33,6 @@
  '(warning-suppress-log-types '((use-package)))
  '(warning-suppress-types '((use-package)))
  `(temporary-file-directory ,(concat (getenv "HOME") "/.tmp")))
-
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -311,9 +312,8 @@
 (use-package volatile-highlights :diminish :hook (after-init . volatile-highlights-mode))
 (use-package beacon :diminish beacon-mode :hook (after-init . beacon-mode) :custom (beacon-color "light green"))
 
-(if (featurep 'skk-autoloads)
-    (progn (require 'skk-autoloads)
-           (bind-key "C-x j" 'skk-mode))
+(if (locate-library "skk-autoloads")
+    (bind-key "C-x j" 'skk-mode)
   (use-package ddskk
     :if (memq window-system '(mac ns x))
     :custom (skk-use-jisx0201-input-method t)
