@@ -539,7 +539,6 @@
 
 ;;; Docker
 (use-package docker :bind ("C-c C-d" . docker))
-(use-package docker-tramp :if (not (locate-library "tramp-container")))
 (use-package dockerfile-mode :defer t)
 (add-hook 'dockerfile-mode-hook #'eglot-ensure)
 
