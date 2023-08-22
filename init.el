@@ -69,13 +69,13 @@
 
 ;;; ENV
 (setenv "LANG" "ja_JP.UTF-8")
-(if (memq window-system '(mac ns))
+(if (eq system-type 'darwin)
     (setenv "TMPDIR" (concat (getenv "HOME") "/.tmp")))
 (use-package exec-path-from-shell
   :custom
   (exec-path-from-shell-variables '("PATH" "MANPATH"))
   :config
-  (when (memq window-system '(mac ns x))
+  (when (eq system-type 'darwin)
     (exec-path-from-shell-initialize)))
 
 (winner-mode 1)
@@ -86,7 +86,7 @@
 (save-place-mode 1)
 (global-auto-revert-mode 1)
 (global-font-lock-mode 1)
-(when (memq window-system '(mac ns))
+(when (eq system-type 'darwin)
   (add-to-list 'auth-sources 'macos-keychain-generic)
   (add-to-list 'auth-sources 'macos-keychain-internet))
 (bind-key "RET" 'newline-and-indent)
@@ -378,9 +378,6 @@
 (use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode) :disabled)
 (use-package eros :hook (emacs-lisp-mode . eros-mode))
 
-;;; C#
-(use-package csharp-mode :mode "\\.cs\\'")
-
 ;;; Obj-C
 (defadvice ff-get-file-name (around ff-get-file-name-framework (search-dirs fname-stub &optional suffix-list))
   "Search for Mac framework headers as well as POSIX headers."
@@ -393,7 +390,7 @@
    ad-do-it))
 (ad-enable-advice 'ff-get-file-name 'around 'ff-get-file-name-framework)
 (ad-activate 'ff-get-file-name)
-(if (eq window-system 'ns)
+(if (eq system-type 'darwin)
     (with-eval-after-load 'find-file
       (defvar cc-search-directories)
       (nconc cc-search-directories '("/System/Library/Frameworks" "/Library/Frameworks"))))
@@ -538,7 +535,11 @@
 (add-hook 'scheme-mode-hook 'scheme-mode-setup)
 
 ;;; Docker
-(use-package docker :bind ("C-c C-d" . docker))
+
+(use-package docker
+  :custom
+  (docker-compose-command (or (and (eq system-type 'gnu/linux) "docker compose")  "docker-compose"))
+  :bind ("C-c C-d" . docker))
 (use-package dockerfile-mode :defer t)
 (add-hook 'dockerfile-mode-hook #'eglot-ensure)
 
