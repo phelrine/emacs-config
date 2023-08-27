@@ -488,13 +488,8 @@
   (web-mode-code-indent-offset 2)
   (web-mode-enable-auto-indentation nil)
   (web-mode-auto-quote-style 3)
-  :mode "\\.html?\\'" "\\.erb\\'" "\\.tsx\\'")
-(with-eval-after-load 'eglot
-  (add-to-list 'eglot-server-programs '(web-mode . ("typescript-language-server" "--stdio"))))
-(add-hook 'web-mode-hook
-          #'(lambda ()
-              (when (string-equal "tsx" (file-name-extension buffer-file-name))
-                (eglot-ensure))))
+  :mode "\\.html?\\'" "\\.erb\\'")
+
 (defun kill-jest-process-and-buffer ()
   "Kill jest process and buffer."
   (interactive)
@@ -502,11 +497,10 @@
   (kill-buffer))
 (use-package jest :bind (:map jest-mode-map ("q" . kill-jest-process-and-buffer)))
 (use-package typescript-mode
-  :mode "\\.ts\\'"
   :custom (typescript-indent-level 2)
-  :config
-  ;; tsx が ts-mode で起動する設定が追加されるので削除する
-  (setq auto-mode-alist (assoc-delete-all "\\.tsx?\\'" auto-mode-alist)))
+  :mode (("\\.ts\\'" . typescript-mode)
+         ("\\.tsx\\'" . tsx-ts-mode)))
+(add-hook 'tsx-ts-mode-hook #'(lambda () (eglot-ensure)))
 (add-hook 'typescript-mode-hook
           #'(lambda()
               (cov-mode)
