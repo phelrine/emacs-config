@@ -102,8 +102,7 @@
 (defalias 'message-box 'message)
 (when (eq (window-system) 'ns)
   (set-face-attribute 'default nil :family "Menlo" :height 180)
-  (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Hiragino Kaku Gothic ProN"))
-  (add-to-list 'face-font-rescale-alist '(".*Hiragino Kaku Gothic ProN.*" . 1.1)))
+  (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Hiragino Kaku Gothic ProN")))
 (when (eq (window-system) 'x)
   (set-face-attribute 'default nil :family "Inconsolata" :height 140)
   (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP" :size 28)))
@@ -551,12 +550,8 @@
 (use-package json-mode :defer t)
 (use-package json-reformat :defer t)
 (use-package cfn-mode :defer t)
-
-(use-package restart-emacs :defer t)
-;; ライブコーディング用設定
-;; (set-face-attribute 'default nil :height 300)
-
 (use-package lua-mode :defer t)
+(use-package restart-emacs :defer t)
 
 (provide 'init)
 ;;; init.el ends here
