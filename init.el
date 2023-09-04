@@ -226,7 +226,7 @@
          ("<backtab>" . copilot-next-completion))
   :custom
   (copilot-disable-predicates '((lambda () t)))
-  (copilot-node-executable (concat (getenv "HOME") "/.asdf/installs/nodejs/lts-gallium/bin/node"))
+  (copilot-node-executable (concat (getenv "HOME") "/.asdf/installs/nodejs/16.20.0/bin/node"))
   :commands copilot-accept-completion
   :init
   (defun my/copilot-accept-completion ()
@@ -272,7 +272,12 @@
   :custom (magit-repository-directories (list (cons (concat (getenv "HOME") "/repos/") 1)))
   :bind (("C-x g" . magit-status)
          ([remap vc-dir] . magit-status)))
-(use-package magit-delta :hook (magit-mode . magit-delta-mode))
+(use-package difftastic
+  :after magit
+  :config
+  (transient-append-suffix 'magit-diff '(-1 -1)
+    [("D" "Difftastic diff (dwim)" difftastic-magit-diff)
+     ("S" "Difftastic show" difftastic-magit-show)]))
 (use-package forge :after magit :custom (forge-topic-list-limit '(50 . 0)))
 (use-package emacsql-sqlite-module :if (version< emacs-version "29.0") :ensure (version< emacs-version "29.0") :defer t)
 (use-package git-gutter :diminish
@@ -511,7 +516,7 @@
 (use-package prisma-mode
   :straight (:host github :repo "pimeys/emacs-prisma-mode" :files ("*.el"))
   :hook (prisma-mode . lsp))
-(use-package restclient :defer t)
+(use-package 'restclient-jq :defer t)
 (use-package graphql-mode :defer t)
 
 ;;; Scheme
