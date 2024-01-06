@@ -41,6 +41,7 @@
  '(whitespace-tab ((t (:background "black" :foreground "LightYellow" :inverse-video t)))))
 
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+(add-to-list 'package-archives '("jcs-elpa" . "https://jcs-emacs.github.io/jcs-elpa/packages/") t)
 (package-initialize)
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
@@ -107,6 +108,11 @@
   (set-face-attribute 'default nil :family "Inconsolata" :height 140)
   (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP" :size 28)))
 
+(use-package auth-source-kwallet
+  :config
+  (if (executable-find auth-source-kwallet-executable)
+      (auth-source-kwallet-enable)))
+
 (use-package multiple-cursors
   :bind (("C-S-c C-S-c" . mc/edit-lines)
          ("C->" . mc/mark-next-like-this)
@@ -148,19 +154,29 @@
   ;; The :init configuration is always executed (Not lazy!)
   :init
   (marginalia-mode))
-(use-package corfu :hook (after-init . global-corfu-mode))
+(use-package corfu
+  :init (global-corfu-mode)
+  :config
+  (add-hook 'eshell-mode-hook
+            (lambda ()
+              (setq-local corfu-auto nil)
+              (corfu-mode))))
 (use-package cape
-  :defer t
-  ;; Bind dedicated completion commands
-  ;; Alternative prefix keys: C-c p, M-p, M-+, ...
+  :bind (("C-c p p" . completion-at-point) ;; capf
+         ("C-c p d" . cape-dabbrev)        ;; or dabbrev-completion
+         ("C-c p f" . cape-file)
+         ("C-c p k" . cape-keyword)
+         ("C-c p :" . cape-emoji))
   :init
-  ;; Add `completion-at-point-functions', used by `completion-at-point'.
-  ;; NOTE: The order matters!
-  (with-eval-after-load 'minibuffer
-    (add-to-list 'completion-at-point-functions #'cape-dabbrev)
-    (add-to-list 'completion-at-point-functions #'cape-file)
-    (add-to-list 'completion-at-point-functions #'cape-elisp-block)
-    (add-to-list 'completion-at-point-functions #'cape-keyword)))
+  (add-to-list 'completion-at-point-functions #'cape-abbrev)
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+  (add-to-list 'completion-at-point-functions #'cape-file)
+  (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
+  (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+  (add-to-list 'completion-at-point-functions #'cape-keyword))
+
+(use-package pcmpl-args)
+(use-package pcmpl-git)
 
 (use-package kind-icon
   :after corfu
@@ -219,14 +235,13 @@
 (bind-key "C-x d" #'(lambda () (interactive) (find-file default-directory)))
 
 (use-package copilot
-  :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
   :hook (prog-mode . copilot-mode)
   :bind (("C-M-;" . copilot-complete)
          ("TAB" . my/copilot-accept-completion)
          ("<backtab>" . copilot-next-completion))
   :custom
   (copilot-disable-predicates '((lambda () t)))
-  (copilot-node-executable (concat (getenv "HOME") "/.asdf/installs/nodejs/16.20.0/bin/node"))
+  (copilot-node-executable (concat (getenv "HOME") "/.asdf/installs/nodejs/20.5.1/bin/node"))
   :commands copilot-accept-completion
   :init
   (defun my/copilot-accept-completion ()
@@ -381,6 +396,19 @@
 (use-package highlight-indent-guides :diminish :if window-system :hook (prog-mode . highlight-indent-guides-mode))
 (use-package indent-tools :bind ("C-c >" . indent-tools-hydra/body))
 
+;;; treesit
+(require 'treesit)
+(setq treesit-font-lock-level 4)
+(use-package treesit-auto :autoload global-treesit-auto-mode :config (global-treesit-auto-mode))
+
+;;; ChatGPT
+(use-package chatgpt-shell
+  :ensure t
+  :custom
+  ((chatgpt-shell-openai-key
+   (lambda ()
+     (auth-source-pick-first-password :host "api.openai.com")))))
+
 ;;; Emacs Lisp
 (use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode) :disabled)
 (use-package eros :hook (emacs-lisp-mode . eros-mode))
@@ -452,7 +480,12 @@
 
 ;;; Go
 (use-package go-mode :hook ((before-save . gofmt-before-save)))
-(add-hook 'go-mode-hook #'(lambda () (subword-mode) (eglot-ensure)))
+(add-hook 'go-mode-hook
+          #'(lambda ()
+              (subword-mode)
+              (eglot-ensure)
+              (setq-default go-ts-mode-indent-offset 4)))
+(setq go-ts-mode-hook go-mode-hook)
 (use-package govet :defer t)
 (use-package gotest :defer t)
 (use-package go-impl :defer t)
@@ -544,10 +577,23 @@
 (use-package dockerfile-mode :defer t)
 (add-hook 'dockerfile-mode-hook #'eglot-ensure)
 
+;;; Markdown
+(use-package maple-preview
+  :straight (:host github :repo "honmaple/emacs-maple-preview" :files ("*.el" "index.html" "static"))
+  :commands (maple-preview-mode))
+
 ;;; asdf
 (use-package asdf
   :straight (:host github :repo "tabfugnic/asdf.el" :files ("asdf.el"))
   :config (asdf-enable))
+
+;;; AWS
+(use-package aws-switch-profile
+  :defer t
+  :straight (:host github :repo "phelrine/aws-switch-profile.el" :files ("aws-switch-profile.el")))
+
+(use-package aws-secretsmanager
+  :straight (:host github :repo "phelrine/aws-secretsmanager.el" :files ("aws-secretsmanager.el")))
 
 ;;; config files
 (use-package nginx-mode :mode "/nginx/sites-\\(?:available\\|enabled\\)/")
