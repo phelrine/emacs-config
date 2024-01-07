@@ -294,7 +294,6 @@
     [("D" "Difftastic diff (dwim)" difftastic-magit-diff)
      ("S" "Difftastic show" difftastic-magit-show)]))
 (use-package forge :after magit :custom (forge-topic-list-limit '(50 . 0)))
-(use-package emacsql-sqlite-module :if (version< emacs-version "29.0") :ensure (version< emacs-version "29.0") :defer t)
 (use-package git-gutter :diminish
   :config
   (with-eval-after-load 'git-gutter-fringe
@@ -399,15 +398,22 @@
 ;;; treesit
 (require 'treesit)
 (setq treesit-font-lock-level 4)
-(use-package treesit-auto :autoload global-treesit-auto-mode :config (global-treesit-auto-mode))
+(add-to-list 'treesit-language-source-alist '(prisma "https://github.com/victorhqc/tree-sitter-prisma"))
+(use-package treesit-auto
+  :custom
+  (treesit-auto-install 'prompt)
+  :autoload treesit-auto-add-to-auto-mode-alist global-treesit-auto-mode
+  :config
+  (treesit-auto-add-to-auto-mode-alist 'all)
+  (global-treesit-auto-mode))
 
 ;;; ChatGPT
 (use-package chatgpt-shell
   :ensure t
   :custom
   ((chatgpt-shell-openai-key
-   (lambda ()
-     (auth-source-pick-first-password :host "api.openai.com")))))
+    (lambda ()
+      (auth-source-pick-first-password :host "api.openai.com")))))
 
 ;;; Emacs Lisp
 (use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode) :disabled)
@@ -546,9 +552,9 @@
               (eglot-ensure)))
 (use-package npm)
 (use-package deno-fmt :commands deno-fmt :defer t)
-(use-package prisma-mode
-  :straight (:host github :repo "pimeys/emacs-prisma-mode" :files ("*.el"))
-  :hook (prisma-mode . lsp))
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs '(prisma-ts-mode . ("prisma-language-server" "--stdio"))))
+(use-package prisma-ts-mode :mode (("\\.prisma\\'" . prisma-ts-mode)) :hook (prisma-ts-mode . eglot-ensure))
 (use-package 'restclient-jq :defer t)
 (use-package graphql-mode :defer t)
 
@@ -578,9 +584,7 @@
 (add-hook 'dockerfile-mode-hook #'eglot-ensure)
 
 ;;; Markdown
-(use-package maple-preview
-  :straight (:host github :repo "honmaple/emacs-maple-preview" :files ("*.el" "index.html" "static"))
-  :commands (maple-preview-mode))
+(use-package maple-preview :straight (:host github :repo "honmaple/emacs-maple-preview" :files ("*.el" "index.html" "static")))
 
 ;;; asdf
 (use-package asdf
@@ -588,12 +592,8 @@
   :config (asdf-enable))
 
 ;;; AWS
-(use-package aws-switch-profile
-  :defer t
-  :straight (:host github :repo "phelrine/aws-switch-profile.el" :files ("aws-switch-profile.el")))
-
-(use-package aws-secretsmanager
-  :straight (:host github :repo "phelrine/aws-secretsmanager.el" :files ("aws-secretsmanager.el")))
+(use-package aws-switch-profile :defer t :straight (:host github :repo "phelrine/aws-switch-profile.el" :files ("aws-switch-profile.el")))
+(use-package aws-secretsmanager :straight (:host github :repo "phelrine/aws-secretsmanager.el" :files ("aws-secretsmanager.el")))
 
 ;;; config files
 (use-package nginx-mode :mode "/nginx/sites-\\(?:available\\|enabled\\)/")
