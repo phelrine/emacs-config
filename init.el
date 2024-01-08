@@ -301,7 +301,7 @@
 (use-package git-gutter-fringe :after git-gutter)
 (use-package github-review :defer t)
 (use-package code-review :defer t)
-(use-package gist :defer t)
+(use-package igist :defer t :custom (igist-current-user-name "phelrine"))
 (use-package browse-at-remote :defer t)
 
 ;;; Terminal
@@ -408,12 +408,14 @@
   (global-treesit-auto-mode))
 
 ;;; ChatGPT
+(defun pick-openai-key ()
+  "Pick the OpenAI api key from auth source."
+  (auth-source-pick-first-password :host "api.openai.com"))
 (use-package chatgpt-shell
   :ensure t
   :custom
-  ((chatgpt-shell-openai-key
-    (lambda ()
-      (auth-source-pick-first-password :host "api.openai.com")))))
+  ((chatgpt-shell-openai-key (pick-openai-key))
+   (dall-e-shell-openai-key (pick-openai-key))))
 
 ;;; Emacs Lisp
 (use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode) :disabled)
@@ -582,6 +584,7 @@
   :bind ("C-c C-d" . docker))
 (use-package dockerfile-mode :defer t)
 (add-hook 'dockerfile-mode-hook #'eglot-ensure)
+(use-package docker-compose-mode :defer t)
 
 ;;; Markdown
 (use-package maple-preview :straight (:host github :repo "honmaple/emacs-maple-preview" :files ("*.el" "index.html" "static")))
