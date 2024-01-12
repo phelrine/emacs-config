@@ -77,7 +77,8 @@
   (exec-path-from-shell-variables '("PATH" "MANPATH"))
   :config
   (when (eq system-type 'darwin)
-    (exec-path-from-shell-initialize)))
+    (exec-path-from-shell-initialize))
+  (exec-path-from-shell-copy-envs '("UID" "GID")))
 
 (winner-mode 1)
 (show-paren-mode 1)
@@ -109,9 +110,14 @@
   (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP" :size 28)))
 
 (use-package auth-source-kwallet
+  :straight (:host github :repo "phelrine/auth-source-kwallet" :files ("auth-source-kwallet.el"))
   :config
   (if (executable-find auth-source-kwallet-executable)
       (auth-source-kwallet-enable)))
+
+(add-to-list 'load-path "~/.emacs.d/lisp")
+(autoload 'auth-source-ghcli-enable "auth-source-ghcli" "" t)
+(auth-source-ghcli-enable)
 
 (use-package multiple-cursors
   :bind (("C-S-c C-S-c" . mc/edit-lines)
@@ -168,7 +174,6 @@
          ("C-c p k" . cape-keyword)
          ("C-c p :" . cape-emoji))
   :init
-  (add-to-list 'completion-at-point-functions #'cape-abbrev)
   (add-to-list 'completion-at-point-functions #'cape-dabbrev)
   (add-to-list 'completion-at-point-functions #'cape-file)
   (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
@@ -217,7 +222,7 @@
   :custom
   (embark-prompter 'embark-completing-read-prompter)
   :init
-  (add-hook 'which-key-mode-hook #'(lambda () (setq prefix-help-command #'embark-prefix-help-command)))
+  (add-hook 'which-key-mode-hook (lambda () (setq prefix-help-command #'embark-prefix-help-command)))
   ;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
   :config
   ;; Hide the mode line of the Embark live/completions buffers
@@ -251,7 +256,6 @@
 
 (use-package lsp-mode
   :diminish
-  :defer t
   :custom
   (lsp-auto-guess-root t)
   (lsp-solargraph-use-bundler t)
@@ -259,13 +263,15 @@
   :hook
   (lsp-mode . lsp-enable-which-key-integration)
   (lsp-mode . lsp-completion-mode)
-  :autoload lsp-rename
+  :autoload lsp-rename)
+(use-package string-inflection
+  :after lsp-mode
+  :autoload string-inflection-camelcase-function
   :init
   (defun lsp-rename-snake-to-camel ()
     "Rename symbol from snake_case to camelCase."
     (interactive)
     (lsp-rename (string-inflection-camelcase-function (thing-at-point 'symbol)))))
-(use-package string-inflection :autoload string-inflection-camelcase-function :defer t)
 (use-package lsp-ui :after lsp-mode :hook (lsp-mode . lsp-ui-mode))
 (use-package dap-mode
   :hook
@@ -294,15 +300,13 @@
     [("D" "Difftastic diff (dwim)" difftastic-magit-diff)
      ("S" "Difftastic show" difftastic-magit-show)]))
 (use-package forge :after magit :custom (forge-topic-list-limit '(50 . 0)))
-(use-package git-gutter :diminish
-  :config
-  (with-eval-after-load 'git-gutter-fringe
-    (global-git-gutter-mode t)))
-(use-package git-gutter-fringe :after git-gutter)
-(use-package github-review :defer t)
-(use-package code-review :defer t)
-(use-package igist :defer t :custom (igist-current-user-name "phelrine"))
-(use-package browse-at-remote :defer t)
+(use-package git-gutter :diminish)
+(use-package git-gutter-fringe
+  :after git-gutter
+  :config (global-git-gutter-mode t))
+(use-package code-review :straight (:host github :repo "phelrine/code-review" :branch "fix/closql-update"))
+(use-package igist :custom (igist-current-user-name "phelrine"))
+(use-package browse-at-remote)
 
 ;;; Terminal
 (use-package shell-pop
@@ -318,14 +322,14 @@
   :config
   (popwin-mode 1)
   (nconc popwin:special-display-config
-         '((" *auto-async-byte-compile*" :noselect t)
+        '((" *auto-async-byte-compile*" :noselect t)
            ("*Warnings*" :noselect t)
            ("*Rubocopfmt Errors*" :noselect t))))
 
-(use-package open-junk-file :defer t)
+(use-package open-junk-file)
 (use-package solarized-theme :config (load-theme 'solarized-light t))
 (use-package doom-modeline :custom (doom-modeline-minor-modes t) :hook (after-init . doom-modeline-mode))
-(add-hook 'prog-mode-hook 'display-line-numbers-mode)
+(add-hook 'prog-mode-hook #'display-line-numbers-mode)
 
 (use-package expand-region :bind ("C-M-SPC" . er/expand-region))
 (use-package vundo :bind ("C-x u" . vundo))
@@ -353,9 +357,9 @@
 (use-package flycheck-cfn :after (flycheck cfn-mode) :hook (cfn-mode . flycheck-cfn-setup))
 (use-package flycheck-eglot :after (flycheck eglot) :config (global-flycheck-eglot-mode 1))
 
-(use-package cov :custom (cov-coverage-mode t) :defer t)
+(use-package cov :custom (cov-coverage-mode t))
 (autoload 'ansi-color-apply-on-region "ansi-color" "Translates SGR control sequences into overlays or extents." t)
-(add-hook 'compilation-filter-hook #'(lambda () (ansi-color-apply-on-region compilation-filter-start (point))))
+(add-hook 'compilation-filter-hook (lambda () (ansi-color-apply-on-region compilation-filter-start (point))))
 (with-eval-after-load 'compile
   (defvar node-error-regexp "^[ ]+at \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
   (defvar vitest-error-regexp "^ ❯ \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
@@ -388,10 +392,10 @@
   (global-whitespace-mode 1))
 (add-hook 'before-save-hook #'delete-trailing-whitespace)
 (add-hook 'change-major-mode-after-body-hook
-          #'(lambda ()
-              (when (or (mapcar #'(lambda (mode) (derived-mode-p mode)) '(term-mode magit-popup-mode)))
-                (setq-local show-trailing-whitespace nil))))
-(add-hook 'minibuffer-setup-hook #'(lambda () (setq-local show-trailing-whitespace nil)))
+          (lambda ()
+            (when (or (mapcar (lambda (mode) (derived-mode-p mode)) '(term-mode magit-popup-mode)))
+              (setq-local show-trailing-whitespace nil))))
+(add-hook 'minibuffer-setup-hook (lambda () (setq-local show-trailing-whitespace nil)))
 (use-package highlight-indent-guides :diminish :if window-system :hook (prog-mode . highlight-indent-guides-mode))
 (use-package indent-tools :bind ("C-c >" . indent-tools-hydra/body))
 
@@ -403,7 +407,7 @@
   :custom
   (treesit-auto-install 'prompt)
   :autoload treesit-auto-add-to-auto-mode-alist global-treesit-auto-mode
-  :config
+  :init
   (treesit-auto-add-to-auto-mode-alist 'all)
   (global-treesit-auto-mode))
 
@@ -418,6 +422,11 @@
    (dall-e-shell-openai-key (pick-openai-key))))
 
 ;;; Emacs Lisp
+(add-hook 'emacs-lisp-mode-map-hook
+          (lambda ()
+            (add-to-list 'completion-at-point-functions #'cape-file)
+            (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
+            (add-to-list 'completion-at-point-functions #'cape-elisp-block)))
 (use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode) :disabled)
 (use-package eros :hook (emacs-lisp-mode . eros-mode))
 
@@ -442,10 +451,10 @@
 (use-package swift-mode :mode "\\.swift\\'")
 
 ;;; Python
-(use-package ein :defer t)
+(use-package ein)
 
 ;;; Ruby
-(use-package ruby-mode :defer t :custom (ruby-insert-encoding-magic-comment nil))
+(use-package ruby-mode :custom (ruby-insert-encoding-magic-comment nil))
 (add-hook 'ruby-mode-hook #'eglot-ensure)
 (use-package inf-ruby
   :after ruby-mode
@@ -477,53 +486,44 @@
              :args '("server" "-p" "3000")
              )))))
 
-(use-package rake :custom (rake-completion-system 'default) :defer t)
-(use-package rspec-mode :custom (rspec-key-command-prefix (kbd "C-c s")) :defer t)
-(use-package bundler :defer t)
-(use-package coverage :defer t)
+(use-package rake :custom (rake-completion-system 'default))
+(use-package rspec-mode :custom (rspec-key-command-prefix (kbd "C-c s")))
+(use-package bundler)
+(use-package coverage)
 
 ;;; HAML
-(use-package haml-mode :defer t)
+(use-package haml-mode)
 (use-package flymake-haml :after haml-mode :hook (haml-mode . flymake-haml-load))
 
 ;;; Go
 (use-package go-mode :hook ((before-save . gofmt-before-save)))
 (add-hook 'go-mode-hook
-          #'(lambda ()
-              (subword-mode)
-              (eglot-ensure)
-              (setq-default go-ts-mode-indent-offset 4)))
+          (lambda ()
+            (subword-mode)
+            (eglot-ensure)
+            (setq-default go-ts-mode-indent-offset 4)))
 (setq go-ts-mode-hook go-mode-hook)
-(use-package govet :defer t)
-(use-package gotest :defer t)
-(use-package go-impl :defer t)
-(use-package go-gen-test :defer t)
+(use-package govet)
+(use-package gotest)
+(use-package go-impl :after go-mode)
+(use-package go-gen-test :after go-mode)
 (use-package go-tag
+  :after go-mode
   :bind (:map go-mode-map
               ("C-c `" . go-tag-add)
               ("C-u C-c `" . go-tag-remove)))
 (use-package go-eldoc :after (go-mode eldoc) :hook (go-mode . go-eldoc-setup))
 (use-package go-projectile :after (go-mode projectile))
-(use-package go-playground
-  :defer t
-  :custom (go-playground-init-command "go mod init snippet")
-  :init
-  (add-hook 'go-playground-mode-hook #'(lambda () (subword-mode) (eglot-ensure))))
+(use-package go-playground :custom (go-playground-init-command "go mod init snippet"))
 (use-package flycheck-golangci-lint :hook (go-mode . flycheck-golangci-lint-setup))
-(use-package go-fill-struct :defer t)
+(use-package go-fill-struct :after go-mode)
 
 ;;; Dart & Flutter
-(use-package dart-mode
-  :defer t
-  :init
-  (add-hook 'dart-mode-hook
-            #'(lambda ()
-                (subword-mode)
-                (eglot-ensure))))
+(use-package dart-mode :hook (dart-mode . (lambda () (subword-mode) (eglot-ensure))))
 (use-package flutter :after (dart-mode))
 
 ;;; Gradle
-(use-package groovy-mode :defer t)
+(use-package groovy-mode)
 
 ;;; Web
 (use-package web-mode
@@ -545,20 +545,23 @@
   :custom (typescript-indent-level 2)
   :mode (("\\.ts\\'" . typescript-mode)
          ("\\.tsx\\'" . tsx-ts-mode)))
-(add-hook 'tsx-ts-mode-hook #'(lambda () (eglot-ensure)))
-(add-hook 'typescript-mode-hook
-          #'(lambda()
-              (cov-mode)
-              (setq-local cov-lcov-file-name (concat (projectile-project-root) "lcov.info"))
-              (jest-minor-mode 1)
-              (eglot-ensure)))
+(add-hook 'tsx-ts-mode-hook (lambda () (eglot-ensure)))
+(add-hook 'typescript-ts-mode-hook
+          (lambda()
+            (cov-mode)
+            (setq-local cov-lcov-file-name (concat (projectile-project-root) "lcov.info"))
+            (jest-minor-mode 1)
+            (eglot-ensure)))
 (use-package npm)
-(use-package deno-fmt :commands deno-fmt :defer t)
-(with-eval-after-load 'eglot
-  (add-to-list 'eglot-server-programs '(prisma-ts-mode . ("prisma-language-server" "--stdio"))))
-(use-package prisma-ts-mode :mode (("\\.prisma\\'" . prisma-ts-mode)) :hook (prisma-ts-mode . eglot-ensure))
-(use-package 'restclient-jq :defer t)
-(use-package graphql-mode :defer t)
+(use-package deno-fmt)
+(use-package prisma-ts-mode
+  :mode (("\\.prisma\\'" . prisma-ts-mode))
+  :hook (prisma-ts-mode . eglot-ensure)
+  :init
+  (with-eval-after-load 'eglot
+    (add-to-list 'eglot-server-programs '(prisma-ts-mode . ("prisma-language-server" "--stdio")))))
+(use-package restclient-jq)
+(use-package graphql-mode)
 
 ;;; Scheme
 (defconst scheme-program-name "gosh -i")
@@ -582,9 +585,8 @@
   :custom
   (docker-compose-command (or (and (eq system-type 'gnu/linux) "docker compose")  "docker-compose"))
   :bind ("C-c C-d" . docker))
-(use-package dockerfile-mode :defer t)
-(add-hook 'dockerfile-mode-hook #'eglot-ensure)
-(use-package docker-compose-mode :defer t)
+(use-package dockerfile-mode :hook (dockerfile-mode . eglot-ensure))
+(use-package docker-compose-mode)
 
 ;;; Markdown
 (use-package maple-preview :straight (:host github :repo "honmaple/emacs-maple-preview" :files ("*.el" "index.html" "static")))
@@ -595,17 +597,20 @@
   :config (asdf-enable))
 
 ;;; AWS
-(use-package aws-switch-profile :defer t :straight (:host github :repo "phelrine/aws-switch-profile.el" :files ("aws-switch-profile.el")))
-(use-package aws-secretsmanager :straight (:host github :repo "phelrine/aws-secretsmanager.el" :files ("aws-secretsmanager.el")))
+(use-package aws-switch-profile
+  :straight (:host github :repo "phelrine/aws-switch-profile.el" :files ("aws-switch-profile.el")))
+
+(use-package aws-secretsmanager
+  :straight (:host github :repo "phelrine/aws-secretsmanager.el" :files ("aws-secretsmanager.el")))
 
 ;;; config files
 (use-package nginx-mode :mode "/nginx/sites-\\(?:available\\|enabled\\)/")
 (use-package yaml-mode :mode "\\.yml\\'")
-(use-package json-mode :defer t)
-(use-package json-reformat :defer t)
-(use-package cfn-mode :defer t)
-(use-package lua-mode :defer t)
-(use-package restart-emacs :defer t)
+(use-package json-mode)
+(use-package json-reformat)
+(use-package cfn-mode)
+(use-package lua-mode)
+(use-package restart-emacs)
 
 (provide 'init)
 ;;; init.el ends here

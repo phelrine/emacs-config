@@ -16,15 +16,17 @@
 /auto-save-list
 /bm-repository
 /bookmarks
+/chatgpt/
 /code-review-db-file.sqlite
 /code-review-error.log
 /company-statistics-cache.el
+/dall-e/
 /elpa/
 /emojis/
 /eshell/
 /flycheck_init.el
-/forge-database-v7-*.sql
-/forge-database.sqlite
+/forge-database-*-*.sql
+/forge-database*.sqlite
 /gotools/
 /history
 /id-manager.el
@@ -44,4 +46,3 @@
 /twittering-mode.gpg
 /url/
 /var/
-/chatgpt/
