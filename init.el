@@ -2,7 +2,6 @@
 ;;; Commentary:
 
 (require 'generic-x)
-(require 'package)
 
 ;;; Code:
 ;;; Custom variables
@@ -109,26 +108,29 @@
   (set-face-attribute 'default nil :family "Inconsolata" :height 140)
   (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP" :size 28)))
 
+(defvar local-lisp-load-path "~/.emacs.d/lisp")
+
 (use-package auth-source-kwallet
   :straight (:host github :repo "phelrine/auth-source-kwallet" :files ("auth-source-kwallet.el"))
   :config
   (if (executable-find auth-source-kwallet-executable)
       (auth-source-kwallet-enable)))
-
-(add-to-list 'load-path "~/.emacs.d/lisp")
-(autoload 'auth-source-ghcli-enable "auth-source-ghcli" "" t)
-(auth-source-ghcli-enable)
+(use-package auth-source-ghcli
+  :load-path local-lisp-load-path
+  :autoload auth-source-ghcli-enable
+  :init
+  (auth-source-ghcli-enable))
 
 (use-package multiple-cursors
   :bind (("C-S-c C-S-c" . mc/edit-lines)
          ("C->" . mc/mark-next-like-this)
          ("C-<" . mc/mark-previous-like-this)))
 (global-eldoc-mode 1)
-(use-package eldoc-box
-  :after (eldoc)
-  :bind ("C-c h" . eldoc-box-help-at-point))
+(use-package eldoc-box :bind ("C-c h" . eldoc-box-help-at-point))
 (use-package ace-window :bind (("C-x o" . ace-window)))
 
+;; M-x unicode-fonts-setup
+(use-package unicode-fonts)
 ;; https://github.com/rainstormstudio/nerd-icons.el#installing-fonts
 ;; M-x nerd-icons-install-fonts
 (use-package nerd-icons-completion
@@ -184,7 +186,6 @@
 (use-package pcmpl-git)
 
 (use-package kind-icon
-  :after corfu
   :custom
   (kind-icon-use-icons nil)
   (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
@@ -210,7 +211,6 @@
   (xref-show-xrefs-function #'consult-xref)
   (xref-show-definitions-function #'consult-xref))
 (use-package consult-flycheck
-  :after (consult flycheck)
   :bind (("C-c C-e" . consult-flycheck)
          ("C-c e" . consult-flycheck)))
 
@@ -263,7 +263,8 @@
   :hook
   (lsp-mode . lsp-enable-which-key-integration)
   (lsp-mode . lsp-completion-mode)
-  :autoload lsp-rename)
+  :autoload lsp-rename lsp-format-buffer)
+(use-package lsp-ui :hook (lsp-mode . lsp-ui-mode))
 (use-package string-inflection
   :after lsp-mode
   :autoload string-inflection-camelcase-function
@@ -272,7 +273,6 @@
     "Rename symbol from snake_case to camelCase."
     (interactive)
     (lsp-rename (string-inflection-camelcase-function (thing-at-point 'symbol)))))
-(use-package lsp-ui :after lsp-mode :hook (lsp-mode . lsp-ui-mode))
 (use-package dap-mode
   :hook
   (((go-mode ruby-mode typescript-mode) . dap-mode)
@@ -288,7 +288,7 @@
     (require 'dap-chrome)
     (require 'dap-node)))
 
-;; git
+;;; git
 (use-package magit
   :custom (magit-repository-directories (list (cons (concat (getenv "HOME") "/repos/") 1)))
   :bind (("C-x g" . magit-status)
@@ -304,9 +304,24 @@
 (use-package git-gutter-fringe
   :after git-gutter
   :config (global-git-gutter-mode t))
-(use-package code-review :straight (:host github :repo "phelrine/code-review" :branch "fix/closql-update"))
-(use-package igist :custom (igist-current-user-name "phelrine"))
-(use-package browse-at-remote)
+(use-package code-review
+  :straight (:host github :repo "phelrine/code-review" :branch "fix/closql-update")
+  :defer t)
+(use-package igist :custom (igist-current-user-name "phelrine") :commands igist-dispatch)
+(use-package browse-at-remote :commands browse-at-remote)
+
+;;; SQL
+(use-package sql-ts-mode
+  :mode ("\\.sql\\'")
+  :load-path local-lisp-load-path
+  :hook ((sql-ts-mode . (lambda ()
+                          (lsp)
+                          (indent-tabs-mode t))))
+  :config
+  (add-hook 'before-save-hook
+            (lambda ()
+              (when (eq major-mode 'sql-ts-mode)
+                (lsp-format-buffer)))))
 
 ;;; Terminal
 (use-package shell-pop
@@ -322,11 +337,11 @@
   :config
   (popwin-mode 1)
   (nconc popwin:special-display-config
-        '((" *auto-async-byte-compile*" :noselect t)
+         '((" *auto-async-byte-compile*" :noselect t)
            ("*Warnings*" :noselect t)
            ("*Rubocopfmt Errors*" :noselect t))))
 
-(use-package open-junk-file)
+(use-package open-junk-file :commands open-junk-file)
 (use-package solarized-theme :config (load-theme 'solarized-light t))
 (use-package doom-modeline :custom (doom-modeline-minor-modes t) :hook (after-init . doom-modeline-mode))
 (add-hook 'prog-mode-hook #'display-line-numbers-mode)
@@ -343,21 +358,21 @@
     :if (memq window-system '(mac ns x))
     :custom (skk-use-jisx0201-input-method t)
     :bind ("C-x j" . skk-mode)))
-(use-package ddskk-posframe :diminish :config (ddskk-posframe-mode t))
+(use-package ddskk-posframe :after ddskk :diminish :config (ddskk-posframe-mode t))
 
 ;; flycheck
 (use-package flycheck :hook (prog-mode . flycheck-mode) :diminish flycheck-mode :autoload flycheck-add-mode flycheck-add-next-checker)
-(use-package flycheck-color-mode-line :after flycheck :hook (flycheck-mode . flycheck-color-mode-line-mode))
+(use-package flycheck-color-mode-line :hook (flycheck-mode . flycheck-color-mode-line-mode))
 (use-package flycheck-deno
-  :after (flycheck)
+  :after flycheck
   :config
   (flycheck-deno-setup)
   (flycheck-add-mode 'deno-lint 'web-mode)
   (flycheck-add-next-checker 'eglot-check 'deno-lint 'append))
-(use-package flycheck-cfn :after (flycheck cfn-mode) :hook (cfn-mode . flycheck-cfn-setup))
+(use-package flycheck-cfn :hook (cfn-mode . flycheck-cfn-setup))
 (use-package flycheck-eglot :after (flycheck eglot) :config (global-flycheck-eglot-mode 1))
 
-(use-package cov :custom (cov-coverage-mode t))
+(use-package cov :custom (cov-coverage-mode t) :commands cov-mode)
 (autoload 'ansi-color-apply-on-region "ansi-color" "Translates SGR control sequences into overlays or extents." t)
 (add-hook 'compilation-filter-hook (lambda () (ansi-color-apply-on-region compilation-filter-start (point))))
 (with-eval-after-load 'compile
@@ -368,9 +383,8 @@
   (add-to-list 'compilation-error-regexp-alist-alist `(vitest ,vitest-error-regexp 1 2 3))
   (add-to-list 'compilation-error-regexp-alist 'vitest))
 (use-package fancy-compilation
-  :after compile
-  :custom (fancy-compilation-override-colors nil)
-  :config (fancy-compilation-mode))
+  :hook (compilation-mode . fancy-compilation-mode)
+  :custom (fancy-compilation-override-colors nil))
 
 (use-package smartparens
   :diminish
@@ -406,17 +420,20 @@
 (use-package treesit-auto
   :custom
   (treesit-auto-install 'prompt)
-  :autoload treesit-auto-add-to-auto-mode-alist global-treesit-auto-mode
+  :autoload
+  treesit-auto-add-to-auto-mode-alist
+  global-treesit-auto-mode
   :init
-  (treesit-auto-add-to-auto-mode-alist 'all)
-  (global-treesit-auto-mode))
+  (delete 'yaml treesit-auto-langs)
+  (global-treesit-auto-mode)
+  :config
+  (treesit-auto-add-to-auto-mode-alist 'all))
 
 ;;; ChatGPT
 (defun pick-openai-key ()
   "Pick the OpenAI api key from auth source."
   (auth-source-pick-first-password :host "api.openai.com"))
 (use-package chatgpt-shell
-  :ensure t
   :custom
   ((chatgpt-shell-openai-key (pick-openai-key))
    (dall-e-shell-openai-key (pick-openai-key))))
@@ -448,21 +465,21 @@
       (nconc cc-search-directories '("/System/Library/Frameworks" "/Library/Frameworks"))))
 
 ;;; Swift
-(use-package swift-mode :mode "\\.swift\\'")
+(use-package swift-mode :defer t)
 
 ;;; Python
-(use-package ein)
+(use-package ein :defer t)
 
 ;;; Ruby
-(use-package ruby-mode :custom (ruby-insert-encoding-magic-comment nil))
-(add-hook 'ruby-mode-hook #'eglot-ensure)
+(use-package ruby-mode
+  :custom (ruby-insert-encoding-magic-comment nil)
+  :hook (ruby-mode . eglot-ensure))
 (use-package inf-ruby
-  :after ruby-mode
   :hook
   ((ruby-mode . inf-ruby-minor-mode)
    (compilation-filter . inf-ruby-auto-enter-and-focus)))
-(use-package robe :after ruby-mode :hook (ruby-mode . robe-mode))
-(use-package rubocopfmt :after ruby-mode :hook (ruby-mode . rubocopfmt-mode))
+(use-package robe :hook (ruby-mode . robe-mode))
+(use-package rubocopfmt :hook (ruby-mode . rubocopfmt-mode))
 (use-package projectile-rails
   :after (ruby-mode projectile)
   :bind (:map projectile-rails-mode-map
@@ -486,14 +503,14 @@
              :args '("server" "-p" "3000")
              )))))
 
-(use-package rake :custom (rake-completion-system 'default))
-(use-package rspec-mode :custom (rspec-key-command-prefix (kbd "C-c s")))
-(use-package bundler)
-(use-package coverage)
+(use-package rake :custom (rake-completion-system 'default) :defer t)
+(use-package rspec-mode :custom (rspec-key-command-prefix (kbd "C-c s")) :defer t)
+(use-package bundler :defer t)
+(use-package coverage :defer t)
 
 ;;; HAML
-(use-package haml-mode)
-(use-package flymake-haml :after haml-mode :hook (haml-mode . flymake-haml-load))
+(use-package haml-mode :defer t)
+(use-package flymake-haml :hook (haml-mode . flymake-haml-load))
 
 ;;; Go
 (use-package go-mode :hook ((before-save . gofmt-before-save)))
@@ -503,27 +520,26 @@
             (eglot-ensure)
             (setq-default go-ts-mode-indent-offset 4)))
 (setq go-ts-mode-hook go-mode-hook)
-(use-package govet)
-(use-package gotest)
-(use-package go-impl :after go-mode)
-(use-package go-gen-test :after go-mode)
+(use-package govet :commands govet)
+(use-package gotest :defer t)
+(use-package go-gen-test :defer t)
+(use-package go-impl :commands go-impl)
 (use-package go-tag
-  :after go-mode
   :bind (:map go-mode-map
               ("C-c `" . go-tag-add)
               ("C-u C-c `" . go-tag-remove)))
 (use-package go-eldoc :after (go-mode eldoc) :hook (go-mode . go-eldoc-setup))
 (use-package go-projectile :after (go-mode projectile))
-(use-package go-playground :custom (go-playground-init-command "go mod init snippet"))
+(use-package go-playground :custom (go-playground-init-command "go mod init snippet") :commands go-playground)
 (use-package flycheck-golangci-lint :hook (go-mode . flycheck-golangci-lint-setup))
-(use-package go-fill-struct :after go-mode)
+(use-package go-fill-struct :commands go-fill-struct)
 
 ;;; Dart & Flutter
-(use-package dart-mode :hook (dart-mode . (lambda () (subword-mode) (eglot-ensure))))
-(use-package flutter :after (dart-mode))
+(use-package dart-mode :hook (dart-mode . (lambda () (subword-mode) (eglot-ensure))) :commands dart-mode)
+(use-package flutter :after dart-mode)
 
 ;;; Gradle
-(use-package groovy-mode)
+(use-package groovy-mode :defer t)
 
 ;;; Web
 (use-package web-mode
@@ -552,16 +568,18 @@
             (setq-local cov-lcov-file-name (concat (projectile-project-root) "lcov.info"))
             (jest-minor-mode 1)
             (eglot-ensure)))
-(use-package npm)
-(use-package deno-fmt)
+(use-package npm :commands npm npm-run npm-install)
+(use-package deno-fmt :defer t)
 (use-package prisma-ts-mode
   :mode (("\\.prisma\\'" . prisma-ts-mode))
   :hook (prisma-ts-mode . eglot-ensure)
   :init
   (with-eval-after-load 'eglot
     (add-to-list 'eglot-server-programs '(prisma-ts-mode . ("prisma-language-server" "--stdio")))))
-(use-package restclient-jq)
-(use-package graphql-mode)
+(use-package restclient :commands restclient-mode
+  :config
+  (use-package restclient-jq))
+(use-package graphql-mode :commands graphql-mode)
 
 ;;; Scheme
 (defconst scheme-program-name "gosh -i")
@@ -580,16 +598,17 @@
 (add-hook 'scheme-mode-hook 'scheme-mode-setup)
 
 ;;; Docker
-
 (use-package docker
   :custom
   (docker-compose-command (or (and (eq system-type 'gnu/linux) "docker compose")  "docker-compose"))
   :bind ("C-c C-d" . docker))
 (use-package dockerfile-mode :hook (dockerfile-mode . eglot-ensure))
-(use-package docker-compose-mode)
+(use-package docker-compose-mode :defer t)
 
 ;;; Markdown
-(use-package maple-preview :straight (:host github :repo "honmaple/emacs-maple-preview" :files ("*.el" "index.html" "static")))
+(use-package maple-preview
+  :straight (:host github :repo "honmaple/emacs-maple-preview" :files ("*.el" "index.html" "static"))
+  :defer t)
 
 ;;; asdf
 (use-package asdf
@@ -598,19 +617,21 @@
 
 ;;; AWS
 (use-package aws-switch-profile
+  :defer t
   :straight (:host github :repo "phelrine/aws-switch-profile.el" :files ("aws-switch-profile.el")))
 
 (use-package aws-secretsmanager
+  :commands aws-secretsmanager-show-secrets-list
   :straight (:host github :repo "phelrine/aws-secretsmanager.el" :files ("aws-secretsmanager.el")))
 
 ;;; config files
 (use-package nginx-mode :mode "/nginx/sites-\\(?:available\\|enabled\\)/")
-(use-package yaml-mode :mode "\\.yml\\'")
-(use-package json-mode)
-(use-package json-reformat)
-(use-package cfn-mode)
-(use-package lua-mode)
-(use-package restart-emacs)
+(use-package json-mode :defer t)
+(use-package json-reformat :commands json-reformat-region)
+(use-package cfn-mode :defer t)
+(use-package lua-mode :defer t)
+(use-package yaml-mode :defer t)
+(use-package restart-emacs :commands restart-emacs)
 
 (provide 'init)
 ;;; init.el ends here
