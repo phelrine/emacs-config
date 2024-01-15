@@ -1,9 +1,10 @@
 ;;; init --- Summary
 ;;; Commentary:
 
+;;; Code:
+
 (require 'generic-x)
 
-;;; Code:
 ;;; Custom variables
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -39,12 +40,16 @@
  ;; If there is more than one, they won't work right.
  '(whitespace-tab ((t (:background "black" :foreground "LightYellow" :inverse-video t)))))
 
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
-(add-to-list 'package-archives '("jcs-elpa" . "https://jcs-emacs.github.io/jcs-elpa/packages/") t)
+(with-eval-after-load 'package
+  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+  (add-to-list 'package-archives '("jcs-elpa" . "https://jcs-emacs.github.io/jcs-elpa/packages/") t))
 (package-initialize)
+
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
+(eval-when-compile
+  (require 'use-package))
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
       (bootstrap-version 6))
@@ -230,14 +235,14 @@
                '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
                  nil
                  (window-parameters (mode-line-format . none)))))
-(use-package embark-consult :hook (embark-collect-mode . consult-preview-at-point-mode))
+(use-package embark-consult :after (consult embark) :hook (embark-collect-mode . consult-preview-at-point-mode))
 
 ;;; Dired
 (use-package dired-hide-dotfiles
   :diminish
   :bind (:map dired-mode-map (("." . dired-hide-dotfiles-mode)))
   :hook (dired-mode . dired-hide-dotfiles-mode))
-(bind-key "C-x d" #'(lambda () (interactive) (find-file default-directory)))
+(bind-key "C-x d" (lambda () (interactive) (find-file default-directory)))
 
 (use-package copilot
   :hook (prog-mode . copilot-mode)
@@ -273,20 +278,9 @@
     "Rename symbol from snake_case to camelCase."
     (interactive)
     (lsp-rename (string-inflection-camelcase-function (thing-at-point 'symbol)))))
-(use-package dap-mode
-  :hook
-  (((go-mode ruby-mode typescript-mode) . dap-mode)
-   ((go-mode ruby-mode typescript-mode) . dap-ui-mode))
-  :bind (:map dap-mode-map (("C-c d" . dap-debug)))
-  :autoload dap-register-debug-template
-  :config
-  (with-eval-after-load 'dap-hydra (add-hook 'dap-stopped-hook #'dap-hydra))
-  (require 'dap-hydra)
-  (with-eval-after-load 'go-mode (require 'dap-dlv-go))
-  (with-eval-after-load 'ruby-mode (require 'dap-ruby))
-  (with-eval-after-load 'typescript-mode
-    (require 'dap-chrome)
-    (require 'dap-node)))
+
+;;; DAP
+(use-package dape)
 
 ;;; git
 (use-package magit
@@ -488,21 +482,7 @@
   :hook (find-file . rails-project-find-file-hook)
   :autoload projectile-rails-root
   :config
-  (projectile-rails-global-mode t)
-  (defun rails-project-find-file-hook ()
-    (interactive)
-    (when (projectile-rails-root)
-      (dap-register-debug-template
-       (concat "Debug Rails Server (" (file-name-nondirectory (directory-file-name (projectile-rails-root))) ")")
-       (list :type "Ruby"
-             :request "launch"
-             :cwd (projectile-rails-root)
-             :program (concat (projectile-rails-root) "bin/rails")
-             :pathToBundler (concat (getenv "HOME") "/.rbenv/shims/bundler")
-             :pathToRDebugIDE: (concat (getenv "HOME") "/.rbenv/shims/rdebug-ide")
-             :args '("server" "-p" "3000")
-             )))))
-
+  (projectile-rails-global-mode t))
 (use-package rake :custom (rake-completion-system 'default) :defer t)
 (use-package rspec-mode :custom (rspec-key-command-prefix (kbd "C-c s")) :defer t)
 (use-package bundler :defer t)
