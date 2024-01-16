@@ -479,7 +479,7 @@
   :bind (:map projectile-rails-mode-map
               ("C-c r" . hydra-projectile-rails/body)
               ("C-c f" . hydra-projectile-rails-find/body))
-  :hook (find-file . rails-project-find-file-hook)
+  ;; :hook (find-file . rails-project-find-file-hook)
   :autoload projectile-rails-root
   :config
   (projectile-rails-global-mode t))
