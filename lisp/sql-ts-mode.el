@@ -13,6 +13,15 @@
   (unless (treesit-ready-p 'sql)
     (error "Tree-sitter for SQL isn't available"))
   (treesit-parser-create 'sql)
+  (defvar sql-mode-indent-rules
+    '((sql
+       ((node-is ")") parent-bol 0)
+       ((node-is "clause") prev-sibling 0)
+       ((node-is "AND") parent-bol 0)
+       ((parent-is "clause") parent-bol 4)
+       ((parent-is "expression") parent-bol 4)
+       )))
+  (setq-local treesit-simple-indent-rules sql-mode-indent-rules)
   (treesit-major-mode-setup))
 
 (add-to-list 'treesit-auto-recipe-list
