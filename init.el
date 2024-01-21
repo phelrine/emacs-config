@@ -368,13 +368,6 @@
 (use-package flycheck-eglot :after (flycheck eglot) :config (global-flycheck-eglot-mode 1))
 
 (use-package cov :custom (cov-coverage-mode t) :commands cov-mode)
-(with-eval-after-load 'compile
-  (defvar node-error-regexp "^[ ]+at \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
-  (defvar vitest-error-regexp "^ ❯ \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
-  (add-to-list 'compilation-error-regexp-alist-alist `(nodejs ,node-error-regexp 1 2 3))
-  (add-to-list 'compilation-error-regexp-alist 'nodejs)
-  (add-to-list 'compilation-error-regexp-alist-alist `(vitest ,vitest-error-regexp 1 2 3))
-  (add-to-list 'compilation-error-regexp-alist 'vitest))
 (use-package fancy-compilation
   :hook (compilation-mode . fancy-compilation-mode)
   :custom (fancy-compilation-override-colors nil))
@@ -543,6 +536,10 @@
             (setq-local cov-lcov-file-name (concat (projectile-project-root) "lcov.info"))
             (jest-minor-mode 1)
             (eglot-ensure)))
+(with-eval-after-load 'compile
+  (defvar node-error-regexp "^[ ]+at \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
+  (add-to-list 'compilation-error-regexp-alist-alist `(nodejs ,node-error-regexp 1 2 3))
+  (add-to-list 'compilation-error-regexp-alist 'nodejs))
 (use-package npm)
 (use-package deno-fmt :defer t)
 (use-package prisma-ts-mode
