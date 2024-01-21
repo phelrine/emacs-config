@@ -499,6 +499,7 @@
 (setq go-ts-mode-hook go-mode-hook)
 (use-package govet :commands govet)
 (use-package gotest :defer t)
+(use-package gotest-dape :load-path local-lisp-load-path :defer t)
 (use-package go-gen-test :defer t)
 (use-package go-impl :commands go-impl)
 (use-package go-tag
