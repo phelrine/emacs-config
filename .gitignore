@@ -25,12 +25,13 @@
 /emojis/
 /eshell/
 /flycheck_init.el
-/forge-database-*-*.sql
 /forge-database*.sqlite
+/forge-database-*-*.sql
 /gotools/
 /history
 /id-manager.el
 /image-dired/
+/lisp/transcript.txt
 /network-security.data
 /places
 /projectile-bookmarks.eld
