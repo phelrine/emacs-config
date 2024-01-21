@@ -12,18 +12,12 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(create-lockfiles nil)
- '(dabbrev-case-fold-search 'case-fold-search)
- '(dabbrev-case-replace nil)
  '(enable-recursive-minibuffers t)
+ '(gc-cons-threshold 16000000)
  '(history-length 1000)
  '(indent-tabs-mode nil)
- '(js-indent-level 2)
  '(make-backup-files nil)
  '(menu-bar-mode nil)
- '(gc-cons-threshold 16000000)
- '(recentf-auto-cleanup 'never)
- '(recentf-max-menu-items 1000)
- '(recentf-max-saved-items 1000)
  '(ring-bell-function 'ignore)
  '(scroll-margin 0)
  '(show-trailing-whitespace t)
@@ -31,8 +25,7 @@
  '(tool-bar-mode nil)
  '(use-package-always-ensure t)
  '(warning-suppress-log-types '((use-package)))
- '(warning-suppress-types '((use-package)))
- `(temporary-file-directory ,(concat (getenv "HOME") "/.tmp")))
+ '(warning-suppress-types '((use-package))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -87,7 +80,6 @@
 (winner-mode 1)
 (show-paren-mode 1)
 (global-hl-line-mode 1)
-(recentf-mode 1)
 (savehist-mode 1)
 (save-place-mode 1)
 (global-auto-revert-mode 1)
@@ -115,6 +107,14 @@
 
 (defvar local-lisp-load-path "~/.emacs.d/lisp")
 
+(use-package recentf
+  :custom
+  (recentf-auto-cleanup 'never)
+  (recentf-max-menu-items 1000)
+  (recentf-max-saved-items 1000)
+  :config
+  (recentf-mode 1))
+
 (use-package auth-source-kwallet
   :straight (:host github :repo "phelrine/auth-source-kwallet" :files ("auth-source-kwallet.el"))
   :config
@@ -135,7 +135,7 @@
 (use-package ace-window :bind (("C-x o" . ace-window)))
 
 ;; M-x unicode-fonts-setup
-(use-package unicode-fonts)
+(use-package unicode-fonts :config (unicode-fonts-setup))
 ;; https://github.com/rainstormstudio/nerd-icons.el#installing-fonts
 ;; M-x nerd-icons-install-fonts
 (use-package nerd-icons-completion
@@ -202,7 +202,8 @@
          ("C-M-/" . dabbrev-expand))
   ;; Other useful Dabbrev configurations.
   :custom
-  (dabbrev-ignored-buffer-regexps '("\\.\\(?:pdf\\|jpe?g\\|png\\)\\'")))
+  (dabbrev-ignored-buffer-regexps '("\\.\\(?:pdf\\|jpe?g\\|png\\)\\'"))
+  (dabbrev-case-replace nil))
 (use-package consult
   :bind (("C-x C-r" . consult-recent-file)
          ([remap switch-to-buffer] . consult-buffer)
@@ -280,7 +281,7 @@
     (lsp-rename (string-inflection-camelcase-function (thing-at-point 'symbol)))))
 
 ;;; DAP
-(use-package dape)
+(use-package dape :defer t)
 
 ;;; git
 (use-package magit
@@ -367,8 +368,6 @@
 (use-package flycheck-eglot :after (flycheck eglot) :config (global-flycheck-eglot-mode 1))
 
 (use-package cov :custom (cov-coverage-mode t) :commands cov-mode)
-(autoload 'ansi-color-apply-on-region "ansi-color" "Translates SGR control sequences into overlays or extents." t)
-(add-hook 'compilation-filter-hook (lambda () (ansi-color-apply-on-region compilation-filter-start (point))))
 (with-eval-after-load 'compile
   (defvar node-error-regexp "^[ ]+at \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
   (defvar vitest-error-regexp "^ ❯ \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
@@ -408,19 +407,17 @@
 (use-package indent-tools :bind ("C-c >" . indent-tools-hydra/body))
 
 ;;; treesit
-(require 'treesit)
-(setq treesit-font-lock-level 4)
-(add-to-list 'treesit-language-source-alist '(prisma "https://github.com/victorhqc/tree-sitter-prisma"))
+(with-eval-after-load 'treesit
+  (setq treesit-font-lock-level 4)
+  (add-to-list 'treesit-language-source-alist '(prisma "https://github.com/victorhqc/tree-sitter-prisma")))
 (use-package treesit-auto
   :custom
   (treesit-auto-install 'prompt)
-  :autoload
-  treesit-auto-add-to-auto-mode-alist
-  global-treesit-auto-mode
+  :commands global-treesit-auto-mode treesit-auto-add-to-auto-mode-alist
   :init
-  (delete 'yaml treesit-auto-langs)
-  (global-treesit-auto-mode)
+  (global-treesit-auto-mode 1)
   :config
+  (delete 'yaml treesit-auto-langs)
   (treesit-auto-add-to-auto-mode-alist 'all))
 
 ;;; ChatGPT
@@ -537,10 +534,7 @@
   (delete-process (buffer-name (current-buffer)))
   (kill-buffer))
 (use-package jest :bind (:map jest-mode-map ("q" . kill-jest-process-and-buffer)))
-(use-package typescript-mode
-  :custom (typescript-indent-level 2)
-  :mode (("\\.ts\\'" . typescript-mode)
-         ("\\.tsx\\'" . tsx-ts-mode)))
+(use-package typescript-mode :custom (typescript-indent-level 2))
 (add-hook 'tsx-ts-mode-hook (lambda () (eglot-ensure)))
 (add-hook 'typescript-ts-mode-hook
           (lambda()
@@ -548,7 +542,7 @@
             (setq-local cov-lcov-file-name (concat (projectile-project-root) "lcov.info"))
             (jest-minor-mode 1)
             (eglot-ensure)))
-(use-package npm :commands npm npm-run npm-install)
+(use-package npm)
 (use-package deno-fmt :defer t)
 (use-package prisma-ts-mode
   :mode (("\\.prisma\\'" . prisma-ts-mode))
