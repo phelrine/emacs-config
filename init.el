@@ -401,6 +401,8 @@
 
 ;;; treesit
 (with-eval-after-load 'treesit
+  (defvar treesit-font-lock-level)
+  (defvar treesit-language-source-alist)
   (setq treesit-font-lock-level 4)
   (add-to-list 'treesit-language-source-alist '(prisma "https://github.com/victorhqc/tree-sitter-prisma")))
 (use-package treesit-auto
