@@ -547,13 +547,19 @@
 (use-package prisma-ts-mode
   :mode (("\\.prisma\\'" . prisma-ts-mode))
   :hook (prisma-ts-mode . eglot-ensure)
+  :ensure-system-package (prisma-language-server . "npm install -g @prisma/language-server")
   :init
   (with-eval-after-load 'eglot
     (add-to-list 'eglot-server-programs '(prisma-ts-mode . ("prisma-language-server" "--stdio")))))
 (use-package restclient :commands restclient-mode
   :config
   (use-package restclient-jq))
-(use-package graphql-mode :commands graphql-mode)
+(use-package graphql-ts-mode
+  :mode ("\\.graphql\\'" "\\.gql\\'")
+  :init
+  (with-eval-after-load 'treesit
+    (add-to-list 'treesit-language-source-alist
+                 '(graphql "https://github.com/bkegley/tree-sitter-graphql"))))
 
 ;;; Scheme
 (defconst scheme-program-name "gosh -i")
