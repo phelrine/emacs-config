@@ -400,8 +400,9 @@
 (use-package indent-tools :bind ("C-c >" . indent-tools-hydra/body))
 
 ;;; treesit
-(with-eval-after-load 'treesit
-  (setq treesit-font-lock-level 4)
+(use-package treesit
+  :custom (treesit-font-lock-level 4)
+  :config
   (add-to-list 'treesit-language-source-alist '(prisma "https://github.com/victorhqc/tree-sitter-prisma")))
 (use-package treesit-auto
   :custom
@@ -540,6 +541,7 @@
   (defvar node-error-regexp "^[ ]+at \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
   (add-to-list 'compilation-error-regexp-alist-alist `(nodejs ,node-error-regexp 1 2 3))
   (add-to-list 'compilation-error-regexp-alist 'nodejs))
+(use-package vitest :load-path local-lisp-load-path)
 (use-package npm)
 (use-package deno-fmt :defer t)
 (use-package prisma-ts-mode
