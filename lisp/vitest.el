@@ -27,8 +27,7 @@
    ("--config" "Set configuration file" "--config=" transient-read-file-name)
    ("--environment" "Set environment name" "--environment=" transient-read-string)]
   ["Filters"
-   (vitest-transient-test-name-pattern-option)
-   (vitest-transient-files)]
+   (vitest-transient-test-name-pattern-option)]
   ["Actions"
    ("a" "vitest all" vitest-run)
    ("f" "vitest current file" vitest-run-current-file)])

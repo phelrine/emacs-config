@@ -311,12 +311,7 @@
   :load-path local-lisp-load-path
   :hook ((sql-ts-mode . (lambda ()
                           (lsp)
-                          (indent-tabs-mode t))))
-  :config
-  (add-hook 'before-save-hook
-            (lambda ()
-              (when (eq major-mode 'sql-ts-mode)
-                (lsp-format-buffer)))))
+                          (indent-tabs-mode t)))))
 
 ;;; Terminal
 (use-package shell-pop
@@ -485,12 +480,26 @@
 (use-package flymake-haml :hook (haml-mode . flymake-haml-load))
 
 ;;; Go
-(use-package go-mode :hook ((before-save . gofmt-before-save)))
-(add-hook 'go-mode-hook
-          (lambda ()
-            (subword-mode)
-            (eglot-ensure)
-            (setq-default go-ts-mode-indent-offset 4)))
+(use-package go-mode
+  :hook ((before-save . gofmt-before-save))
+  :config
+  (add-hook 'go-mode-hook
+            (lambda ()
+              (subword-mode)
+              (eglot-ensure)
+              (add-hook 'before-save-hook #'eglot-format-buffer -10 t)
+              (setq-default go-ts-mode-indent-offset 4))))
+
+;; https://github.com/golang/tools/blob/master/gopls/doc/emacs.md#configuring-project-for-go-modules-in-emacs
+(defun project-find-go-module (dir)
+  "Search for go.mod file in DIR."
+  (when-let ((root (locate-dominating-file dir "go.mod")))
+    (cons 'go-module root)))
+(cl-defmethod project-root ((project (head go-module)))
+  "Return the root directory of a go module PROJECT."
+  (cdr project))
+(add-hook 'project-find-functions #'project-find-go-module)
+
 (setq go-ts-mode-hook go-mode-hook)
 (use-package govet :commands govet)
 (use-package gotest :defer t)
@@ -530,6 +539,7 @@
   (delete-process (buffer-name (current-buffer)))
   (kill-buffer))
 (use-package jest :bind (:map jest-mode-map ("q" . kill-jest-process-and-buffer)))
+(use-package vitest :load-path local-lisp-load-path)
 (use-package typescript-mode :custom (typescript-indent-level 2))
 (add-hook 'tsx-ts-mode-hook (lambda () (eglot-ensure)))
 (add-hook 'typescript-ts-mode-hook
