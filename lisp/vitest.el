@@ -62,4 +62,6 @@
   (add-to-list 'compilation-error-regexp-alist-alist `(vitest ,vitest-error-regexp 1 2 3))
   (add-to-list 'compilation-error-regexp-alist 'vitest))
 
+(provide 'vitest)
+
 ;;; vitest.el ends here
