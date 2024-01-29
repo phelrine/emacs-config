@@ -47,3 +47,5 @@
 /twittering-mode.gpg
 /url/
 /var/
+/.emacs.desktop
+/.emacs.desktop.lock
