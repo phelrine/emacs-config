@@ -36,13 +36,9 @@
 (with-eval-after-load 'package
   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
   (add-to-list 'package-archives '("jcs-elpa" . "https://jcs-emacs.github.io/jcs-elpa/packages/") t))
-(package-initialize)
 
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
-(eval-when-compile
-  (require 'use-package))
+(eval-when-compile (require 'use-package))
+
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
       (bootstrap-version 6))
@@ -56,13 +52,13 @@
   (load bootstrap-file nil 'nomessage))
 
 (use-package diminish)
+(use-package bind-key)
 (use-package auto-package-update
   :custom
   (auto-package-update-delete-old-versions t)
   (auto-package-update-hide-results t)
   :config
   (auto-package-update-maybe))
-(use-package bind-key)
 (use-package which-key :diminish :hook (after-init . which-key-mode))
 
 ;;; ENV
@@ -78,15 +74,11 @@
   (exec-path-from-shell-copy-envs '("UID" "GID")))
 
 (winner-mode 1)
-(show-paren-mode 1)
 (global-hl-line-mode 1)
 (savehist-mode 1)
 (save-place-mode 1)
 (global-auto-revert-mode 1)
-(global-font-lock-mode 1)
-(when (eq system-type 'darwin)
-  (add-to-list 'auth-sources 'macos-keychain-generic)
-  (add-to-list 'auth-sources 'macos-keychain-internet))
+(desktop-save-mode 1)
 (bind-key "RET" 'newline-and-indent)
 (autoload 'winner-undo "winner" "Load winner-undo" t nil)
 (bind-keys*
@@ -107,14 +99,16 @@
 
 (defvar local-lisp-load-path "~/.emacs.d/lisp")
 
-(use-package recentf
-  :custom
-  (recentf-auto-cleanup 'never)
-  (recentf-max-menu-items 1000)
-  (recentf-max-saved-items 1000)
-  :config
-  (recentf-mode 1))
+(custom-set-variables
+ '(recentf-auto-cleanup 'never)
+ '(recentf-max-menu-items 1000)
+ '(recentf-max-saved-items 1000))
+(recentf-mode 1)
 
+;;; auth-source
+(when (eq system-type 'darwin)
+  (add-to-list 'auth-sources 'macos-keychain-generic)
+  (add-to-list 'auth-sources 'macos-keychain-internet))
 (use-package auth-source-kwallet
   :straight (:host github :repo "phelrine/auth-source-kwallet" :files ("auth-source-kwallet.el"))
   :config
@@ -236,14 +230,13 @@
                '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
                  nil
                  (window-parameters (mode-line-format . none)))))
-(use-package embark-consult :after (consult embark) :hook (embark-collect-mode . consult-preview-at-point-mode))
+(use-package embark-consult :after (consult embark))
 
 ;;; Dired
 (use-package dired-hide-dotfiles
   :diminish
   :bind (:map dired-mode-map (("." . dired-hide-dotfiles-mode)))
   :hook (dired-mode . dired-hide-dotfiles-mode))
-(bind-key "C-x d" (lambda () (interactive) (find-file default-directory)))
 
 (use-package copilot
   :hook (prog-mode . copilot-mode)
@@ -252,7 +245,7 @@
          ("<backtab>" . copilot-next-completion))
   :custom
   (copilot-disable-predicates '((lambda () t)))
-  (copilot-node-executable (concat (getenv "HOME") "/.asdf/installs/nodejs/20.5.1/bin/node"))
+  (copilot-node-executable (concat (asdf-where "nodejs" "20.5.1") "/bin/node"))
   :commands copilot-accept-completion
   :init
   (defun my/copilot-accept-completion ()
@@ -309,9 +302,12 @@
 (use-package sql-ts-mode
   :mode ("\\.sql\\'")
   :load-path local-lisp-load-path
-  :hook ((sql-ts-mode . (lambda ()
-                          (lsp)
-                          (indent-tabs-mode t)))))
+  :hook (sql-ts-mode . (lambda ()
+                         (setq lsp-enable-indentation nil)
+                         (lsp)
+                         (indent-tabs-mode t)))
+  :init
+  (put 'lsp-sqls-workspace-config-path 'safe-local-variable 'stringp))
 
 ;;; Terminal
 (use-package shell-pop
@@ -395,10 +391,10 @@
 (use-package indent-tools :bind ("C-c >" . indent-tools-hydra/body))
 
 ;;; treesit
-(use-package treesit
-  :custom (treesit-font-lock-level 4)
-  :config
-  (add-to-list 'treesit-language-source-alist '(prisma "https://github.com/victorhqc/tree-sitter-prisma")))
+(with-eval-after-load 'treesit
+  (with-no-warnings
+    (custom-set-variables '(treesit-font-lock-level 4))
+    (add-to-list 'treesit-language-source-alist '(prisma "https://github.com/victorhqc/tree-sitter-prisma"))))
 (use-package treesit-auto
   :custom
   (treesit-auto-install 'prompt)
@@ -427,41 +423,21 @@
 (use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode) :disabled)
 (use-package eros :hook (emacs-lisp-mode . eros-mode))
 
-;;; Obj-C
-(defadvice ff-get-file-name (around ff-get-file-name-framework (search-dirs fname-stub &optional suffix-list))
-  "Search for Mac framework headers as well as POSIX headers."
-  (or
-   (if (string-match "\\(.*?\\)/\\(.*\\)" fname-stub)
-       (let* ((framework (match-string 1 fname-stub))
-              (header (match-string 2 fname-stub))
-              (fname-stub (concat framework ".framework/Headers/" header)))
-         ad-do-it))
-   ad-do-it))
-(ad-enable-advice 'ff-get-file-name 'around 'ff-get-file-name-framework)
-(ad-activate 'ff-get-file-name)
-(if (eq system-type 'darwin)
-    (with-eval-after-load 'find-file
-      (defvar cc-search-directories)
-      (nconc cc-search-directories '("/System/Library/Frameworks" "/Library/Frameworks"))))
-
 ;;; Swift
 (use-package swift-mode :defer t)
 
 ;;; Python
-(use-package ein :defer t)
 
 ;;; Ruby
-(use-package ruby-mode
-  :custom (ruby-insert-encoding-magic-comment nil)
-  :hook (ruby-mode . eglot-ensure))
+(add-hook 'ruby-ts-mode-hook #'eglot-ensure)
 (use-package inf-ruby
   :hook
-  ((ruby-mode . inf-ruby-minor-mode)
+  ((ruby-ts-mode . inf-ruby-minor-mode)
    (compilation-filter . inf-ruby-auto-enter-and-focus)))
-(use-package robe :hook (ruby-mode . robe-mode))
-(use-package rubocopfmt :hook (ruby-mode . rubocopfmt-mode))
+(use-package robe :hook (ruby-ts-mode . robe-mode))
+(use-package rubocopfmt :hook (ruby-ts-mode . rubocopfmt-mode))
 (use-package projectile-rails
-  :after (ruby-mode projectile)
+  :after (ruby-ts-mode projectile)
   :bind (:map projectile-rails-mode-map
               ("C-c r" . hydra-projectile-rails/body)
               ("C-c f" . hydra-projectile-rails-find/body))
@@ -479,27 +455,25 @@
 (use-package flymake-haml :hook (haml-mode . flymake-haml-load))
 
 ;;; Go
-(use-package go-mode
-  :hook ((before-save . gofmt-before-save))
-  :config
-  (add-hook 'go-mode-hook
+(autoload 'eglot-format-buffer "eglot")
+(with-eval-after-load 'go-ts-mode
+  (custom-set-variables '(go-ts-mode-indent-offset 4))
+  (add-hook 'go-ts-mode-hook
             (lambda ()
               (subword-mode)
               (eglot-ensure)
-              (add-hook 'before-save-hook #'eglot-format-buffer -10 t)
-              (setq-default go-ts-mode-indent-offset 4))))
-
+              (add-hook 'before-save-hook #'eglot-format-buffer -10 t))))
 ;; https://github.com/golang/tools/blob/master/gopls/doc/emacs.md#configuring-project-for-go-modules-in-emacs
 (defun project-find-go-module (dir)
   "Search for go.mod file in DIR."
   (when-let ((root (locate-dominating-file dir "go.mod")))
     (cons 'go-module root)))
-(cl-defmethod project-root ((project (head go-module)))
-  "Return the root directory of a go module PROJECT."
-  (cdr project))
-(add-hook 'project-find-functions #'project-find-go-module)
+(with-eval-after-load 'project
+  (cl-defmethod project-root ((project (head go-module)))
+    "Return the root directory of a go module PROJECT."
+    (cdr project))
+  (add-hook 'project-find-functions #'project-find-go-module))
 
-(setq go-ts-mode-hook go-mode-hook)
 (use-package govet :commands govet)
 (use-package gotest :defer t)
 (use-package gotest-dape :load-path local-lisp-load-path :defer t)
@@ -539,19 +513,19 @@
   (kill-buffer))
 (use-package jest :bind (:map jest-mode-map ("q" . kill-jest-process-and-buffer)))
 (use-package vitest :load-path local-lisp-load-path)
-(use-package typescript-mode :custom (typescript-indent-level 2))
-(add-hook 'tsx-ts-mode-hook (lambda () (eglot-ensure)))
-(add-hook 'typescript-ts-mode-hook
-          (lambda()
-            (cov-mode)
-            (setq-local cov-lcov-file-name (concat (projectile-project-root) "lcov.info"))
-            (jest-minor-mode 1)
-            (eglot-ensure)))
+(with-eval-after-load 'typescript-ts-mode
+  (add-hook 'typescript-ts-mode-hook
+            (lambda()
+              (cov-mode)
+              (setq-local cov-lcov-file-name (concat (projectile-project-root) "lcov.info"))
+              (jest-minor-mode 1)
+              (eglot-ensure)))
+  (add-hook 'tsx-ts-mode-hook #'eglot-ensure))
+
 (with-eval-after-load 'compile
   (defvar node-error-regexp "^[ ]+at \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
   (add-to-list 'compilation-error-regexp-alist-alist `(nodejs ,node-error-regexp 1 2 3))
   (add-to-list 'compilation-error-regexp-alist 'nodejs))
-(use-package vitest :load-path local-lisp-load-path)
 (use-package npm)
 (use-package deno-fmt :defer t)
 (use-package prisma-ts-mode
@@ -603,7 +577,11 @@
 ;;; asdf
 (use-package asdf
   :straight (:host github :repo "tabfugnic/asdf.el" :files ("asdf.el"))
-  :config (asdf-enable))
+  :config (asdf-enable)
+  :autoload asdf--command asdf--format-output-to-list
+  :init
+  (defun asdf-where (plugin ver)
+	(replace-regexp-in-string "\n\\'" "" (shell-command-to-string (asdf--command "where" plugin ver)))))
 
 ;;; AWS
 (use-package aws-switch-profile
