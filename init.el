@@ -73,12 +73,22 @@
     (exec-path-from-shell-initialize))
   (exec-path-from-shell-copy-envs '("UID" "GID")))
 
+;;; asdf
+(use-package asdf
+  :straight (:host github :repo "tabfugnic/asdf.el" :files ("asdf.el"))
+  :autoload asdf--command asdf--format-output-to-list
+  :custom (asdf-binary (concat (getenv "ASDF_DIR") "/bin/asdf"))
+  :init
+  (defun asdf-where (plugin ver)
+	(replace-regexp-in-string "\n\\'" "" (shell-command-to-string (asdf--command "where" plugin ver))))
+  :config
+  (asdf-enable))
+
 (winner-mode 1)
 (global-hl-line-mode 1)
 (savehist-mode 1)
 (save-place-mode 1)
 (global-auto-revert-mode 1)
-(desktop-save-mode 1)
 (bind-key "RET" 'newline-and-indent)
 (autoload 'winner-undo "winner" "Load winner-undo" t nil)
 (bind-keys*
@@ -414,6 +424,13 @@
   ((chatgpt-shell-openai-key (pick-openai-key))
    (dall-e-shell-openai-key (pick-openai-key))))
 
+(use-package org
+  :bind (("C-c l" . org-store-link)
+         ("C-c a" . org-agenda)
+         ("C-c c" . org-capture))
+  :custom
+  (org-agenda-files '("~/Dropbox/org/todo.org")))
+
 ;;; Emacs Lisp
 (add-hook 'emacs-lisp-mode-map-hook
           (lambda ()
@@ -573,15 +590,6 @@
 (use-package maple-preview
   :straight (:host github :repo "honmaple/emacs-maple-preview" :files ("*.el" "index.html" "static"))
   :defer t)
-
-;;; asdf
-(use-package asdf
-  :straight (:host github :repo "tabfugnic/asdf.el" :files ("asdf.el"))
-  :config (asdf-enable)
-  :autoload asdf--command asdf--format-output-to-list
-  :init
-  (defun asdf-where (plugin ver)
-	(replace-regexp-in-string "\n\\'" "" (shell-command-to-string (asdf--command "where" plugin ver)))))
 
 ;;; AWS
 (use-package aws-switch-profile
