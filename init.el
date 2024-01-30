@@ -428,8 +428,22 @@
   :bind (("C-c l" . org-store-link)
          ("C-c a" . org-agenda)
          ("C-c c" . org-capture))
-  :custom
-  (org-agenda-files '("~/Dropbox/org/todo.org")))
+  :config
+  (with-no-warnings
+    (setq org-directory "~/Dropbox/org")
+    (setq org-todo-file (concat org-directory "/todo.org"))
+    (setq org-query-file (concat org-directory "/query.org"))
+    (setq org-agenda-files `(,org-todo-file))
+    (setq org-capture-templates
+          '(("t" "TODO" entry (file+headline org-todo-file "Tasks")
+             "** TODO %? \n")
+            ("s" "SQL" entry (file+headline org-query-file "Queries")
+             "** %?%T\n#+name\n#+begin_src sql\n\n#+end_src\n" :prepend t))))
+  (use-package ob-typescript)
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((typescript . t)
+     (sql . t))))
 
 ;;; Emacs Lisp
 (add-hook 'emacs-lisp-mode-map-hook
