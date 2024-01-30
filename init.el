@@ -77,11 +77,11 @@
 (use-package asdf
   :straight (:host github :repo "tabfugnic/asdf.el" :files ("asdf.el"))
   :autoload asdf--command asdf--format-output-to-list
-  :custom (asdf-binary (concat (getenv "ASDF_DIR") "/bin/asdf"))
   :init
   (defun asdf-where (plugin ver)
 	(replace-regexp-in-string "\n\\'" "" (shell-command-to-string (asdf--command "where" plugin ver))))
   :config
+  (if (eq window-system 'mac) (setq asdf-binary (concat (getenv "ASDF_DIR") "/bin/asdf")))
   (asdf-enable))
 
 (winner-mode 1)
