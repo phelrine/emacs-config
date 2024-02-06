@@ -79,9 +79,9 @@
   :autoload asdf--command asdf--format-output-to-list
   :init
   (defun asdf-where (plugin ver)
-	(replace-regexp-in-string "\n\\'" "" (shell-command-to-string (asdf--command "where" plugin ver))))
+    (replace-regexp-in-string "\n\\'" "" (shell-command-to-string (asdf--command "where" plugin ver))))
   :config
-  (if (eq window-system 'mac) (setq asdf-binary (concat (getenv "ASDF_DIR") "/bin/asdf")))
+  (if (eq window-system 'ns) (setq asdf-binary (concat (getenv "ASDF_DIR") "/bin/asdf")))
   (asdf-enable))
 
 (winner-mode 1)
@@ -266,22 +266,35 @@
 (use-package lsp-mode
   :diminish
   :custom
-  (lsp-auto-guess-root t)
   (lsp-solargraph-use-bundler t)
   (lsp-keymap-prefix "C-c l")
   :hook
   (lsp-mode . lsp-enable-which-key-integration)
   (lsp-mode . lsp-completion-mode)
-  :autoload lsp-rename lsp-format-buffer)
-(use-package lsp-ui :hook (lsp-mode . lsp-ui-mode))
+  :commands lsp lsp-format-buffer
+  :autoload lsp-rename
+  :config
+  (require 'lsp-graphql))
+(use-package lsp-treemacs :defer t)
+(use-package lsp-biome :straight (:host github :repo "cxa/lsp-biome" :files ("lsp-biome.el")))
+(use-package lsp-ui
+  :hook (lsp-mode . lsp-ui-mode)
+  :bind (:map lsp-ui-mode-map
+              ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
+              ([remap xref-find-references] . lsp-ui-peek-find-references))
+  :custom
+  (lsp-ui-sideline-show-code-actions t)
+  (lsp-ui-doc-show-with-cursor t))
+
 (use-package string-inflection
   :after lsp-mode
   :autoload string-inflection-camelcase-function
   :init
-  (defun lsp-rename-snake-to-camel ()
-    "Rename symbol from snake_case to camelCase."
-    (interactive)
-    (lsp-rename (string-inflection-camelcase-function (thing-at-point 'symbol)))))
+  (with-eval-after-load 'lsp-mode
+    (defun lsp-rename-snake-to-camel ()
+      "Rename symbol from snake_case to camelCase."
+      (interactive)
+      (lsp-rename (string-inflection-camelcase-function (thing-at-point 'symbol))))))
 
 ;;; DAP
 (use-package dape :defer t)
@@ -445,6 +458,11 @@
    '((typescript . t)
      (sql . t))))
 
+(defun run-local-vars-mode-hook ()
+  "Run `major-mode' hook after the local variables have been processed."
+  (run-hooks (intern (concat (symbol-name major-mode) "-local-vars-hook"))))
+(add-hook 'hack-local-variables-hook 'run-local-vars-mode-hook)
+
 ;;; Emacs Lisp
 (add-hook 'emacs-lisp-mode-map-hook
           (lambda ()
@@ -494,6 +512,7 @@
               (subword-mode)
               (eglot-ensure)
               (add-hook 'before-save-hook #'eglot-format-buffer -10 t))))
+(use-package go-mode)
 ;; https://github.com/golang/tools/blob/master/gopls/doc/emacs.md#configuring-project-for-go-modules-in-emacs
 (defun project-find-go-module (dir)
   "Search for go.mod file in DIR."
@@ -544,14 +563,18 @@
   (kill-buffer))
 (use-package jest :bind (:map jest-mode-map ("q" . kill-jest-process-and-buffer)))
 (use-package vitest :load-path local-lisp-load-path)
+(defun set-lsp-enabled-clients-and-start-lsp ()
+  "Set `lsp-enabled-clients' and start lsp."
+  (setq lsp-enabled-clients '(ts-ls biome))
+  (lsp))
 (with-eval-after-load 'typescript-ts-mode
   (add-hook 'typescript-ts-mode-hook
             (lambda()
               (cov-mode)
               (setq-local cov-lcov-file-name (concat (projectile-project-root) "lcov.info"))
-              (jest-minor-mode 1)
-              (eglot-ensure)))
-  (add-hook 'tsx-ts-mode-hook #'eglot-ensure))
+              (jest-minor-mode 1)))
+  (add-hook 'tsx-ts-mode-local-vars-hook #'set-lsp-enabled-clients-and-start-lsp)
+  (add-hook 'typescript-ts-mode-local-vars-hook #'set-lsp-enabled-clients-and-start-lsp))
 
 (with-eval-after-load 'compile
   (defvar node-error-regexp "^[ ]+at \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
@@ -608,6 +631,7 @@
 ;;; AWS
 (use-package aws-switch-profile
   :defer t
+  :commands aws-switch-profile
   :straight (:host github :repo "phelrine/aws-switch-profile.el" :files ("aws-switch-profile.el")))
 
 (use-package aws-secretsmanager
