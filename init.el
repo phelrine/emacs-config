@@ -52,7 +52,6 @@
   (load bootstrap-file nil 'nomessage))
 
 (use-package diminish)
-(use-package bind-key)
 (use-package auto-package-update
   :custom
   (auto-package-update-delete-old-versions t)
@@ -134,11 +133,11 @@
   :bind (("C-S-c C-S-c" . mc/edit-lines)
          ("C->" . mc/mark-next-like-this)
          ("C-<" . mc/mark-previous-like-this)))
+(diminish 'eldoc-mode)
 (global-eldoc-mode 1)
 (use-package eldoc-box :bind ("C-c h" . eldoc-box-help-at-point))
 (use-package ace-window :bind (("C-x o" . ace-window)))
 
-;; M-x unicode-fonts-setup
 (use-package unicode-fonts :config (unicode-fonts-setup))
 ;; https://github.com/rainstormstudio/nerd-icons.el#installing-fonts
 ;; M-x nerd-icons-install-fonts
@@ -184,15 +183,10 @@
          ("C-c p f" . cape-file)
          ("C-c p k" . cape-keyword)
          ("C-c p :" . cape-emoji))
+  :commands cape-history
   :init
-  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
-  (add-to-list 'completion-at-point-functions #'cape-file)
-  (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
-  (add-to-list 'completion-at-point-functions #'cape-elisp-block)
-  (add-to-list 'completion-at-point-functions #'cape-keyword))
-
-(use-package pcmpl-args)
-(use-package pcmpl-git)
+  (dolist (func '(cape-dabbrev cape-file cape-elisp-symbol cape-elisp-block cape-keyword))
+    (add-to-list 'completion-at-point-functions func)))
 
 (use-package kind-icon
   :custom
@@ -229,8 +223,6 @@
   (("C-." . embark-act)         ;; pick some comfortable binding
    ("M-." . embark-dwim)        ;; good alternative: M-.
    ([remap describe-bindings] . embark-bindings)) ;; alternative for `describe-bindings'
-  :custom
-  (embark-prompter 'embark-completing-read-prompter)
   :init
   (add-hook 'which-key-mode-hook (lambda () (setq prefix-help-command #'embark-prefix-help-command)))
   ;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
@@ -266,13 +258,16 @@
 (use-package lsp-mode
   :diminish
   :custom
-  (lsp-auto-guess-root t)
   (lsp-solargraph-use-bundler t)
   (lsp-keymap-prefix "C-c l")
   :hook
   (lsp-mode . lsp-enable-which-key-integration)
   (lsp-mode . lsp-completion-mode)
-  :autoload lsp-rename lsp-format-buffer)
+  ((tsx-ts-mode typescript-ts-mode) . lsp)
+  :autoload lsp-rename
+  :config
+  (custom-set-variables
+   '(lsp-disabled-clients '((tsx-ts-mode . graphql-lsp) (typescript-ts-mode . graphql-lsp)))))
 (use-package lsp-ui :hook (lsp-mode . lsp-ui-mode))
 (use-package string-inflection
   :after lsp-mode
@@ -299,9 +294,7 @@
      ("S" "Difftastic show" difftastic-magit-show)]))
 (use-package forge :after magit :custom (forge-topic-list-limit '(50 . 0)))
 (use-package git-gutter :diminish)
-(use-package git-gutter-fringe
-  :after git-gutter
-  :config (global-git-gutter-mode t))
+(use-package git-gutter-fringe :after git-gutter :config (global-git-gutter-mode t))
 (use-package code-review
   :straight (:host github :repo "phelrine/code-review" :branch "fix/closql-update")
   :defer t)
@@ -320,10 +313,23 @@
   (put 'lsp-sqls-workspace-config-path 'safe-local-variable 'stringp))
 
 ;;; Terminal
+(use-package bash-completion
+  :hook (eshell-mode . bash-completion-capf-nonexclusive)
+  :config
+  (bash-completion-setup))
+(with-eval-after-load 'eshell
+  (eval-when-compile (require 'esh-mode))
+  (require 'pcmpl-gnu)
+  (bind-keys
+   :map eshell-mode-map
+   ("C-r" . cape-history)))
+(with-eval-after-load 'em-term
+  (eval-when-compile (require 'em-term))
+  (add-to-list 'eshell-visual-commands "tig"))
+
 (use-package shell-pop
   :custom
-  (shell-pop-shell-type (quote ("ansi-term" "*ansi-term*" #'(lambda nil (ansi-term shell-pop-term-shell)))))
-  (shell-pop-term-shell "/bin/zsh")
+  (shell-pop-shell-type '("eshell" "*eshell*" (lambda () (eshell))))
   (shell-pop-window-size 30)
   (shell-pop-window-position "bottom")
   :bind (("C-M-p" . shell-pop)))
@@ -382,19 +388,17 @@
 (use-package rainbow-delimiters :hook (prog-mode . rainbow-delimiters-mode))
 
 ;;; Indent
-(use-package whitespace
-  :diminish global-whitespace-mode
-  :custom
-  (whitespace-display-mappings '((space-mark 12288 [9633]) (tab-mark 9 [187 9])))
-  (whitespace-space-regexp "\\(　+\\)")
-  (whitespace-style '(face tabs tab-mark spaces space-mark))
-  (whitespace-global-modes '(not dired-mode))
-  :config
-  (global-whitespace-mode 1))
+(custom-set-variables
+ '(whitespace-display-mappings '((space-mark 12288 [9633]) (tab-mark 9 [187 9])))
+ '(whitespace-space-regexp "\\(　+\\)")
+ '(whitespace-style '(face tabs tab-mark spaces space-mark))
+ '(whitespace-global-modes '(not dired-mode)))
+(diminish 'global-whitespace-mode)
+(global-whitespace-mode 1)
 (add-hook 'before-save-hook #'delete-trailing-whitespace)
 (add-hook 'change-major-mode-after-body-hook
           (lambda ()
-            (when (or (mapcar (lambda (mode) (derived-mode-p mode)) '(term-mode magit-popup-mode)))
+            (when (cl-some #'derived-mode-p '(term-mode magit-popup-mode))
               (setq-local show-trailing-whitespace nil))))
 (add-hook 'minibuffer-setup-hook (lambda () (setq-local show-trailing-whitespace nil)))
 (use-package highlight-indent-guides :diminish :if window-system :hook (prog-mode . highlight-indent-guides-mode))
@@ -402,9 +406,9 @@
 
 ;;; treesit
 (with-eval-after-load 'treesit
-  (with-no-warnings
-    (custom-set-variables '(treesit-font-lock-level 4))
-    (add-to-list 'treesit-language-source-alist '(prisma "https://github.com/victorhqc/tree-sitter-prisma"))))
+  (eval-when-compile (require 'treesit))
+  (custom-set-variables '(treesit-font-lock-level 4))
+  (add-to-list 'treesit-language-source-alist '(prisma "https://github.com/victorhqc/tree-sitter-prisma")))
 (use-package treesit-auto
   :custom
   (treesit-auto-install 'prompt)
@@ -429,16 +433,18 @@
          ("C-c a" . org-agenda)
          ("C-c c" . org-capture))
   :config
-  (with-no-warnings
-    (setq org-directory "~/Dropbox/org")
-    (setq org-todo-file (concat org-directory "/todo.org"))
-    (setq org-query-file (concat org-directory "/query.org"))
-    (setq org-agenda-files `(,org-todo-file))
-    (setq org-capture-templates
-          '(("t" "TODO" entry (file+headline org-todo-file "Tasks")
-             "** TODO %? \n")
-            ("s" "SQL" entry (file+headline org-query-file "Queries")
-             "** %?%T\n#+name\n#+begin_src sql\n\n#+end_src\n" :prepend t))))
+  (eval-when-compile
+    (require 'org)
+    (require 'org-capture))
+  (setq org-directory "~/Dropbox/org")
+  (defvar org-todo-file (concat org-directory "/todo.org"))
+  (defvar org-query-file (concat org-directory "/query.org"))
+  (setq org-agenda-files `(,org-todo-file))
+  (setq org-capture-templates
+        '(("t" "TODO" entry (file+headline org-todo-file "Tasks")
+           "** TODO %? \n" :prepend t)
+          ("s" "SQL" entry (file+headline org-query-file "Queries")
+           "** %?%T\n#+name\n#+begin_src sql\n\n#+end_src\n" :prepend t)))
   (use-package ob-typescript)
   (org-babel-do-load-languages
    'org-babel-load-languages
@@ -488,7 +494,7 @@
 ;;; Go
 (autoload 'eglot-format-buffer "eglot")
 (with-eval-after-load 'go-ts-mode
-  (custom-set-variables '(go-ts-mode-indent-offset 4))
+  (custom-set-variables '(go-ts-mode-indent-offset tab-width))
   (add-hook 'go-ts-mode-hook
             (lambda ()
               (subword-mode)
@@ -507,7 +513,7 @@
 
 (use-package govet :commands govet)
 (use-package gotest :defer t)
-(use-package gotest-dape :load-path local-lisp-load-path :defer t)
+(use-package gotest-dape :load-path local-lisp-load-path :commands dape-go-test-at-point)
 (use-package go-gen-test :defer t)
 (use-package go-impl :commands go-impl)
 (use-package go-tag
@@ -549,10 +555,9 @@
             (lambda()
               (cov-mode)
               (setq-local cov-lcov-file-name (concat (projectile-project-root) "lcov.info"))
-              (jest-minor-mode 1)
-              (eglot-ensure)))
-  (add-hook 'tsx-ts-mode-hook #'eglot-ensure))
-
+              (jest-minor-mode 1))))
+(use-package lsp-biome
+  :straight (:host github :repo "cxa/lsp-biome" :files ("lsp-biome.el")))
 (with-eval-after-load 'compile
   (defvar node-error-regexp "^[ ]+at \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
   (add-to-list 'compilation-error-regexp-alist-alist `(nodejs ,node-error-regexp 1 2 3))
@@ -571,6 +576,7 @@
   (use-package restclient-jq))
 (use-package graphql-ts-mode
   :mode ("\\.graphql\\'" "\\.gql\\'")
+  :ensure-system-package (graphql-language-server . "npm i -g graphql-language-service-cli")
   :init
   (with-eval-after-load 'treesit
     (add-to-list 'treesit-language-source-alist
@@ -596,7 +602,9 @@
 (use-package docker
   :custom
   (docker-compose-command (or (and (eq system-type 'gnu/linux) "docker compose")  "docker-compose"))
-  :bind ("C-c C-d" . docker))
+  :bind
+  ("C-c d" . docker)
+  ("C-c C-d" . docker-compose))
 (use-package dockerfile-mode :hook (dockerfile-mode . eglot-ensure))
 (use-package docker-compose-mode :defer t)
 
@@ -621,6 +629,7 @@
 (use-package cfn-mode :defer t)
 (use-package lua-mode :defer t)
 (use-package yaml-mode :defer t)
+
 (use-package restart-emacs :commands restart-emacs)
 
 (provide 'init)
