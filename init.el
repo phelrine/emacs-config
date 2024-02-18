@@ -620,11 +620,17 @@
 (use-package docker
   :custom
   (docker-compose-command (or (and (eq system-type 'gnu/linux) "docker compose")  "docker-compose"))
+  :ensure-system-package (docker-langserver . "npm install -g dockerfile-language-server-nodejs")
   :bind
   ("C-c d" . docker)
   ("C-c C-d" . docker-compose))
-(use-package dockerfile-mode :hook (dockerfile-mode . eglot-ensure))
-(use-package docker-compose-mode :defer t)
+(add-hook 'dockerfile-ts-mode-hook #'eglot-ensure)
+(use-package docker-compose-mode
+  :hook (docker-compose-mode . eglot-ensure)
+  :ensure-system-package (docker-compose-langserver . "npm i -g @microsoft/compose-language-service")
+  :init
+  (with-eval-after-load 'eglot
+    (add-to-list 'eglot-server-programs '(docker-compose-mode . ("docker-compose-langserver" "--stdio")))))
 
 ;;; Markdown
 (use-package maple-preview
