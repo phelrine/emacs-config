@@ -32,7 +32,6 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(whitespace-tab ((t (:background "black" :foreground "LightYellow" :inverse-video t)))))
-
 (with-eval-after-load 'package
   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
   (add-to-list 'package-archives '("jcs-elpa" . "https://jcs-emacs.github.io/jcs-elpa/packages/") t))
@@ -263,11 +262,12 @@
   :hook
   (lsp-mode . lsp-enable-which-key-integration)
   (lsp-mode . lsp-completion-mode)
-  ((tsx-ts-mode typescript-ts-mode) . lsp)
+  ((tsx-ts-mode typescript-ts-mode js-ts-mode) . lsp)
   :autoload lsp-rename
   :config
+  (setq read-process-output-max (* 1024 1024))
   (custom-set-variables
-   '(lsp-disabled-clients '((tsx-ts-mode . graphql-lsp) (typescript-ts-mode . graphql-lsp)))))
+   '(lsp-disabled-clients '((tsx-ts-mode . graphql-lsp) (js-ts-mode . graphql-lsp) (typescript-ts-mode . graphql-lsp)))))
 (use-package lsp-treemacs :defer t)
 (use-package lsp-ui
   :hook (lsp-mode . lsp-ui-mode)
@@ -299,6 +299,7 @@
          ([remap vc-dir] . magit-status)))
 (use-package difftastic
   :after magit
+  :disabled t
   :config
   (transient-append-suffix 'magit-diff '(-1 -1)
     [("D" "Difftastic diff (dwim)" difftastic-magit-diff)
@@ -376,12 +377,12 @@
 ;; flycheck
 (use-package flycheck :hook (prog-mode . flycheck-mode) :diminish flycheck-mode :autoload flycheck-add-mode flycheck-add-next-checker)
 (use-package flycheck-color-mode-line :hook (flycheck-mode . flycheck-color-mode-line-mode))
-(use-package flycheck-deno
-  :after flycheck
-  :config
-  (flycheck-deno-setup)
-  (flycheck-add-mode 'deno-lint 'web-mode)
-  (flycheck-add-next-checker 'eglot-check 'deno-lint 'append))
+;; (use-package flycheck-deno
+;;   :after flycheck
+;;   :config
+;;   (flycheck-deno-setup)
+;;   (flycheck-add-mode 'deno-lint 'web-mode)
+;;   (flycheck-add-next-checker 'eglot-check 'deno-lint 'append))
 (use-package flycheck-cfn :hook (cfn-mode . flycheck-cfn-setup))
 (use-package flycheck-eglot :after (flycheck eglot) :config (global-flycheck-eglot-mode 1))
 
@@ -508,15 +509,12 @@
 (use-package flymake-haml :hook (haml-mode . flymake-haml-load))
 
 ;;; Go
-(autoload 'eglot-format-buffer "eglot")
 (with-eval-after-load 'go-ts-mode
   (custom-set-variables '(go-ts-mode-indent-offset tab-width))
   (add-hook 'go-ts-mode-hook
             (lambda ()
               (subword-mode)
-              (eglot-ensure)
-              (add-hook 'before-save-hook #'eglot-format-buffer -10 t))))
-(use-package go-mode)
+              (lsp))))
 ;; https://github.com/golang/tools/blob/master/gopls/doc/emacs.md#configuring-project-for-go-modules-in-emacs
 (defun project-find-go-module (dir)
   "Search for go.mod file in DIR."
@@ -530,7 +528,6 @@
 
 (use-package govet :commands govet)
 (use-package gotest :defer t)
-(use-package gotest-dape :load-path local-lisp-load-path :commands dape-go-test-at-point)
 (use-package go-gen-test :defer t)
 (use-package go-impl :commands go-impl)
 (use-package go-tag
@@ -559,7 +556,10 @@
   (web-mode-enable-auto-indentation nil)
   (web-mode-auto-quote-style 3)
   :mode "\\.html?\\'" "\\.erb\\'")
-
+(add-hook 'js-ts-mode-hook
+          (lambda ()
+            (setq js-indent-level 2)
+            (setq tab-width 2)))
 (defun kill-jest-process-and-buffer ()
   "Kill jest process and buffer."
   (interactive)
@@ -574,7 +574,11 @@
               (setq-local cov-lcov-file-name (concat (projectile-project-root) "lcov.info"))
               (jest-minor-mode 1))))
 (use-package lsp-biome
-  :straight (:host github :repo "cxa/lsp-biome" :files ("lsp-biome.el")))
+  :straight (:host github :repo "cxa/lsp-biome" :files ("lsp-biome.el"))
+  :custom
+  (lsp-biome-organize-imports-on-save t)
+  (lsp-biome-autofix-on-save t)
+  (lsp-biome-format-on-save t))
 
 (with-eval-after-load 'compile
   (defvar node-error-regexp "^[ ]+at \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
@@ -624,13 +628,13 @@
   :bind
   ("C-c d" . docker)
   ("C-c C-d" . docker-compose))
-(add-hook 'dockerfile-ts-mode-hook #'eglot-ensure)
-(use-package docker-compose-mode
-  :hook (docker-compose-mode . eglot-ensure)
-  :ensure-system-package (docker-compose-langserver . "npm i -g @microsoft/compose-language-service")
-  :init
-  (with-eval-after-load 'eglot
-    (add-to-list 'eglot-server-programs '(docker-compose-mode . ("docker-compose-langserver" "--stdio")))))
+;; (add-hook 'dockerfile-ts-mode-hook #'eglot-ensure)
+;; (use-package docker-compose-mode
+;;   :hook (docker-compose-mode . eglot-ensure)
+;;   :ensure-system-package (docker-compose-langserver . "npm i -g @microsoft/compose-language-service")
+;;   :init
+;;   (with-eval-after-load 'eglot
+;;     (add-to-list 'eglot-server-programs '(docker-compose-mode . ("docker-compose-langserver" "--stdio")))))
 
 ;;; Markdown
 (use-package maple-preview
