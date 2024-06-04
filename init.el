@@ -108,7 +108,6 @@
 (defvar local-lisp-load-path "~/.emacs.d/lisp")
 
 (custom-set-variables
- '(recentf-auto-cleanup 'never)
  '(recentf-max-menu-items 1000)
  '(recentf-max-saved-items 1000))
 (recentf-mode 1)
@@ -628,13 +627,13 @@
   :bind
   ("C-c d" . docker)
   ("C-c C-d" . docker-compose))
-;; (add-hook 'dockerfile-ts-mode-hook #'eglot-ensure)
-;; (use-package docker-compose-mode
-;;   :hook (docker-compose-mode . eglot-ensure)
-;;   :ensure-system-package (docker-compose-langserver . "npm i -g @microsoft/compose-language-service")
-;;   :init
-;;   (with-eval-after-load 'eglot
-;;     (add-to-list 'eglot-server-programs '(docker-compose-mode . ("docker-compose-langserver" "--stdio")))))
+(add-hook 'dockerfile-ts-mode-hook #'eglot-ensure)
+(use-package docker-compose-mode
+  :hook (docker-compose-mode . eglot-ensure)
+  :ensure-system-package (docker-compose-langserver . "npm i -g @microsoft/compose-language-service")
+  :init
+  (with-eval-after-load 'eglot
+    (add-to-list 'eglot-server-programs '(docker-compose-mode . ("docker-compose-langserver" "--stdio")))))
 
 ;;; Markdown
 (use-package maple-preview
