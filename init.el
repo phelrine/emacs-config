@@ -288,6 +288,10 @@
       (interactive)
       (lsp-rename (string-inflection-camelcase-function (thing-at-point 'symbol))))))
 
+(use-package dumber-jump
+  :config
+  (add-hook 'xref-backend-functions #'dumber-jump-xref-activate))
+
 ;;; DAP
 (use-package dape :defer t)
 
