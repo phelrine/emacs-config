@@ -79,7 +79,7 @@
   (defun asdf-where (plugin ver)
     (replace-regexp-in-string "\n\\'" "" (shell-command-to-string (asdf--command "where" plugin ver))))
   :config
-  (if (eq window-system 'ns) (setq asdf-binary (concat (getenv "ASDF_DIR") "/bin/asdf")))
+  (if (eq window-system 'ns) (setq asdf-binary (concat "/opt/homebrew/opt/asdf/libexec/" "/bin/asdf")))
   (asdf-enable))
 
 (winner-mode 1)
@@ -245,7 +245,7 @@
          ("<backtab>" . copilot-next-completion))
   :custom
   (copilot-disable-predicates '((lambda () t)))
-  (copilot-node-executable (concat (asdf-where "nodejs" "20.5.1") "/bin/node"))
+  (copilot-node-executable (concat (asdf-where "nodejs" "20.6.1") "/bin/node"))
   :commands copilot-accept-completion
   :init
   (defun my/copilot-accept-completion ()
@@ -438,6 +438,13 @@
   :custom
   ((chatgpt-shell-openai-key (pick-openai-key))
    (dall-e-shell-openai-key (pick-openai-key))))
+(use-package copilot-chat
+  :custom
+  (copilot-chat-frontend 'shell-maker)
+  :config
+  (require 'copilot-chat-shell-maker)
+  (push '(shell-maker . copilot-chat-shell-maker-init) copilot-chat-frontend-list)
+  (copilot-chat-shell-maker-init))
 
 (use-package org
   :bind (("C-c l" . org-store-link)
