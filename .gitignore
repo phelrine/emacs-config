@@ -49,3 +49,5 @@
 /var/
 /.emacs.desktop
 /.emacs.desktop.lock
+/.chatgpt-shell.el
+/copilot-chat/
