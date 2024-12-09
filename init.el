@@ -363,7 +363,7 @@
 (use-package doom-modeline :custom (doom-modeline-minor-modes t) :hook (after-init . doom-modeline-mode))
 (add-hook 'prog-mode-hook #'display-line-numbers-mode)
 
-(use-package expand-region :bind ("C-M-SPC" . er/expand-region))
+(use-package expreg :bind ("C-M-SPC" . expreg-expand))
 (use-package vundo :bind ("C-x u" . vundo))
 
 (use-package volatile-highlights :diminish :hook (after-init . volatile-highlights-mode))
