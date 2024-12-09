@@ -579,10 +579,15 @@
 (use-package vitest :load-path local-lisp-load-path)
 (with-eval-after-load 'typescript-ts-mode
   (add-hook 'typescript-ts-mode-hook
-            (lambda()
+            (lambda ()
               (cov-mode)
+              (subword-mode t)
               (setq-local cov-lcov-file-name (concat (projectile-project-root) "lcov.info"))
-              (jest-minor-mode 1))))
+              (jest-minor-mode 1)))
+  (add-hook 'tsx-ts-mode-hook
+            (lambda ()
+              (subword-mode t))))
+
 (use-package lsp-biome
   :straight (:host github :repo "cxa/lsp-biome" :files ("lsp-biome.el"))
   :custom
