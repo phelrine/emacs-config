@@ -645,6 +645,7 @@
   ("C-c C-d" . docker-compose))
 (add-hook 'dockerfile-ts-mode-hook #'eglot-ensure)
 (use-package docker-compose-mode
+  :mode ("docker-compose.yaml\\'" "compose.yaml\\'")
   :hook (docker-compose-mode . eglot-ensure)
   :ensure-system-package (docker-compose-langserver . "npm i -g @microsoft/compose-language-service")
   :init
