@@ -79,7 +79,7 @@
   (defun asdf-where (plugin ver)
     (replace-regexp-in-string "\n\\'" "" (shell-command-to-string (asdf--command "where" plugin ver))))
   :config
-  (if (eq window-system 'ns) (setq asdf-binary (concat "/opt/homebrew/opt/asdf/libexec/" "/bin/asdf")))
+  (if (eq window-system 'ns) (setq asdf-binary "/opt/homebrew/opt/asdf/bin/asdf"))
   (asdf-enable))
 
 (winner-mode 1)
@@ -646,7 +646,9 @@
 (add-hook 'dockerfile-ts-mode-hook #'eglot-ensure)
 (use-package docker-compose-mode
   :mode ("docker-compose.yaml\\'" "compose.yaml\\'")
-  :hook (docker-compose-mode . eglot-ensure)
+  :hook
+  (docker-compose-mode . eglot-ensure)
+  (docker-compose-mode . display-line-numbers-mode)
   :ensure-system-package (docker-compose-langserver . "npm i -g @microsoft/compose-language-service")
   :init
   (with-eval-after-load 'eglot
