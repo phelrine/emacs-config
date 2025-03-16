@@ -74,7 +74,6 @@
 ;;; asdf
 (use-package asdf
   :straight (:host github :repo "tabfugnic/asdf.el" :files ("asdf.el"))
-  :autoload asdf--command asdf--format-output-to-list
   :init
   (defun asdf-where (plugin ver)
     (replace-regexp-in-string "\n\\'" "" (shell-command-to-string (asdf--command "where" plugin ver))))
@@ -102,9 +101,8 @@
   (set-face-attribute 'default nil :family "Menlo" :height 180)
   (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Hiragino Kaku Gothic ProN")))
 (when (eq (window-system) 'x)
-  (set-face-attribute 'default nil :family "Inconsolata" :height 140)
-  (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP" :size 28)))
-
+  (set-face-attribute 'default nil :family "Inconsolata" :height 240)
+  (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP")))
 (defvar local-lisp-load-path "~/.emacs.d/lisp")
 
 (custom-set-variables
