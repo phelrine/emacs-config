@@ -32,9 +32,6 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(whitespace-tab ((t (:background "black" :foreground "LightYellow" :inverse-video t)))))
-(with-eval-after-load 'package
-  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
-  (add-to-list 'package-archives '("jcs-elpa" . "https://jcs-emacs.github.io/jcs-elpa/packages/") t))
 
 (eval-when-compile (require 'use-package))
 
@@ -49,6 +46,8 @@
       (goto-char (point-max))
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
+(setq straight-use-package-by-default t)
+(straight-use-package '(org :type built-in))
 
 (use-package diminish)
 (use-package auto-package-update
@@ -119,10 +118,10 @@
   :config
   (if (executable-find auth-source-kwallet-executable)
       (auth-source-kwallet-enable)))
+
 (use-package auth-source-ghcli
+  :straight nil
   :load-path local-lisp-load-path
-  :autoload auth-source-ghcli-enable
-  :init
   (auth-source-ghcli-enable))
 
 (use-package multiple-cursors
@@ -237,6 +236,7 @@
   :hook (dired-mode . dired-hide-dotfiles-mode))
 
 (use-package copilot
+  :straight (:host github :repo "copilot-emacs/copilot.el" :files ("*.el"))
   :hook (prog-mode . copilot-mode)
   :bind (("C-M-;" . copilot-complete)
          ("TAB" . my/copilot-accept-completion)
@@ -287,6 +287,7 @@
       (lsp-rename (string-inflection-camelcase-function (thing-at-point 'symbol))))))
 
 (use-package dumber-jump
+  :straight (:host github :repo "jacktasia/dumb-jump" :files ("dumb-jump.el"))
   :config
   (add-hook 'xref-backend-functions #'dumber-jump-xref-activate))
 
@@ -316,6 +317,7 @@
 
 ;;; SQL
 (use-package sql-ts-mode
+  :straight nil
   :mode ("\\.sql\\'")
   :load-path local-lisp-load-path
   :hook (sql-ts-mode . (lambda ()
@@ -441,6 +443,7 @@
   ((chatgpt-shell-openai-key (pick-openai-key))
    (dall-e-shell-openai-key (pick-openai-key))))
 (use-package copilot-chat
+  :straight (:host github :repo "chep/copilot-chat.el" :files ("*.el"))
   :custom
   (copilot-chat-frontend 'shell-maker)
   :config
@@ -574,7 +577,7 @@
   (delete-process (buffer-name (current-buffer)))
   (kill-buffer))
 (use-package jest :bind (:map jest-mode-map ("q" . kill-jest-process-and-buffer)))
-(use-package vitest :load-path local-lisp-load-path)
+(use-package vitest :load-path local-lisp-load-path :straight nil)
 (with-eval-after-load 'typescript-ts-mode
   (add-hook 'typescript-ts-mode-hook
             (lambda ()
