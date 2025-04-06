@@ -5,12 +5,12 @@
 (require 'compile)
 (require 'transient)
 
-;;; Code:
-
+;;;###autoload
 (defun vitest-find-package-json-directory ()
   "Find the directory containing package.json starting from the current directory."
   (locate-dominating-file default-directory "package.json"))
 
+;;;###autoload
 (defun vitest-get-test-relative-path ()
   "Get the relative path from root directory."
   (if-let ((file (buffer-file-name))
@@ -19,6 +19,7 @@
         (message relative-path))
     (error "No package.json found in any ancestor directories or current buffer is not associated with a file")))
 
+;;;###autoload (autoload 'vitest-transient "vitest" nil t)
 (transient-define-prefix vitest-transient ()
   "Transient for running vitest."
   ["Arguments"
@@ -47,11 +48,13 @@
       (message full-command)
       (compile full-command))))
 
+;;;###autoload
 (defun vitest-run (args)
   "Run vitest with the specified ARGS."
   (interactive (list (transient-args 'vitest-transient)))
   (vitest-execute-command args))
 
+;;;###autoload
 (defun vitest-run-current-file (args)
   "Run Vitest for the current file with specified ARGS."
   (interactive (list (transient-args 'vitest-transient)))
