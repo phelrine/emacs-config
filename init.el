@@ -33,8 +33,10 @@
  ;; If there is more than one, they won't work right.
  '(whitespace-tab ((t (:background "black" :foreground "LightYellow" :inverse-video t)))))
 
-(eval-when-compile (require 'use-package))
+(defvar straight-use-package-by-default)
 
+(eval-when-compile (require 'use-package))
+(setq use-package-verbose t)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
       (bootstrap-version 6))
@@ -46,14 +48,18 @@
       (goto-char (point-max))
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
-(setq straight-use-package-by-default t)
+(use-package straight
+  :custom (straight-use-package-by-default t)
+  :commands straight-use-package)
 (straight-use-package '(org :type built-in))
+(straight-use-package '(dired :type built-in))
 
-(use-package diminish)
+(use-package diminish :commands diminish)
 (use-package auto-package-update
   :custom
   (auto-package-update-delete-old-versions t)
   (auto-package-update-hide-results t)
+  :commands auto-package-update-maybe
   :config
   (auto-package-update-maybe))
 (use-package which-key :diminish :hook (after-init . which-key-mode))
@@ -65,6 +71,9 @@
 (use-package exec-path-from-shell
   :custom
   (exec-path-from-shell-variables '("PATH" "MANPATH"))
+  :commands
+  exec-path-from-shell-initialize
+  exec-path-from-shell-copy-envs
   :config
   (when (eq system-type 'darwin)
     (exec-path-from-shell-initialize))
@@ -73,12 +82,11 @@
 ;;; asdf
 (use-package asdf
   :straight (:host github :repo "tabfugnic/asdf.el" :files ("asdf.el"))
-  :init
-  (defun asdf-where (plugin ver)
-    (replace-regexp-in-string "\n\\'" "" (shell-command-to-string (asdf--command "where" plugin ver))))
   :config
   (if (eq window-system 'ns) (setq asdf-binary "/opt/homebrew/opt/asdf/bin/asdf"))
-  (asdf-enable))
+  (asdf-enable)
+  (defun asdf-where (plugin ver)
+    (replace-regexp-in-string "\n\\'" "" (shell-command-to-string (asdf--command "where" plugin ver)))))
 
 (winner-mode 1)
 (global-hl-line-mode 1)
@@ -103,7 +111,7 @@
   (set-face-attribute 'default nil :family "Inconsolata" :height 240)
   (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP")))
 (defvar local-lisp-load-path "~/.emacs.d/lisp")
-
+(add-to-list 'load-path local-lisp-load-path)
 (custom-set-variables
  '(recentf-max-menu-items 1000)
  '(recentf-max-saved-items 1000))
@@ -122,6 +130,7 @@
 (use-package auth-source-ghcli
   :straight nil
   :load-path local-lisp-load-path
+  :config
   (auth-source-ghcli-enable))
 
 (use-package multiple-cursors
@@ -133,7 +142,7 @@
 (use-package eldoc-box :bind ("C-c h" . eldoc-box-help-at-point))
 (use-package ace-window :bind (("C-x o" . ace-window)))
 
-(use-package unicode-fonts :config (unicode-fonts-setup))
+(use-package unicode-fonts :config unicode-fonts-setup :config (unicode-fonts-setup))
 ;; https://github.com/rainstormstudio/nerd-icons.el#installing-fonts
 ;; M-x nerd-icons-install-fonts
 (use-package nerd-icons-completion
@@ -146,13 +155,14 @@
   :diminish
   :bind (("C-x p" . projectile-command-map))
   :hook (after-init . projectile-mode)
-  :autoload projectile-project-root
+  :commands
+  projectile-project-root
   :config
   ;; FLUTTER
   (add-to-list 'projectile-project-root-files-bottom-up "pubspec.yaml")
   (add-to-list 'projectile-project-root-files-bottom-up "BUILD"))
 
-(use-package vertico :init (vertico-mode))
+(use-package vertico :commands vertico-mode :init (vertico-mode))
 (use-package orderless
   :custom
   (completion-styles '(orderless basic))
@@ -162,10 +172,14 @@
   :bind (("M-A" . marginalia-cycle)
          :map minibuffer-local-map
          ("M-A" . marginalia-cycle))
+  :commands marginalia-mode
   ;; The :init configuration is always executed (Not lazy!)
   :init
   (marginalia-mode))
 (use-package corfu
+  :commands
+  global-corfu-mode
+  corfu-mode
   :init (global-corfu-mode)
   :config
   (add-hook 'eshell-mode-hook
@@ -178,17 +192,25 @@
          ("C-c p f" . cape-file)
          ("C-c p k" . cape-keyword)
          ("C-c p :" . cape-emoji))
-  :commands cape-history
+  :commands cape-history cape-elisp-symbol cape-elisp-block
   :init
   (dolist (func '(cape-dabbrev cape-file cape-elisp-symbol cape-elisp-block cape-keyword))
-    (add-to-list 'completion-at-point-functions func)))
+    (add-to-list 'completion-at-point-functions func))
+  (add-hook 'emacs-lisp-mode-map-hook
+            (lambda ()
+              (add-to-list 'completion-at-point-functions #'cape-file)
+              (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
+              (add-to-list 'completion-at-point-functions #'cape-elisp-block))))
 
 (use-package kind-icon
   :custom
   (kind-icon-use-icons nil)
   (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
+  :commands kind-icon-margin-formatter
   :config
-  (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
+  (with-eval-after-load 'corfu
+    (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter)))
+
 (use-package dabbrev
   ;; Swap M-/ and C-M-/
   :bind (("M-/" . dabbrev-completion)
@@ -218,6 +240,7 @@
   (("C-." . embark-act)         ;; pick some comfortable binding
    ("M-." . embark-dwim)        ;; good alternative: M-.
    ([remap describe-bindings] . embark-bindings)) ;; alternative for `describe-bindings'
+  :commands embark-prefix-help-command
   :init
   (add-hook 'which-key-mode-hook (lambda () (setq prefix-help-command #'embark-prefix-help-command)))
   ;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
@@ -230,22 +253,27 @@
 (use-package embark-consult :after (consult embark))
 
 ;;; Dired
-(use-package dired-hide-dotfiles
-  :diminish
-  :bind (:map dired-mode-map (("." . dired-hide-dotfiles-mode)))
-  :hook (dired-mode . dired-hide-dotfiles-mode))
+(use-package dired
+  :bind
+  (:map dired-mode-map ("." . dired-omit-mode))
+  :custom
+  (dired-omit-files (rx (seq bol ".")))
+  :hook
+  (dired-mode . dired-omit-mode)
+  :init
+  (with-eval-after-load 'dired (require 'dired-x)))
 
 (use-package copilot
   :straight (:host github :repo "copilot-emacs/copilot.el" :files ("*.el"))
+  :defer t
   :hook (prog-mode . copilot-mode)
   :bind (("C-M-;" . copilot-complete)
          ("TAB" . my/copilot-accept-completion)
          ("<backtab>" . copilot-next-completion))
   :custom
   (copilot-disable-predicates '((lambda () t)))
-  (copilot-node-executable (concat (asdf-where "nodejs" "20.6.1") "/bin/node"))
   :commands copilot-accept-completion
-  :init
+  :config
   (defun my/copilot-accept-completion ()
     (interactive)
     (or (copilot-accept-completion)
@@ -286,11 +314,6 @@
       (interactive)
       (lsp-rename (string-inflection-camelcase-function (thing-at-point 'symbol))))))
 
-(use-package dumber-jump
-  :straight (:host github :repo "jacktasia/dumb-jump" :files ("dumb-jump.el"))
-  :config
-  (add-hook 'xref-backend-functions #'dumber-jump-xref-activate))
-
 ;;; DAP
 (use-package dape :defer t)
 
@@ -308,7 +331,7 @@
      ("S" "Difftastic show" difftastic-magit-show)]))
 (use-package forge :after magit :custom (forge-topic-list-limit '(50 . 0)))
 (use-package git-gutter :diminish)
-(use-package git-gutter-fringe :after git-gutter :config (global-git-gutter-mode t))
+(use-package git-gutter-fringe :after git-gutter :commands global-git-gutter-mode :config (global-git-gutter-mode t))
 (use-package code-review
   :straight (:host github :repo "phelrine/code-review" :branch "fix/closql-update")
   :defer t)
@@ -329,9 +352,11 @@
 
 ;;; Terminal
 (use-package bash-completion
+  :defer t
   :hook (eshell-mode . bash-completion-capf-nonexclusive)
-  :config
-  (bash-completion-setup))
+  :commands bash-completion-setup
+  :config (bash-completion-setup))
+
 (with-eval-after-load 'eshell
   (eval-when-compile (require 'esh-mode))
   (require 'pcmpl-gnu)
@@ -351,6 +376,7 @@
 
 (use-package yasnippet :diminish yas-minor-mode :hook (prog-mode . yas-minor-mode))
 (use-package popwin
+  :commands popwin-mode
   :config
   (popwin-mode 1)
   (nconc popwin:special-display-config
@@ -375,7 +401,7 @@
     :if (memq window-system '(mac ns x))
     :custom (skk-use-jisx0201-input-method t)
     :bind ("C-x j" . skk-mode)))
-(use-package ddskk-posframe :after ddskk :diminish :config (ddskk-posframe-mode t))
+(use-package ddskk-posframe :after ddskk :diminish :commands ddskk-posframe-mode :config (ddskk-posframe-mode t))
 
 ;; flycheck
 (use-package flycheck :hook (prog-mode . flycheck-mode) :diminish flycheck-mode :autoload flycheck-add-mode flycheck-add-next-checker)
@@ -387,7 +413,10 @@
 ;;   (flycheck-add-mode 'deno-lint 'web-mode)
 ;;   (flycheck-add-next-checker 'eglot-check 'deno-lint 'append))
 (use-package flycheck-cfn :hook (cfn-mode . flycheck-cfn-setup))
-(use-package flycheck-eglot :after (flycheck eglot) :config (global-flycheck-eglot-mode 1))
+(use-package flycheck-eglot
+  :after (flycheck eglot)
+  :commands global-flycheck-eglot-mode
+  :config (global-flycheck-eglot-mode 1))
 
 (use-package cov :custom (cov-coverage-mode t) :commands cov-mode)
 (use-package fancy-compilation
@@ -396,6 +425,7 @@
 
 (use-package smartparens
   :diminish
+  :defer t
   :hook
   (after-init . smartparens-global-mode)
   :config
@@ -425,33 +455,62 @@
   (custom-set-variables '(treesit-font-lock-level 4))
   (add-to-list 'treesit-language-source-alist '(prisma "https://github.com/victorhqc/tree-sitter-prisma")))
 (use-package treesit-auto
-  :custom
-  (treesit-auto-install 'prompt)
-  :commands global-treesit-auto-mode treesit-auto-add-to-auto-mode-alist
+  :custom (treesit-auto-install 'prompt)
   :init
   (global-treesit-auto-mode 1)
   :config
   (delete 'yaml treesit-auto-langs)
   (treesit-auto-add-to-auto-mode-alist 'all))
 
-;;; ChatGPT
+;;; GPT
 (defun pick-openai-key ()
   "Pick the OpenAI api key from auth source."
   (auth-source-pick-first-password :host "api.openai.com"))
 (use-package chatgpt-shell
+  :defer t
   :custom
   ((chatgpt-shell-openai-key (pick-openai-key))
    (dall-e-shell-openai-key (pick-openai-key))))
 (use-package copilot-chat
   :straight (:host github :repo "chep/copilot-chat.el" :files ("*.el"))
-  :custom
-  (copilot-chat-frontend 'shell-maker)
+  :defer t
+  :commands copilot-chat-insert-commit-message
   :config
   (require 'copilot-chat-shell-maker)
-  (push '(shell-maker . copilot-chat-shell-maker-init) copilot-chat-frontend-list)
   (copilot-chat-shell-maker-init))
+(use-package gptel :defer t)
+(use-package mcp-hub
+  :straight (:host github :repo "lizqwerscott/mcp.el" :files ("*.el"))
+  :custom
+  (mcp-hub-servers
+   `(("fetch" . (:command "uvx" :args ("mcp-server-fetch")))
+     ("github" . (:command "docker"
+                           :args ("run" "-i" "--rm" "-e" "GITHUB_PERSONAL_ACCESS_TOKEN" "ghcr.io/github/github-mcp-server")
+                           :env (:GITHUB_PERSONAL_ACCESS_TOKEN ,(plist-get (car (auth-source-search :host "api.github.com" :user "phelrine^mcp" :max 1)) :secret))))))
+  :hook (after-init . mcp-hub-start-all-server)
+  :config
+  (defun gptel-mcp-register-tool ()
+    (interactive)
+    (let ((tools (mcp-hub-get-all-tool :asyncp t :categoryp t)))
+      (mapcar #'(lambda (tool)
+                  (apply #'gptel-make-tool
+                         tool))
+              tools)))
+  (defun gptel-mcp-use-tool ()
+    (interactive)
+    (let ((tools (mcp-hub-get-all-tool :asyncp t :categoryp t)))
+      (mapcar #'(lambda (tool)
+                  (let ((path (list (plist-get tool :category)
+                                    (plist-get tool :name))))
+                    (push (gptel-get-tool path)
+                          gptel-tools)))
+              tools)))
+  (with-eval-after-load 'gptel
+    (gptel-mcp-register-tool)
+    (gptel-mcp-use-tool)))
 
 (use-package org
+  :defer t
   :bind (("C-c l" . org-store-link)
          ("C-c a" . org-agenda)
          ("C-c c" . org-capture))
@@ -480,11 +539,6 @@
 (add-hook 'hack-local-variables-hook 'run-local-vars-mode-hook)
 
 ;;; Emacs Lisp
-(add-hook 'emacs-lisp-mode-map-hook
-          (lambda ()
-            (add-to-list 'completion-at-point-functions #'cape-file)
-            (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
-            (add-to-list 'completion-at-point-functions #'cape-elisp-block)))
 (use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode) :disabled)
 (use-package eros :hook (emacs-lisp-mode . eros-mode))
 
@@ -503,6 +557,7 @@
 (use-package rubocopfmt :hook (ruby-ts-mode . rubocopfmt-mode))
 (use-package projectile-rails
   :after (ruby-ts-mode projectile)
+  :definitions projectile-rails-mode-map
   :bind (:map projectile-rails-mode-map
               ("C-c r" . hydra-projectile-rails/body)
               ("C-c f" . hydra-projectile-rails-find/body))
@@ -542,7 +597,7 @@
 (use-package go-gen-test :defer t)
 (use-package go-impl :commands go-impl)
 (use-package go-tag
-  :bind (:map go-mode-map
+  :bind (:map go-ts-mode-map
               ("C-c `" . go-tag-add)
               ("C-u C-c `" . go-tag-remove)))
 (use-package go-eldoc :after (go-mode eldoc) :hook (go-mode . go-eldoc-setup))
@@ -576,8 +631,8 @@
   (interactive)
   (delete-process (buffer-name (current-buffer)))
   (kill-buffer))
-(use-package jest :bind (:map jest-mode-map ("q" . kill-jest-process-and-buffer)))
-(use-package vitest :load-path local-lisp-load-path :straight nil)
+(use-package jest :bind (:map jest-mode-map ("q" . kill-jest-process-and-buffer)) :commands jest-minor-mode)
+(use-package vitest :load-path local-lisp-load-path :straight nil :defer t)
 (with-eval-after-load 'typescript-ts-mode
   (add-hook 'typescript-ts-mode-hook
             (lambda ()
@@ -590,6 +645,7 @@
               (subword-mode t))))
 
 (use-package lsp-biome
+  :after lsp-mode
   :straight (:host github :repo "cxa/lsp-biome" :files ("lsp-biome.el"))
   :custom
   (lsp-biome-organize-imports-on-save t)
@@ -600,7 +656,7 @@
   (defvar node-error-regexp "^[ ]+at \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
   (add-to-list 'compilation-error-regexp-alist-alist `(nodejs ,node-error-regexp 1 2 3))
   (add-to-list 'compilation-error-regexp-alist 'nodejs))
-(use-package npm)
+(use-package npm :defer t :commands npm-menu)
 (use-package deno-fmt :defer t)
 (use-package prisma-ts-mode
   :mode (("\\.prisma\\'" . prisma-ts-mode))

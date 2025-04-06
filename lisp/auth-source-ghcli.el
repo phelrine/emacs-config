@@ -11,7 +11,7 @@
 
 ;;; Code:
 
-(defvar allowed-packages '("forge" "code-review" "igist"))
+(defvar allowed-packages '("forge" "code-review" "igist" "mcp"))
 
 (cl-defun auth-source-ghcli-search (&rest spec
                                           &key backend require
