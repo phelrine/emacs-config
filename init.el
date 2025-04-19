@@ -88,6 +88,7 @@
   (defun asdf-where (plugin ver)
     (replace-regexp-in-string "\n\\'" "" (shell-command-to-string (asdf--command "where" plugin ver)))))
 
+(add-to-list 'default-frame-alist '(fullscreen . maximized))
 (winner-mode 1)
 (global-hl-line-mode 1)
 (savehist-mode 1)
@@ -269,7 +270,7 @@
   :hook (prog-mode . copilot-mode)
   :bind (("C-M-;" . copilot-complete)
          ("TAB" . my/copilot-accept-completion)
-         ("<backtab>" . copilot-next-completion))
+         ("C-<tab>" . copilot-next-completion))
   :custom
   (copilot-disable-predicates '((lambda () t)))
   :commands copilot-accept-completion
@@ -331,7 +332,7 @@
      ("S" "Difftastic show" difftastic-magit-show)]))
 (use-package forge :after magit :custom (forge-topic-list-limit '(50 . 0)))
 (use-package git-gutter :diminish)
-(use-package git-gutter-fringe :after git-gutter :commands global-git-gutter-mode :config (global-git-gutter-mode t))
+(use-package git-gutter-fringe :config (global-git-gutter-mode t))
 (use-package code-review
   :straight (:host github :repo "phelrine/code-review" :branch "fix/closql-update")
   :defer t)
@@ -478,7 +479,7 @@
   :config
   (require 'copilot-chat-shell-maker)
   (copilot-chat-shell-maker-init))
-(use-package gptel :defer t)
+(use-package gptel :defer t :straight (:host github :repo "karthink/gptel" :files ("*.el")))
 (use-package mcp-hub
   :straight (:host github :repo "lizqwerscott/mcp.el" :files ("*.el"))
   :custom
