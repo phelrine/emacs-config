@@ -520,7 +520,6 @@
   :config
   (emigo-enable) ;; Starts the background process automatically
   :custom
-  ;; Encourage using OpenRouter with Deepseek
   (emigo-model "openrouter/anthropic/claude-3.7-sonnet")
   (emigo-base-url "https://openrouter.ai/api/v1")
   (emigo-api-key (pick-emigo-api-key)))
