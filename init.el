@@ -467,6 +467,11 @@
 (defun pick-openai-key ()
   "Pick the OpenAI api key from auth source."
   (auth-source-pick-first-password :host "api.openai.com"))
+
+(defun pick-emigo-api-key ()
+  "Pick the Emigo API key from auth source."
+  (auth-source-pick-first-password :host "openrouter.ai"))
+
 (use-package chatgpt-shell
   :defer t
   :custom
@@ -509,6 +514,16 @@
   (with-eval-after-load 'gptel
     (gptel-mcp-register-tool)
     (gptel-mcp-use-tool)))
+
+(use-package emigo
+  :straight (:host github :repo "MatthewZMD/emigo" :files (:defaults "*.py" "*.el"))
+  :config
+  (emigo-enable) ;; Starts the background process automatically
+  :custom
+  ;; Encourage using OpenRouter with Deepseek
+  (emigo-model "openrouter/anthropic/claude-3.7-sonnet")
+  (emigo-base-url "https://openrouter.ai/api/v1")
+  (emigo-api-key (pick-emigo-api-key)))
 
 (use-package org
   :defer t
