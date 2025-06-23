@@ -524,6 +524,17 @@
   (emigo-base-url "https://openrouter.ai/api/v1")
   (emigo-api-key (pick-emigo-api-key)))
 
+(defun pick-anthropic-key ()
+  "Pick the Anthropic api key from auth source."
+  (auth-source-pick-first-password :host "api.anthropic.com" :login "anthropic-api-key"))
+
+(use-package claude-code
+  :straight (:host github :repo "stevemolitor/claude-code.el")
+  :ensure t
+  :commands claude-code-mode
+  :custom
+  (claude-code-anthropic-api-key (pick-anthropic-key)))
+
 (use-package org
   :defer t
   :bind (("C-c l" . org-store-link)
