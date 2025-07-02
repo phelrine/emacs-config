@@ -5,6 +5,10 @@
 
 (require 'generic-x)
 
+;;; ========================================
+;;; BASIC CONFIGURATION
+;;; ========================================
+
 ;;; Custom variables
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -32,6 +36,45 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(whitespace-tab ((t (:background "black" :foreground "LightYellow" :inverse-video t)))))
+
+;;; Basic Emacs settings
+(add-to-list 'default-frame-alist '(fullscreen . maximized))
+(winner-mode 1)
+(global-hl-line-mode 1)
+(savehist-mode 1)
+(save-place-mode 1)
+(global-auto-revert-mode 1)
+(bind-key "RET" 'newline-and-indent)
+(autoload 'winner-undo "winner" "Load winner-undo" t nil)
+(bind-keys*
+ ("C-z" . winner-undo)
+ ("C-o" . other-window)
+ ("C-h" . delete-backward-char)
+ ("C-;" . completion-at-point))
+(if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
+(defalias 'qrr 'query-replace-regexp)
+(defalias 'yes-or-no-p 'y-or-n-p)
+(defalias 'message-box 'message)
+
+;;; Font settings
+(when (eq (window-system) 'ns)
+  (set-face-attribute 'default nil :family "Menlo" :height 180)
+  (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Hiragino Kaku Gothic ProN")))
+(when (eq (window-system) 'x)
+  (set-face-attribute 'default nil :family "Inconsolata" :height 200)
+  (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP")))
+
+;;; Local lisp path
+(defvar local-lisp-load-path "~/.emacs.d/lisp")
+(add-to-list 'load-path local-lisp-load-path)
+(custom-set-variables
+ '(recentf-max-menu-items 1000)
+ '(recentf-max-saved-items 1000))
+(recentf-mode 1)
+
+;;; ========================================
+;;; PACKAGE MANAGEMENT
+;;; ========================================
 
 (defvar straight-use-package-by-default)
 
@@ -64,6 +107,10 @@
   (auto-package-update-maybe))
 (use-package which-key :diminish :hook (after-init . which-key-mode))
 
+;;; ========================================
+;;; ENVIRONMENT & AUTHENTICATION
+;;; ========================================
+
 ;;; ENV
 (setenv "LANG" "ja_JP.UTF-8")
 (if (eq system-type 'darwin)
@@ -88,36 +135,6 @@
   (defun asdf-where (plugin ver)
     (replace-regexp-in-string "\n\\'" "" (shell-command-to-string (asdf--command "where" plugin ver)))))
 
-(add-to-list 'default-frame-alist '(fullscreen . maximized))
-(winner-mode 1)
-(global-hl-line-mode 1)
-(savehist-mode 1)
-(save-place-mode 1)
-(global-auto-revert-mode 1)
-(bind-key "RET" 'newline-and-indent)
-(autoload 'winner-undo "winner" "Load winner-undo" t nil)
-(bind-keys*
- ("C-z" . winner-undo)
- ("C-o" . other-window)
- ("C-h" . delete-backward-char)
- ("C-;" . completion-at-point))
-(if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
-(defalias 'qrr 'query-replace-regexp)
-(defalias 'yes-or-no-p 'y-or-n-p)
-(defalias 'message-box 'message)
-(when (eq (window-system) 'ns)
-  (set-face-attribute 'default nil :family "Menlo" :height 180)
-  (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Hiragino Kaku Gothic ProN")))
-(when (eq (window-system) 'x)
-  (set-face-attribute 'default nil :family "Inconsolata" :height 240)
-  (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP")))
-(defvar local-lisp-load-path "~/.emacs.d/lisp")
-(add-to-list 'load-path local-lisp-load-path)
-(custom-set-variables
- '(recentf-max-menu-items 1000)
- '(recentf-max-saved-items 1000))
-(recentf-mode 1)
-
 ;;; auth-source
 (when (eq system-type 'darwin)
   (add-to-list 'auth-sources 'macos-keychain-generic)
@@ -134,14 +151,9 @@
   :config
   (auth-source-ghcli-enable))
 
-(use-package multiple-cursors
-  :bind (("C-S-c C-S-c" . mc/edit-lines)
-         ("C->" . mc/mark-next-like-this)
-         ("C-<" . mc/mark-previous-like-this)))
-(diminish 'eldoc-mode)
-(global-eldoc-mode 1)
-(use-package eldoc-box :bind ("C-c h" . eldoc-box-help-at-point))
-(use-package ace-window :bind (("C-x o" . ace-window)))
+;;; ========================================
+;;; UI & APPEARANCE
+;;; ========================================
 
 (use-package unicode-fonts :config unicode-fonts-setup :config (unicode-fonts-setup))
 ;; https://github.com/rainstormstudio/nerd-icons.el#installing-fonts
@@ -151,6 +163,26 @@
   (after-init . nerd-icons-completion-mode)
   (marginalia-mode . nerd-icons-completion-marginalia-setup))
 (use-package nerd-icons-dired :diminish :hook (dired-mode . nerd-icons-dired-mode))
+
+(use-package solarized-theme :config (load-theme 'solarized-light t))
+(use-package doom-modeline :custom (doom-modeline-minor-modes t) :hook (after-init . doom-modeline-mode))
+(add-hook 'prog-mode-hook #'display-line-numbers-mode)
+
+(use-package volatile-highlights :diminish :hook (after-init . volatile-highlights-mode))
+(use-package beacon :diminish beacon-mode :hook (after-init . beacon-mode) :custom (beacon-color "light green"))
+
+(use-package popwin
+  :commands popwin-mode
+  :config
+  (popwin-mode 1)
+  (nconc popwin:special-display-config
+         '((" *auto-async-byte-compile*" :noselect t)
+           ("*Warnings*" :noselect t)
+           ("*Rubocopfmt Errors*" :noselect t))))
+
+;;; ========================================
+;;; COMPLETION, SEARCH & NAVIGATION
+;;; ========================================
 
 (use-package projectile
   :diminish
@@ -253,105 +285,50 @@
                  (window-parameters (mode-line-format . none)))))
 (use-package embark-consult :after (consult embark))
 
-;;; Dired
-(use-package dired
-  :bind
-  (:map dired-mode-map ("." . dired-omit-mode))
-  :custom
-  (dired-omit-files (rx (seq bol ".")))
-  :hook
-  (dired-mode . dired-omit-mode)
-  :init
-  (with-eval-after-load 'dired (require 'dired-x)))
+;;; ========================================
+;;; EDITOR FEATURES
+;;; ========================================
 
-(use-package copilot
-  :straight (:host github :repo "copilot-emacs/copilot.el" :files ("*.el"))
-  :defer t
-  :hook (prog-mode . copilot-mode)
-  :bind (("C-M-;" . copilot-complete)
-         ("TAB" . my/copilot-accept-completion)
-         ("C-<tab>" . copilot-next-completion))
-  :custom
-  (copilot-disable-predicates '((lambda () t)))
-  :commands copilot-accept-completion
-  :config
-  (defun my/copilot-accept-completion ()
-    (interactive)
-    (or (copilot-accept-completion)
-        (indent-for-tab-command))))
+(use-package multiple-cursors
+  :bind (("C-S-c C-S-c" . mc/edit-lines)
+         ("C->" . mc/mark-next-like-this)
+         ("C-<" . mc/mark-previous-like-this)))
+(diminish 'eldoc-mode)
+(global-eldoc-mode 1)
+(use-package eldoc-box :bind ("C-c h" . eldoc-box-help-at-point))
+(use-package ace-window :bind (("C-x o" . ace-window)))
 
-(use-package lsp-mode
+(use-package yasnippet :diminish yas-minor-mode :hook (prog-mode . yas-minor-mode))
+
+(use-package open-junk-file :commands open-junk-file)
+
+(use-package expreg :bind ("C-M-SPC" . expreg-expand))
+(use-package vundo :bind ("C-x u" . vundo))
+
+(use-package smartparens
   :diminish
-  :custom
-  (lsp-solargraph-use-bundler t)
-  (lsp-keymap-prefix "C-c l")
+  :defer t
   :hook
-  (lsp-mode . lsp-enable-which-key-integration)
-  (lsp-mode . lsp-completion-mode)
-  ((tsx-ts-mode typescript-ts-mode js-ts-mode) . lsp)
-  :autoload lsp-rename
+  (after-init . smartparens-global-mode)
   :config
-  (setq read-process-output-max (* 1024 1024))
-  (custom-set-variables
-   '(lsp-disabled-clients '((tsx-ts-mode . graphql-lsp) (js-ts-mode . graphql-lsp) (typescript-ts-mode . graphql-lsp)))))
-(use-package lsp-treemacs :defer t)
-(use-package lsp-ui
-  :hook (lsp-mode . lsp-ui-mode)
-  :bind (:map lsp-ui-mode-map
-              ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
-              ([remap xref-find-references] . lsp-ui-peek-find-references))
-  :custom
-  (lsp-ui-sideline-show-code-actions t)
-  (lsp-ui-doc-show-with-cursor t)
-  :config
-  (require 'lsp-graphql))
-(use-package string-inflection
-  :after lsp-mode
-  :autoload string-inflection-camelcase-function
-  :init
-  (with-eval-after-load 'lsp-mode
-    (defun lsp-rename-snake-to-camel ()
-      "Rename symbol from snake_case to camelCase."
-      (interactive)
-      (lsp-rename (string-inflection-camelcase-function (thing-at-point 'symbol))))))
+  (require 'smartparens-config))
+(use-package rainbow-delimiters :hook (prog-mode . rainbow-delimiters-mode))
 
-;;; DAP
-(use-package dape :defer t)
+;;; Input Method
+(if (locate-library "skk-autoloads")
+    (bind-key "C-x j" 'skk-mode)
+  (use-package ddskk
+    :if (memq window-system '(mac ns x))
+    :custom (skk-use-jisx0201-input-method t)
+    :bind ("C-x j" . skk-mode)))
+(use-package ddskk-posframe :after ddskk :diminish :commands ddskk-posframe-mode :config (ddskk-posframe-mode t))
 
-;;; git
-(use-package magit
-  :custom (magit-repository-directories (list (cons (concat (getenv "HOME") "/repos/") 1)))
-  :bind (("C-x g" . magit-status)
-         ([remap vc-dir] . magit-status)))
-(use-package difftastic
-  :after magit
-  :disabled t
-  :config
-  (transient-append-suffix 'magit-diff '(-1 -1)
-    [("D" "Difftastic diff (dwim)" difftastic-magit-diff)
-     ("S" "Difftastic show" difftastic-magit-show)]))
-(use-package forge :after magit :custom (forge-topic-list-limit '(50 . 0)))
-(use-package git-gutter :diminish)
-(use-package git-gutter-fringe :config (global-git-gutter-mode t))
-(use-package code-review
-  :straight (:host github :repo "phelrine/code-review" :branch "fix/closql-update")
-  :defer t)
-(use-package igist :custom (igist-current-user-name "phelrine") :commands igist-dispatch)
-(use-package browse-at-remote :commands browse-at-remote)
+;;; ========================================
+;;; TERMINAL & SHELL
+;;; ========================================
 
-;;; SQL
-(use-package sql-ts-mode
-  :straight nil
-  :mode ("\\.sql\\'")
-  :load-path local-lisp-load-path
-  :hook (sql-ts-mode . (lambda ()
-                         (setq lsp-enable-indentation nil)
-                         (lsp)
-                         (indent-tabs-mode t)))
-  :init
-  (put 'lsp-sqls-workspace-config-path 'safe-local-variable 'stringp))
+(use-package vterm :straight t)
 
-;;; Terminal
 (use-package bash-completion
   :defer t
   :hook (eshell-mode . bash-completion-capf-nonexclusive)
@@ -375,95 +352,11 @@
   (shell-pop-window-position "bottom")
   :bind (("C-M-p" . shell-pop)))
 
-(use-package yasnippet :diminish yas-minor-mode :hook (prog-mode . yas-minor-mode))
-(use-package popwin
-  :commands popwin-mode
-  :config
-  (popwin-mode 1)
-  (nconc popwin:special-display-config
-         '((" *auto-async-byte-compile*" :noselect t)
-           ("*Warnings*" :noselect t)
-           ("*Rubocopfmt Errors*" :noselect t))))
+;;; ========================================
+;;; AI ASSISTANCE
+;;; ========================================
 
-(use-package open-junk-file :commands open-junk-file)
-(use-package solarized-theme :config (load-theme 'solarized-light t))
-(use-package doom-modeline :custom (doom-modeline-minor-modes t) :hook (after-init . doom-modeline-mode))
-(add-hook 'prog-mode-hook #'display-line-numbers-mode)
-
-(use-package expreg :bind ("C-M-SPC" . expreg-expand))
-(use-package vundo :bind ("C-x u" . vundo))
-
-(use-package volatile-highlights :diminish :hook (after-init . volatile-highlights-mode))
-(use-package beacon :diminish beacon-mode :hook (after-init . beacon-mode) :custom (beacon-color "light green"))
-
-(if (locate-library "skk-autoloads")
-    (bind-key "C-x j" 'skk-mode)
-  (use-package ddskk
-    :if (memq window-system '(mac ns x))
-    :custom (skk-use-jisx0201-input-method t)
-    :bind ("C-x j" . skk-mode)))
-(use-package ddskk-posframe :after ddskk :diminish :commands ddskk-posframe-mode :config (ddskk-posframe-mode t))
-
-;; flycheck
-(use-package flycheck :hook (prog-mode . flycheck-mode) :diminish flycheck-mode :autoload flycheck-add-mode flycheck-add-next-checker)
-(use-package flycheck-color-mode-line :hook (flycheck-mode . flycheck-color-mode-line-mode))
-;; (use-package flycheck-deno
-;;   :after flycheck
-;;   :config
-;;   (flycheck-deno-setup)
-;;   (flycheck-add-mode 'deno-lint 'web-mode)
-;;   (flycheck-add-next-checker 'eglot-check 'deno-lint 'append))
-(use-package flycheck-cfn :hook (cfn-mode . flycheck-cfn-setup))
-(use-package flycheck-eglot
-  :after (flycheck eglot)
-  :commands global-flycheck-eglot-mode
-  :config (global-flycheck-eglot-mode 1))
-
-(use-package cov :custom (cov-coverage-mode t) :commands cov-mode)
-(use-package fancy-compilation
-  :hook (compilation-mode . fancy-compilation-mode)
-  :custom (fancy-compilation-override-colors nil))
-
-(use-package smartparens
-  :diminish
-  :defer t
-  :hook
-  (after-init . smartparens-global-mode)
-  :config
-  (require 'smartparens-config))
-(use-package rainbow-delimiters :hook (prog-mode . rainbow-delimiters-mode))
-
-;;; Indent
-(custom-set-variables
- '(whitespace-display-mappings '((space-mark 12288 [9633]) (tab-mark 9 [187 9])))
- '(whitespace-space-regexp "\\(　+\\)")
- '(whitespace-style '(face tabs tab-mark spaces space-mark))
- '(whitespace-global-modes '(not dired-mode)))
-(diminish 'global-whitespace-mode)
-(global-whitespace-mode 1)
-(add-hook 'before-save-hook #'delete-trailing-whitespace)
-(add-hook 'change-major-mode-after-body-hook
-          (lambda ()
-            (when (cl-some #'derived-mode-p '(term-mode magit-popup-mode))
-              (setq-local show-trailing-whitespace nil))))
-(add-hook 'minibuffer-setup-hook (lambda () (setq-local show-trailing-whitespace nil)))
-(use-package highlight-indent-guides :diminish :if window-system :hook (prog-mode . highlight-indent-guides-mode))
-(use-package indent-tools :bind ("C-c >" . indent-tools-hydra/body))
-
-;;; treesit
-(with-eval-after-load 'treesit
-  (eval-when-compile (require 'treesit))
-  (custom-set-variables '(treesit-font-lock-level 4))
-  (add-to-list 'treesit-language-source-alist '(prisma "https://github.com/victorhqc/tree-sitter-prisma")))
-(use-package treesit-auto
-  :custom (treesit-auto-install 'prompt)
-  :init
-  (global-treesit-auto-mode 1)
-  :config
-  (delete 'yaml treesit-auto-langs)
-  (treesit-auto-add-to-auto-mode-alist 'all))
-
-;;; GPT
+;;; API key helpers
 (defun pick-openai-key ()
   "Pick the OpenAI api key from auth source."
   (auth-source-pick-first-password :host "api.openai.com"))
@@ -472,6 +365,36 @@
   "Pick the Emigo API key from auth source."
   (auth-source-pick-first-password :host "openrouter.ai"))
 
+(defalias 'pick-anthropic-key 'pick-emigo-api-key)
+
+;;; Copilot
+(use-package copilot
+  :straight (:host github :repo "copilot-emacs/copilot.el" :files ("*.el"))
+  :defer t
+  :hook (prog-mode . copilot-mode)
+  :bind (("C-M-;" . copilot-complete)
+         ("TAB" . my/copilot-accept-completion)
+         ("C-<tab>" . copilot-next-completion))
+  :custom
+  (copilot-disable-predicates '((lambda () (string-match-p "\\*temp\\*" (buffer-name)))))
+  :commands copilot-accept-completion
+  :config
+  (defun my/copilot-accept-completion ()
+    (interactive)
+    (or (copilot-accept-completion)
+        (indent-for-tab-command))))
+
+;;; Claude Code
+(use-package claude-code
+  :straight (:type git :host github :repo "stevemolitor/claude-code.el" :branch "main"
+                   :files ("*.el" (:exclude "images/*")))
+  :custom (claude-code-terminal-backend 'vterm)
+  :bind-keymap
+  ("C-c c" . claude-code-command-map) ;; or your preferred key
+  :config
+  (claude-code-mode))
+
+;;; ChatGPT & GPT Tools
 (use-package chatgpt-shell
   :defer t
   :custom
@@ -524,22 +447,149 @@
   (emigo-base-url "https://openrouter.ai/api/v1")
   (emigo-api-key (pick-emigo-api-key)))
 
-(defun pick-anthropic-key ()
-  "Pick the Anthropic api key from auth source."
-  (auth-source-pick-first-password :host "api.anthropic.com" :login "anthropic-api-key"))
+;;; ========================================
+;;; LSP & DEVELOPMENT TOOLS
+;;; ========================================
 
-(use-package claude-code
-  :straight (:host github :repo "stevemolitor/claude-code.el")
-  :ensure t
-  :commands claude-code-mode
+(use-package lsp-mode
+  :diminish
   :custom
-  (claude-code-anthropic-api-key (pick-anthropic-key)))
+  (lsp-solargraph-use-bundler t)
+  (lsp-keymap-prefix "C-c l")
+  :hook
+  (lsp-mode . lsp-enable-which-key-integration)
+  (lsp-mode . lsp-completion-mode)
+  ((tsx-ts-mode typescript-ts-mode js-ts-mode) . lsp)
+  :autoload lsp-rename
+  :config
+  (setq read-process-output-max (* 1024 1024))
+  (custom-set-variables
+   '(lsp-disabled-clients '((tsx-ts-mode . graphql-lsp) (js-ts-mode . graphql-lsp) (typescript-ts-mode . graphql-lsp)))))
+(use-package lsp-treemacs :defer t)
+(use-package lsp-ui
+  :hook (lsp-mode . lsp-ui-mode)
+  :custom
+  (lsp-ui-sideline-show-code-actions t)
+  (lsp-ui-doc-show-with-cursor t)
+  :config
+  (require 'lsp-graphql)
+  (bind-keys :map lsp-ui-mode-map
+             ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
+             ([remap xref-find-references] . lsp-ui-peek-find-references)))
+(use-package string-inflection
+  :after lsp-mode
+  :autoload string-inflection-camelcase-function
+  :init
+  (with-eval-after-load 'lsp-mode
+    (defun lsp-rename-snake-to-camel ()
+      "Rename symbol from snake_case to camelCase."
+      (interactive)
+      (lsp-rename (string-inflection-camelcase-function (thing-at-point 'symbol))))))
+
+;;; DAP
+(use-package dape :defer t)
+
+;;; flycheck
+(use-package flycheck :hook (prog-mode . flycheck-mode) :diminish flycheck-mode :autoload flycheck-add-mode flycheck-add-next-checker)
+(use-package flycheck-color-mode-line :hook (flycheck-mode . flycheck-color-mode-line-mode))
+;; (use-package flycheck-deno
+;;   :after flycheck
+;;   :config
+;;   (flycheck-deno-setup)
+;;   (flycheck-add-mode 'deno-lint 'web-mode)
+;;   (flycheck-add-next-checker 'eglot-check 'deno-lint 'append))
+(use-package flycheck-cfn :hook (cfn-mode . flycheck-cfn-setup))
+(use-package flycheck-eglot
+  :after (flycheck eglot)
+  :commands global-flycheck-eglot-mode
+  :config (global-flycheck-eglot-mode 1))
+
+(use-package cov :custom (cov-coverage-mode t) :commands cov-mode)
+(use-package fancy-compilation
+  :hook (compilation-mode . fancy-compilation-mode)
+  :custom (fancy-compilation-override-colors nil))
+
+;;; ========================================
+;;; GIT & VERSION CONTROL
+;;; ========================================
+
+(use-package magit
+  :custom (magit-repository-directories (list (cons (concat (getenv "HOME") "/repos/") 1)))
+  :bind (("C-x g" . magit-status)
+         ([remap vc-dir] . magit-status)))
+(use-package difftastic
+  :after magit
+  :disabled t
+  :config
+  (transient-append-suffix 'magit-diff '(-1 -1)
+    [("D" "Difftastic diff (dwim)" difftastic-magit-diff)
+     ("S" "Difftastic show" difftastic-magit-show)]))
+(use-package forge :after magit :custom (forge-topic-list-limit '(50 . 0)))
+(use-package git-gutter :diminish)
+(use-package git-gutter-fringe :config (global-git-gutter-mode t))
+(use-package code-review
+  :straight (:host github :repo "phelrine/code-review" :branch "fix/closql-update")
+  :defer t)
+(use-package igist :custom (igist-current-user-name "phelrine") :commands igist-dispatch)
+(use-package browse-at-remote :commands browse-at-remote)
+
+;;; ========================================
+;;; FILE MANAGEMENT
+;;; ========================================
+
+;;; Dired
+(use-package dired
+  :bind
+  (:map dired-mode-map ("." . dired-omit-mode))
+  :custom
+  (dired-omit-files (rx (seq bol ".")))
+  :hook
+  (dired-mode . dired-omit-mode)
+  :init
+  (with-eval-after-load 'dired (require 'dired-x)))
+
+;;; treesit
+(with-eval-after-load 'treesit
+  (eval-when-compile (require 'treesit))
+  (custom-set-variables '(treesit-font-lock-level 4))
+  (add-to-list 'treesit-language-source-alist '(prisma "https://github.com/victorhqc/tree-sitter-prisma")))
+(use-package treesit-auto
+  :custom (treesit-auto-install 'prompt)
+  :init
+  (global-treesit-auto-mode 1)
+  :config
+  (delete 'yaml treesit-auto-langs)
+  (treesit-auto-add-to-auto-mode-alist 'all))
+
+;;; ========================================
+;;; INDENTATION & WHITESPACE
+;;; ========================================
+
+;;; Indent
+(custom-set-variables
+ '(whitespace-display-mappings '((space-mark 12288 [9633]) (tab-mark 9 [187 9])))
+ '(whitespace-space-regexp "\\(　+\\)")
+ '(whitespace-style '(face tabs tab-mark spaces space-mark))
+ '(whitespace-global-modes '(not dired-mode)))
+(diminish 'global-whitespace-mode)
+(global-whitespace-mode 1)
+(add-hook 'before-save-hook #'delete-trailing-whitespace)
+(add-hook 'change-major-mode-after-body-hook
+          (lambda ()
+            (when (cl-some #'derived-mode-p '(term-mode magit-popup-mode))
+              (setq-local show-trailing-whitespace nil))))
+(add-hook 'minibuffer-setup-hook (lambda () (setq-local show-trailing-whitespace nil)))
+(use-package highlight-indent-guides :diminish :if window-system :hook (prog-mode . highlight-indent-guides-mode))
+(use-package indent-tools :bind ("C-c >" . indent-tools-hydra/body))
+
+;;; ========================================
+;;; ORG MODE
+;;; ========================================
 
 (use-package org
   :defer t
   :bind (("C-c l" . org-store-link)
-         ("C-c a" . org-agenda)
-         ("C-c c" . org-capture))
+         ("C-c a" . org-agenda))
   :config
   (eval-when-compile
     (require 'org)
@@ -564,14 +614,16 @@
   (run-hooks (intern (concat (symbol-name major-mode) "-local-vars-hook"))))
 (add-hook 'hack-local-variables-hook 'run-local-vars-mode-hook)
 
+;;; ========================================
+;;; LANGUAGE SUPPORT
+;;; ========================================
+
 ;;; Emacs Lisp
 (use-package auto-async-byte-compile :hook (emacs-lisp-mode . enable-auto-async-byte-compile-mode) :disabled)
 (use-package eros :hook (emacs-lisp-mode . eros-mode))
 
 ;;; Swift
 (use-package swift-mode :defer t)
-
-;;; Python
 
 ;;; Ruby
 (add-hook 'ruby-ts-mode-hook #'eglot-ensure)
@@ -636,10 +688,7 @@
 (use-package dart-mode :hook (dart-mode . (lambda () (subword-mode) (eglot-ensure))) :commands dart-mode)
 (use-package flutter :after dart-mode)
 
-;;; Gradle
-(use-package groovy-mode :defer t)
-
-;;; Web
+;;; Web Development
 (use-package web-mode
   :custom
   (web-mode-markup-indent-offset 2)
@@ -702,6 +751,18 @@
     (add-to-list 'treesit-language-source-alist
                  '(graphql "https://github.com/bkegley/tree-sitter-graphql"))))
 
+;;; SQL
+(use-package sql-ts-mode
+  :straight nil
+  :mode ("\\.sql\\'")
+  :load-path local-lisp-load-path
+  :hook (sql-ts-mode . (lambda ()
+                         (setq lsp-enable-indentation nil)
+                         (lsp)
+                         (indent-tabs-mode t)))
+  :init
+  (put 'lsp-sqls-workspace-config-path 'safe-local-variable 'stringp))
+
 ;;; Scheme
 (defconst scheme-program-name "gosh -i")
 (autoload 'scheme-mode "cmuscheme" "Major mode for Scheme." t)
@@ -717,6 +778,10 @@
   "Set up scheme mode."
   (local-set-key (kbd "C-c s") 'scheme-other-window))
 (add-hook 'scheme-mode-hook 'scheme-mode-setup)
+
+;;; ========================================
+;;; INFRASTRUCTURE & TOOLS
+;;; ========================================
 
 ;;; Docker
 (use-package docker
@@ -737,11 +802,6 @@
   (with-eval-after-load 'eglot
     (add-to-list 'eglot-server-programs '(docker-compose-mode . ("docker-compose-langserver" "--stdio")))))
 
-;;; Markdown
-(use-package maple-preview
-  :straight (:host github :repo "honmaple/emacs-maple-preview" :files ("*.el" "index.html" "static"))
-  :defer t)
-
 ;;; AWS
 (use-package aws-switch-profile
   :defer t
@@ -752,13 +812,28 @@
   :commands aws-secretsmanager-show-secrets-list
   :straight (:host github :repo "phelrine/aws-secretsmanager.el" :files ("aws-secretsmanager.el")))
 
-;;; config files
+;;; ========================================
+;;; CONFIG FILES & FORMATS
+;;; ========================================
+
 (use-package nginx-mode :mode "/nginx/sites-\\(?:available\\|enabled\\)/")
 (use-package json-mode :defer t)
 (use-package json-reformat :commands json-reformat-region)
 (use-package cfn-mode :defer t)
 (use-package lua-mode :defer t)
 (use-package yaml-mode :defer t)
+
+;;; Gradle
+(use-package groovy-mode :defer t)
+
+;;; Markdown
+(use-package maple-preview
+  :straight (:host github :repo "honmaple/emacs-maple-preview" :files ("*.el" "index.html" "static"))
+  :defer t)
+
+;;; ========================================
+;;; UTILITIES
+;;; ========================================
 
 (use-package restart-emacs :commands restart-emacs)
 
