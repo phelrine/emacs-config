@@ -384,15 +384,12 @@
     (or (copilot-accept-completion)
         (indent-for-tab-command))))
 
-;;; Claude Code
-(use-package claude-code
-  :straight (:type git :host github :repo "stevemolitor/claude-code.el" :branch "main"
-                   :files ("*.el" (:exclude "images/*")))
-  :custom (claude-code-terminal-backend 'vterm)
-  :bind-keymap
-  ("C-c c" . claude-code-command-map) ;; or your preferred key
+;;; Claude Code IDE
+(use-package claude-code-ide
+  :straight (:type git :host github :repo "manzaltu/claude-code-ide.el")
+  :bind ("C-c C-'" . claude-code-ide-menu) ; Set your favorite keybinding
   :config
-  (claude-code-mode))
+  (claude-code-ide-emacs-tools-setup)) ; Optionally enable Emacs MCP tools
 
 ;;; ChatGPT & GPT Tools
 (use-package chatgpt-shell
