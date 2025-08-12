@@ -376,7 +376,7 @@
          ("TAB" . my/copilot-accept-completion)
          ("C-<tab>" . copilot-next-completion))
   :custom
-  (copilot-disable-predicates '((lambda () (string-match-p "\\*temp\\*" (buffer-name)))))
+  (copilot-disable-predicates '((lambda () t)))
   :commands copilot-accept-completion
   :config
   (defun my/copilot-accept-completion ()
