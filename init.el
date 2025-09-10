@@ -61,12 +61,23 @@
   (set-face-attribute 'default nil :family "Menlo" :height 180)
   (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Hiragino Kaku Gothic ProN")))
 (when (eq (window-system) 'x)
-  (set-face-attribute 'default nil :family "Inconsolata" :height 200)
-  (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Noto Sans CJK JP")))
+  (set-face-attribute 'default nil :family "HackGen" :height 180))
 
 ;;; Local lisp path
+;; Sync load-path with flycheck-emacs-lisp-load-path
+(with-eval-after-load 'flycheck
+  ;; Initialize flycheck-emacs-lisp-load-path with current load-path
+  (setq flycheck-emacs-lisp-load-path load-path)
+  ;; Advise add-to-list to sync with flycheck when modifying load-path
+  (defadvice add-to-list (after sync-flycheck-load-path activate)
+    "Sync flycheck-emacs-lisp-load-path when load-path is modified."
+    (when (and (eq (ad-get-arg 0) 'load-path)
+               (boundp 'flycheck-emacs-lisp-load-path))
+      (add-to-list 'flycheck-emacs-lisp-load-path (ad-get-arg 1)))))
+
 (defvar local-lisp-load-path "~/.emacs.d/lisp")
 (add-to-list 'load-path local-lisp-load-path)
+
 (custom-set-variables
  '(recentf-max-menu-items 1000)
  '(recentf-max-saved-items 1000))
@@ -96,6 +107,7 @@
   :commands straight-use-package)
 (straight-use-package '(org :type built-in))
 (straight-use-package '(dired :type built-in))
+(straight-use-package '(project :type built-in))
 
 (use-package diminish :commands diminish)
 (use-package auto-package-update
@@ -315,42 +327,56 @@
 (use-package rainbow-delimiters :hook (prog-mode . rainbow-delimiters-mode))
 
 ;;; Input Method
+(defun vterm-minibuffer-skk-setup ()
+  "Enable SKK mode in minibuffer only when called from vterm."
+  (let ((calling-buffer (current-buffer)))
+    (when (minibuffer-selected-window)
+      (with-current-buffer (window-buffer (minibuffer-selected-window))
+        (when (derived-mode-p 'vterm-mode)
+          (with-current-buffer calling-buffer
+            (when (fboundp 'skk-mode)
+              (skk-mode 1))))))))
+
 (if (locate-library "skk-autoloads")
-    (bind-key "C-x j" 'skk-mode)
+    (progn
+      (bind-key "C-x j" 'skk-mode)
+      (add-hook 'minibuffer-setup-hook 'vterm-minibuffer-skk-setup))
   (use-package ddskk
     :if (memq window-system '(mac ns x))
     :custom (skk-use-jisx0201-input-method t)
-    :bind ("C-x j" . skk-mode)))
+    :bind ("C-x j" . skk-mode)
+    :hook (minibuffer-setup . vterm-minibuffer-skk-setup)))
 (use-package ddskk-posframe :after ddskk :diminish :commands ddskk-posframe-mode :config (ddskk-posframe-mode t))
 
 ;;; ========================================
 ;;; TERMINAL & SHELL
 ;;; ========================================
 
-(use-package vterm :straight t)
+(defun vterm-skk-insert ()
+  "Insert Japanese text in vterm using prompt input."
+  (interactive)
+  (when (and (fboundp 'vterm-send-string) (derived-mode-p 'vterm-mode))
+    (let ((input (read-string "skk input: ")))
+      (vterm-send-string input))))
 
-(use-package bash-completion
-  :defer t
-  :hook (eshell-mode . bash-completion-capf-nonexclusive)
-  :commands bash-completion-setup
-  :config (bash-completion-setup))
+(use-package vterm
+  :straight t
+  :bind (:map vterm-mode-map
+         ("C-x j" . vterm-skk-insert))
+  :config
+  (defun vterm-skk-setup ()
+    "Configure Japanese input for vterm."
+    (when (fboundp 'vterm-skk-insert)
+      (local-set-key (kbd "C-x j") 'vterm-skk-insert)))
+  (add-hook 'vterm-mode-hook #'vterm-skk-setup))
 
-(with-eval-after-load 'eshell
-  (eval-when-compile (require 'esh-mode))
-  (require 'pcmpl-gnu)
-  (bind-keys
-   :map eshell-mode-map
-   ("C-r" . cape-history)))
-(with-eval-after-load 'em-term
-  (eval-when-compile (require 'em-term))
-  (add-to-list 'eshell-visual-commands "tig"))
-
-(use-package shell-pop
-  :custom
-  (shell-pop-shell-type '("eshell" "*eshell*" (lambda () (eshell))))
-  (shell-pop-window-size 30)
-  (shell-pop-window-position "bottom")
-  :bind (("C-M-p" . shell-pop)))
+(use-package eat
+  :straight (:type git :host codeberg :repo "akib/emacs-eat"
+                   :files ("*.el" ("term" "term/*.el") "*.texi"
+                           "*.ti" ("terminfo/e" "terminfo/e/*")
+                           ("terminfo/65" "terminfo/65/*")
+                           ("integration" "integration/*")
+                           (:exclude ".dir-locals.el" "*-tests.el"))))
 
 ;;; ========================================
 ;;; AI ASSISTANCE
@@ -573,7 +599,7 @@
 (add-hook 'before-save-hook #'delete-trailing-whitespace)
 (add-hook 'change-major-mode-after-body-hook
           (lambda ()
-            (when (cl-some #'derived-mode-p '(term-mode magit-popup-mode))
+            (when (cl-some #'derived-mode-p '(term-mode magit-popup-mode eat-mode vterm-mode))
               (setq-local show-trailing-whitespace nil))))
 (add-hook 'minibuffer-setup-hook (lambda () (setq-local show-trailing-whitespace nil)))
 (use-package highlight-indent-guides :diminish :if window-system :hook (prog-mode . highlight-indent-guides-mode))
@@ -728,7 +754,7 @@
   (defvar node-error-regexp "^[ ]+at \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
   (add-to-list 'compilation-error-regexp-alist-alist `(nodejs ,node-error-regexp 1 2 3))
   (add-to-list 'compilation-error-regexp-alist 'nodejs))
-(use-package npm :defer t :commands npm-menu)
+(use-package npm)
 (use-package deno-fmt :defer t)
 (use-package prisma-ts-mode
   :mode (("\\.prisma\\'" . prisma-ts-mode))
