@@ -1,4 +1,4 @@
-;;; init --- Summary
+;;; init --- Summary  -*- lexical-binding: t; -*-
 ;;; Commentary:
 
 ;;; Code:
@@ -67,13 +67,15 @@
 ;; Sync load-path with flycheck-emacs-lisp-load-path
 (with-eval-after-load 'flycheck
   ;; Initialize flycheck-emacs-lisp-load-path with current load-path
-  (setq flycheck-emacs-lisp-load-path load-path)
+  (when (boundp 'flycheck-emacs-lisp-load-path)
+    (setq flycheck-emacs-lisp-load-path load-path))
   ;; Advise add-to-list to sync with flycheck when modifying load-path
-  (defadvice add-to-list (after sync-flycheck-load-path activate)
-    "Sync flycheck-emacs-lisp-load-path when load-path is modified."
-    (when (and (eq (ad-get-arg 0) 'load-path)
-               (boundp 'flycheck-emacs-lisp-load-path))
-      (add-to-list 'flycheck-emacs-lisp-load-path (ad-get-arg 1)))))
+  (advice-add 'add-to-list :after
+    (lambda (list-var element &optional append compare-fn)
+      "Sync flycheck-emacs-lisp-load-path when load-path is modified."
+      (when (and (eq list-var 'load-path)
+                 (boundp 'flycheck-emacs-lisp-load-path))
+        (add-to-list 'flycheck-emacs-lisp-load-path element append compare-fn)))))
 
 (defvar local-lisp-load-path "~/.emacs.d/lisp")
 (add-to-list 'load-path local-lisp-load-path)
@@ -94,6 +96,8 @@
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
       (bootstrap-version 6))
+  ;; Suppress unused variable warning
+  (ignore bootstrap-version)
   (unless (file-exists-p bootstrap-file)
     (with-current-buffer
         (url-retrieve-synchronously
@@ -496,9 +500,9 @@
   (lsp-ui-doc-show-with-cursor t)
   :config
   (require 'lsp-graphql)
-  (bind-keys :map lsp-ui-mode-map
-             ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
-             ([remap xref-find-references] . lsp-ui-peek-find-references)))
+  :bind (:map lsp-ui-mode-map
+         ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
+         ([remap xref-find-references] . lsp-ui-peek-find-references)))
 (use-package string-inflection
   :after lsp-mode
   :autoload string-inflection-camelcase-function
@@ -549,7 +553,10 @@
      ("S" "Difftastic show" difftastic-magit-show)]))
 (use-package forge :after magit :custom (forge-topic-list-limit '(50 . 0)))
 (use-package git-gutter :diminish)
-(use-package git-gutter-fringe :config (global-git-gutter-mode t))
+(use-package git-gutter-fringe
+  :config
+  (when (fboundp 'global-git-gutter-mode)
+    (global-git-gutter-mode t)))
 (use-package code-review
   :straight (:host github :repo "phelrine/code-review" :branch "fix/closql-update")
   :defer t)
@@ -577,6 +584,7 @@
   (custom-set-variables '(treesit-font-lock-level 4))
   (add-to-list 'treesit-language-source-alist '(prisma "https://github.com/victorhqc/tree-sitter-prisma")))
 (use-package treesit-auto
+  :commands (global-treesit-auto-mode treesit-auto-add-to-auto-mode-alist)
   :custom (treesit-auto-install 'prompt)
   :init
   (global-treesit-auto-mode 1)
@@ -697,10 +705,12 @@
 (use-package gotest :defer t)
 (use-package go-gen-test :defer t)
 (use-package go-impl :commands go-impl)
-(use-package go-tag
-  :bind (:map go-ts-mode-map
-              ("C-c `" . go-tag-add)
-              ("C-u C-c `" . go-tag-remove)))
+(use-package go-tag :commands go-tag-add go-tag-remove)
+;; Ensure go-ts-mode-map is available
+(with-eval-after-load 'go-ts-mode
+  (when (boundp 'go-ts-mode-map)
+    (define-key go-ts-mode-map (kbd "C-c `") 'go-tag-add)
+    (define-key go-ts-mode-map (kbd "C-u C-c `") 'go-tag-remove)))
 (use-package go-eldoc :after (go-mode eldoc) :hook (go-mode . go-eldoc-setup))
 (use-package go-projectile :after (go-mode projectile))
 (use-package go-playground :custom (go-playground-init-command "go mod init snippet") :commands go-playground)
