@@ -154,6 +154,11 @@
                     (format-time-string "%Y-%m-%d %H:%M:%S")
                     (apply #'format message args)))))
 
+(defun codex-ide--buffer-session-running-p ()
+  "Return non-nil when the current Codex buffer still has a live process."
+  (let ((proc (get-buffer-process (current-buffer))))
+    (and proc (process-live-p proc))))
+
 (defun codex-ide--setup-finished-buffer-keys ()
   "Set up key bindings for finished Codex buffer."
   (local-set-key (kbd "q") #'codex-ide-quit-buffer)
@@ -163,14 +168,18 @@
 (defun codex-ide-quit-buffer ()
   "Quit the current Codex buffer."
   (interactive)
-  (quit-window t))
+  (if (codex-ide--buffer-session-running-p)
+      (user-error "Codex session still running. Use `codex-ide-stop' first")
+    (quit-window t)))
 
 (defun codex-ide-restart-session ()
   "Restart Codex session in current buffer."
   (interactive)
-  (let ((project-root (codex-ide--project-root)))
-    (kill-buffer (current-buffer))
-    (codex-ide-start)))
+  (if (codex-ide--buffer-session-running-p)
+      (user-error "Codex session still running. Stop it before restarting")
+    (let ((project-root (codex-ide--project-root)))
+      (kill-buffer (current-buffer))
+      (codex-ide-start))))
 
 ;;; Session Management
 
