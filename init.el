@@ -421,6 +421,19 @@
   :config
   (claude-code-ide-emacs-tools-setup)) ; Optionally enable Emacs MCP tools
 
+;;; Codex IDE
+(use-package codex-ide
+  :load-path "~/.emacs.d/lisp/codex"
+  :straight nil
+  :defer t
+  :commands (codex-ide-start codex-ide-resume codex-ide-resume-with-selection
+             codex-ide-stop codex-ide-switch-to-buffer codex-ide-toggle
+             codex-ide-list-sessions codex-ide-menu)
+  :bind ("C-c C-\"" . codex-ide-menu)
+  :hook (after-init . codex-ide-setup)
+  :config
+  (require 'codex-transient))
+
 ;;; ChatGPT & GPT Tools
 (use-package chatgpt-shell
   :defer t
