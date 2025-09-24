@@ -51,3 +51,5 @@
 /.emacs.desktop.lock
 /.chatgpt-shell.el
 /copilot-chat/
+/.emigo_repomap/
+/tutorial/
