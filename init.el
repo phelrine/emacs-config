@@ -415,7 +415,26 @@
   :straight (:type git :host github :repo "manzaltu/claude-code-ide.el")
   :bind ("C-c C-'" . claude-code-ide-menu) ; Set your favorite keybinding
   :config
-  (claude-code-ide-emacs-tools-setup)) ; Optionally enable Emacs MCP tools
+  (claude-code-ide-emacs-tools-setup) ; Optionally enable Emacs MCP tools
+
+  ;; claude-code-ideバッファでC-oキーバインドを無効化
+  (defun claude-code-ide-override-c-o-binding ()
+    "Override C-o binding in claude-code-ide buffers to allow original functionality."
+    (when (string-match-p "\\*claude-code" (buffer-name))
+      ;; override-global-mapからC-oを削除
+      (define-key override-global-map (kbd "C-o") nil)))
+
+  ;; 非Claude Codeバッファでのother-window復元
+  (defun claude-code-ide-restore-c-o-binding ()
+    "Restore C-o binding to other-window in non-claude-code buffers."
+    (unless (string-match-p "\\*claude-code" (buffer-name))
+      (define-key override-global-map (kbd "C-o") 'other-window)))
+
+  ;; バッファ切り替え時にチェック
+  (add-hook 'buffer-list-update-hook
+            (lambda ()
+              (claude-code-ide-override-c-o-binding)
+              (claude-code-ide-restore-c-o-binding))))
 
 ;;; ChatGPT & GPT Tools
 (use-package chatgpt-shell
