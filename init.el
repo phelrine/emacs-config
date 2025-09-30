@@ -450,12 +450,9 @@
 (use-package gptel :defer t :straight (:host github :repo "karthink/gptel" :files ("*.el")))
 (use-package mcp-hub
   :straight (:host github :repo "lizqwerscott/mcp.el" :files ("*.el"))
-  :custom
-  (mcp-hub-servers
-   `(("fetch" . (:command "uvx" :args ("mcp-server-fetch")))
-     ("github" . (:command "docker"
-                           :args ("run" "-i" "--rm" "-e" "GITHUB_PERSONAL_ACCESS_TOKEN" "ghcr.io/github/github-mcp-server")
-                           :env (:GITHUB_PERSONAL_ACCESS_TOKEN ,(plist-get (car (auth-source-search :host "api.github.com" :user "phelrine^mcp" :max 1)) :secret))))))
+  :preface
+  (require 'mcp-config)
+  (setq mcp-hub-servers (mcp-config-resolve-servers))
   :hook (after-init . mcp-hub-start-all-server)
   :config
   (defun gptel-mcp-register-tool ()
