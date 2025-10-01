@@ -29,6 +29,7 @@
 /forge-database-*-*.sql
 /gotools/
 /history
+/local/
 /id-manager.el
 /image-dired/
 /lisp/transcript.txt
