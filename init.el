@@ -491,17 +491,21 @@
 (use-package lsp-mode
   :diminish
   :custom
-  (lsp-solargraph-use-bundler t)
   (lsp-keymap-prefix "C-c l")
+  (lsp-ruby-lsp-use-bundler t)
+  (lsp-file-watch-ignored-directories
+   (append lsp-file-watch-ignored-directories
+           '("[/\\\\]vendor\\'" "[/\\\\]\\.bundle\\'")))
   :hook
   (lsp-mode . lsp-enable-which-key-integration)
   (lsp-mode . lsp-completion-mode)
-  ((tsx-ts-mode typescript-ts-mode js-ts-mode) . lsp)
+  ((tsx-ts-mode typescript-ts-mode js-ts-mode ruby-ts-mode) . lsp)
   :autoload lsp-rename
   :config
   (setq read-process-output-max (* 1024 1024))
+  (require 'lsp-ruby-lsp)
   (custom-set-variables
-   '(lsp-disabled-clients '((tsx-ts-mode . graphql-lsp) (js-ts-mode . graphql-lsp) (typescript-ts-mode . graphql-lsp)))))
+   '(lsp-disabled-clients '((tsx-ts-mode . graphql-lsp) (js-ts-mode . graphql-lsp) (typescript-ts-mode . graphql-lsp) (ruby-ts-mode . rubocop-ls)))))
 (use-package lsp-treemacs :defer t)
 (use-package lsp-ui
   :hook (lsp-mode . lsp-ui-mode)
@@ -667,7 +671,6 @@
 (use-package swift-mode :defer t)
 
 ;;; Ruby
-(add-hook 'ruby-ts-mode-hook #'eglot-ensure)
 (use-package inf-ruby
   :hook
   ((ruby-ts-mode . inf-ruby-minor-mode)
