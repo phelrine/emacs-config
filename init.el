@@ -322,9 +322,9 @@
 
 (use-package smartparens
   :diminish
-  :defer t
+  :defer 1
   :hook
-  (after-init . smartparens-global-mode)
+  (prog-mode . smartparens-mode)
   :config
   (require 'smartparens-config))
 (use-package rainbow-delimiters :hook (prog-mode . rainbow-delimiters-mode))
@@ -364,6 +364,7 @@
 
 (use-package vterm
   :straight t
+  :defer t
   :bind (:map vterm-mode-map
          ("C-x j" . vterm-skk-insert))
   :config
@@ -374,6 +375,7 @@
   (add-hook 'vterm-mode-hook #'vterm-skk-setup))
 
 (use-package eat
+  :defer t
   :straight (:type git :host codeberg :repo "akib/emacs-eat"
                    :files ("*.el" ("term" "term/*.el") "*.texi"
                            "*.ti" ("terminfo/e" "terminfo/e/*")
@@ -401,7 +403,8 @@
   :straight (:host github :repo "copilot-emacs/copilot.el" :files ("*.el"))
   :defer t
   :hook (prog-mode . copilot-mode)
-  :bind (("C-M-;" . copilot-complete)
+  :bind (:map copilot-mode-map
+         ("C-M-;" . copilot-complete)
          ("TAB" . my/copilot-accept-completion)
          ("C-<tab>" . copilot-next-completion))
   :custom
@@ -801,7 +804,12 @@
   (defvar node-error-regexp "^[ ]+at \\(?:[^\(\n]+ \(\\)?\\([a-zA-Z\.0-9_/-]+\\):\\([0-9]+\\):\\([0-9]+\\)\)?$")
   (add-to-list 'compilation-error-regexp-alist-alist `(nodejs ,node-error-regexp 1 2 3))
   (add-to-list 'compilation-error-regexp-alist 'nodejs))
-(use-package npm)
+(use-package npm
+  :defer t
+  :commands (npm-mode npm npm-run npm-install-menu npm-update npm-publish-menu)
+  :init
+  (dolist (feature '(npm-run npm-install npm-update npm-publish))
+    (with-eval-after-load feature (require 'npm))))
 (use-package deno-fmt :defer t)
 (use-package prisma-ts-mode
   :mode (("\\.prisma\\'" . prisma-ts-mode))
