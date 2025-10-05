@@ -3,6 +3,17 @@
 
 ;;; Code:
 
+;;; ========================================
+;;; STARTUP PROFILING
+;;; ========================================
+
+;; Load startup profiler before anything else
+;; Uncomment the following lines to enable startup profiling:
+;; (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
+;; (require 'startup-profiler)
+;; (startup-profiler-enable)
+;; Then run M-x startup-profiler-report after startup to see the results
+
 (require 'generic-x)
 
 ;;; ========================================
@@ -92,6 +103,7 @@
 
 (eval-when-compile (require 'use-package))
 (setq use-package-verbose t)
+
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
       (bootstrap-version 6))
@@ -170,7 +182,10 @@
 ;;; UI & APPEARANCE
 ;;; ========================================
 
-(use-package unicode-fonts :config unicode-fonts-setup :config (unicode-fonts-setup))
+(use-package unicode-fonts
+  :defer 2
+  :commands unicode-fonts-setup
+  :config (unicode-fonts-setup))
 ;; https://github.com/rainstormstudio/nerd-icons.el#installing-fonts
 ;; M-x nerd-icons-install-fonts
 (use-package nerd-icons-completion
@@ -180,7 +195,11 @@
 (use-package nerd-icons-dired :diminish :hook (dired-mode . nerd-icons-dired-mode))
 
 (use-package solarized-theme :config (load-theme 'solarized-light t))
-(use-package doom-modeline :custom (doom-modeline-minor-modes t) :hook (after-init . doom-modeline-mode))
+(use-package doom-modeline
+  :defer 0.5
+  :commands doom-modeline-mode
+  :custom (doom-modeline-minor-modes t)
+  :config (doom-modeline-mode 1))
 (add-hook 'prog-mode-hook #'display-line-numbers-mode)
 
 (use-package volatile-highlights :diminish :hook (after-init . volatile-highlights-mode))
@@ -335,7 +354,7 @@
   (let ((calling-buffer (current-buffer)))
     (when (minibuffer-selected-window)
       (with-current-buffer (window-buffer (minibuffer-selected-window))
-        (when (derived-mode-p 'vterm-mode)
+        (when (and (fboundp 'vterm-mode) (derived-mode-p 'vterm-mode))
           (with-current-buffer calling-buffer
             (when (fboundp 'skk-mode)
               (skk-mode 1))))))))
@@ -419,6 +438,8 @@
 ;;; Claude Code IDE
 (use-package claude-code-ide
   :straight (:type git :host github :repo "manzaltu/claude-code-ide.el")
+  :defer t
+  :commands claude-code-ide-menu
   :bind ("C-c C-'" . claude-code-ide-menu)
   :config
   (claude-code-ide-emacs-tools-setup)
@@ -457,7 +478,6 @@
              codex-ide-stop codex-ide-switch-to-buffer codex-ide-toggle
              codex-ide-list-sessions codex-ide-menu)
   :bind ("C-c C-\"" . codex-ide-menu)
-  :hook (after-init . codex-ide-setup)
   :config
   (require 'codex-transient))
 
@@ -476,11 +496,13 @@
   (copilot-chat-shell-maker-init))
 (use-package gptel :defer t :straight (:host github :repo "karthink/gptel" :files ("*.el")))
 (use-package mcp-hub
+  :defer 2
   :straight (:host github :repo "lizqwerscott/mcp.el" :files ("*.el"))
   :preface
   (require 'mcp-config)
   (setq mcp-hub-servers (mcp-config-resolve-servers))
-  :hook (after-init . mcp-hub-start-all-server)
+  :init
+  (run-with-idle-timer 2 nil #'mcp-hub-start-all-server)
   :config
   (defun gptel-mcp-register-tool ()
     (interactive)
@@ -503,6 +525,7 @@
     (gptel-mcp-use-tool)))
 
 (use-package emigo
+  :defer 3
   :straight (:host github :repo "MatthewZMD/emigo" :files (:defaults "*.py" "*.el"))
   :config
   (emigo-enable) ;; Starts the background process automatically
@@ -517,19 +540,21 @@
 
 (use-package lsp-mode
   :diminish
+  :defer t
   :custom
   (lsp-keymap-prefix "C-c l")
   (lsp-ruby-lsp-use-bundler t)
-  (lsp-file-watch-ignored-directories
-   (append lsp-file-watch-ignored-directories
-           '("[/\\\\]vendor\\'" "[/\\\\]\\.bundle\\'")))
   :hook
   (lsp-mode . lsp-enable-which-key-integration)
   (lsp-mode . lsp-completion-mode)
   ((tsx-ts-mode typescript-ts-mode js-ts-mode ruby-ts-mode) . lsp)
   :autoload lsp-rename
-  :config
+  :init
   (setq read-process-output-max (* 1024 1024))
+  :config
+  (setq lsp-file-watch-ignored-directories
+        (append lsp-file-watch-ignored-directories
+                '("[/\\\\]vendor\\'" "[/\\\\]\\.bundle\\'")))
   (require 'lsp-ruby-lsp)
   (custom-set-variables
    '(lsp-disabled-clients '((tsx-ts-mode . graphql-lsp) (js-ts-mode . graphql-lsp) (typescript-ts-mode . graphql-lsp) (ruby-ts-mode . rubocop-ls)))))
@@ -593,8 +618,9 @@
     [("D" "Difftastic diff (dwim)" difftastic-magit-diff)
      ("S" "Difftastic show" difftastic-magit-show)]))
 (use-package forge :after magit :custom (forge-topic-list-limit '(50 . 0)))
-(use-package git-gutter :diminish)
+(use-package git-gutter :diminish :defer 1)
 (use-package git-gutter-fringe
+  :defer 1
   :config
   (when (fboundp 'global-git-gutter-mode)
     (global-git-gutter-mode t)))
@@ -648,7 +674,11 @@
 (add-hook 'before-save-hook #'delete-trailing-whitespace)
 (add-hook 'change-major-mode-after-body-hook
           (lambda ()
-            (when (cl-some #'derived-mode-p '(term-mode magit-popup-mode eat-mode vterm-mode))
+            (when (or (derived-mode-p 'term-mode)
+                      (derived-mode-p 'magit-popup-mode)
+                      (derived-mode-p 'eat-mode)
+                      (and (fboundp 'vterm-mode)
+                           (derived-mode-p 'vterm-mode)))
               (setq-local show-trailing-whitespace nil))))
 (add-hook 'minibuffer-setup-hook (lambda () (setq-local show-trailing-whitespace nil)))
 (use-package highlight-indent-guides :diminish :if window-system :hook (prog-mode . highlight-indent-guides-mode))
@@ -662,20 +692,20 @@
   :defer t
   :bind (("C-c l" . org-store-link)
          ("C-c a" . org-agenda))
-  :config
-  (eval-when-compile
-    (require 'org)
-    (require 'org-capture))
+  :init
   (setq org-directory "~/Dropbox/org")
-  (defvar org-todo-file (concat org-directory "/todo.org"))
-  (defvar org-query-file (concat org-directory "/query.org"))
+  :config
+  (defvar org-todo-file (concat org-directory "/todo.org")
+    "Path to the org-mode TODO file.")
+  (defvar org-query-file (concat org-directory "/query.org")
+    "Path to the org-mode query file.")
   (setq org-agenda-files `(,org-todo-file))
-  (setq org-capture-templates
+  (customize-set-variable 'org-capture-templates
         '(("t" "TODO" entry (file+headline org-todo-file "Tasks")
            "** TODO %? \n" :prepend t)
           ("s" "SQL" entry (file+headline org-query-file "Queries")
            "** %?%T\n#+name\n#+begin_src sql\n\n#+end_src\n" :prepend t)))
-  (use-package ob-typescript)
+  (use-package ob-typescript :defer t)
   (org-babel-do-load-languages
    'org-babel-load-languages
    '((typescript . t)
@@ -914,6 +944,20 @@
 ;;; ========================================
 
 (use-package restart-emacs :commands restart-emacs)
+
+;;; ========================================
+;;; STARTUP OPTIMIZATION - POST INIT
+;;; ========================================
+
+;; Restore GC threshold after startup
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (setq gc-cons-threshold 16000000
+                  gc-cons-percentage 0.1)
+            (message "GC threshold restored to normal")))
+
+;; Run GC when idle for 5 seconds
+(run-with-idle-timer 5 t #'garbage-collect)
 
 (provide 'init)
 ;;; init.el ends here
