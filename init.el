@@ -27,7 +27,6 @@
  '(show-trailing-whitespace t)
  '(tab-width 4)
  '(tool-bar-mode nil)
- '(use-package-always-ensure t)
  '(warning-suppress-log-types '((use-package)))
  '(warning-suppress-types '((use-package))))
 (custom-set-faces
@@ -48,9 +47,9 @@
 (autoload 'winner-undo "winner" "Load winner-undo" t nil)
 (bind-keys*
  ("C-z" . winner-undo)
- ("C-o" . other-window)
  ("C-h" . delete-backward-char)
  ("C-;" . completion-at-point))
+(bind-key "C-o" 'other-window)
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 (defalias 'qrr 'query-replace-regexp)
 (defalias 'yes-or-no-p 'y-or-n-p)
@@ -417,9 +416,34 @@
 ;;; Claude Code IDE
 (use-package claude-code-ide
   :straight (:type git :host github :repo "manzaltu/claude-code-ide.el")
-  :bind ("C-c C-'" . claude-code-ide-menu) ; Set your favorite keybinding
+  :bind ("C-c C-'" . claude-code-ide-menu)
   :config
-  (claude-code-ide-emacs-tools-setup)) ; Optionally enable Emacs MCP tools
+  (claude-code-ide-emacs-tools-setup)
+
+  ;; C-o をターミナルに直接送信する設定
+  ;; グローバルな C-o (other-window) を claude-code-ide バッファでオーバーライド
+  (defun claude-code-ide-send-c-o ()
+    "Send C-o directly to the terminal in Claude Code IDE buffer."
+    (interactive)
+    (cond
+     ((eq claude-code-ide-terminal-backend 'vterm)
+      (when (fboundp 'vterm-send-string)
+        (vterm-send-string "\C-o")))
+     ((eq claude-code-ide-terminal-backend 'eat)
+      (when (and (boundp 'eat-terminal)
+                 eat-terminal
+                 (fboundp 'eat-term-send-string))
+        (eat-term-send-string eat-terminal "\C-o")))))
+
+  (defun claude-code-ide-setup-c-o-binding ()
+    "Setup C-o keybinding for Claude Code IDE buffers only."
+    (when (and (fboundp 'claude-code-ide--session-buffer-p)
+               (claude-code-ide--session-buffer-p (current-buffer)))
+      (local-set-key (kbd "C-o") #'claude-code-ide-send-c-o)))
+
+  ;; vterm と eat の両方に対応
+  (dolist (hook '(vterm-mode-hook eat-mode-hook))
+    (add-hook hook #'claude-code-ide-setup-c-o-binding)))
 
 ;;; Codex IDE
 (use-package codex-ide
