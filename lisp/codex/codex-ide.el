@@ -161,8 +161,12 @@
 
 (defun codex-ide--setup-finished-buffer-keys ()
   "Set up key bindings for finished Codex buffer."
-  (local-set-key (kbd "q") #'codex-ide-quit-buffer)
-  (local-set-key (kbd "r") #'codex-ide-restart-session)
+  ;; Create a buffer-local keymap that inherits from vterm-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map vterm-mode-map)
+    (define-key map (kbd "q") #'codex-ide-quit-buffer)
+    (define-key map (kbd "r") #'codex-ide-restart-session)
+    (use-local-map map))
   (message "Process finished. Press 'q' to close buffer, 'r' to restart session."))
 
 (defun codex-ide-quit-buffer ()
