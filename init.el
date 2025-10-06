@@ -163,6 +163,7 @@
     (replace-regexp-in-string "\n\\'" "" (shell-command-to-string (asdf--command "where" plugin ver)))))
 
 ;;; auth-source
+(require 'auth-source)
 (when (eq system-type 'darwin)
   (add-to-list 'auth-sources 'macos-keychain-generic)
   (add-to-list 'auth-sources 'macos-keychain-internet))
