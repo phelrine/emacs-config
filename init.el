@@ -90,6 +90,10 @@
 (defvar local-lisp-load-path "~/.emacs.d/lisp")
 (add-to-list 'load-path local-lisp-load-path)
 
+;; Load asdf diagnostic tools
+;; Provides M-x check-asdf-environment, asdf-quick-fix, asdf-fix-copilot-server, etc.
+(require 'check-asdf-path)
+
 (custom-set-variables
  '(recentf-max-menu-items 1000)
  '(recentf-max-saved-items 1000))
@@ -144,23 +148,18 @@
     (setenv "TMPDIR" (concat (getenv "HOME") "/.tmp")))
 (use-package exec-path-from-shell
   :custom
-  (exec-path-from-shell-variables '("PATH" "MANPATH"))
+  (exec-path-from-shell-variables '("PATH" "MANPATH" "ASDF_DIR" "ASDF_DATA_DIR"))
+  (exec-path-from-shell-arguments '("-l"))  ; Use login shell to read .zshenv
+  (exec-path-from-shell-check-startup-files nil)
   :commands
   exec-path-from-shell-initialize
   exec-path-from-shell-copy-envs
-  :config
-  (when (eq system-type 'darwin)
+  :init
+  ;; Initialize on both macOS and Linux to ensure asdf and other tools work properly
+  (unless (eq system-type 'windows-nt)
     (exec-path-from-shell-initialize))
-  (exec-path-from-shell-copy-envs '("UID" "GID")))
-
-;;; asdf
-(use-package asdf
-  :straight (:host github :repo "tabfugnic/asdf.el" :files ("asdf.el"))
   :config
-  (if (eq window-system 'ns) (setq asdf-binary "/opt/homebrew/opt/asdf/bin/asdf"))
-  (asdf-enable)
-  (defun asdf-where (plugin ver)
-    (replace-regexp-in-string "\n\\'" "" (shell-command-to-string (asdf--command "where" plugin ver)))))
+  (exec-path-from-shell-copy-envs '("UID" "GID")))
 
 ;;; auth-source
 (require 'auth-source)
@@ -428,7 +427,11 @@
          ("TAB" . my/copilot-accept-completion)
          ("C-<tab>" . copilot-next-completion))
   :custom
+  ;; Disable automatic completion - only trigger manually with C-M-;
   (copilot-disable-predicates '((lambda () t)))
+  ;; Enable logging to debug server crashes
+  ;; Check *copilot stderr* and *copilot events* buffers for errors
+  (copilot-log-max 1000)
   :commands copilot-accept-completion
   :config
   (defun my/copilot-accept-completion ()
