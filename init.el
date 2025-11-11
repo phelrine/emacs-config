@@ -473,17 +473,31 @@
   (dolist (hook '(vterm-mode-hook eat-mode-hook))
     (add-hook hook #'claude-code-ide-setup-c-o-binding)))
 
-;;; Codex IDE
-(use-package codex-ide
-  :load-path "~/.emacs.d/lisp/codex"
-  :straight nil
+;;; Agent Shell - AI Agent Integration
+;; Dependencies
+(use-package shell-maker
+  :straight (:type git :host github :repo "xenodium/shell-maker"))
+
+(use-package acp
+  :straight (:type git :host github :repo "xenodium/acp.el"))
+
+;; Agent Shell with OpenAI Codex support
+(use-package agent-shell
+  :straight (:type git :host github :repo "xenodium/agent-shell")
   :defer t
-  :commands (codex-ide-start codex-ide-resume codex-ide-resume-with-selection
-             codex-ide-stop codex-ide-switch-to-buffer codex-ide-toggle
-             codex-ide-list-sessions codex-ide-menu)
-  :bind ("C-c C-\"" . codex-ide-menu)
+  :commands (agent-shell-openai-start-codex
+             agent-shell)
+  :bind ("C-c C-\"" . agent-shell-openai-start-codex)
   :config
-  (require 'codex-transient))
+  (require 'agent-shell-openai)
+
+  ;; OpenAI API authentication
+  (setq agent-shell-openai-authentication
+        (agent-shell-openai-make-authentication
+         :api-key #'pick-openai-key))
+
+  ;; Codex command configuration
+  (setq agent-shell-openai-codex-command '("codex-acp")))
 
 ;;; ChatGPT & GPT Tools
 (use-package chatgpt-shell
