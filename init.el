@@ -487,6 +487,7 @@
   :defer t
   :commands (agent-shell-openai-start-codex
              agent-shell)
+  :hook (agent-shell-mode . agent-shell-completion-mode)
   :bind ("C-c C-\"" . agent-shell-openai-start-codex)
   :config
   (require 'agent-shell-openai)
