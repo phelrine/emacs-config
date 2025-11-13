@@ -39,6 +39,19 @@
 
 ;;; Posframe Input Dialog
 
+;; Define a minor mode to ensure our keybindings take precedence
+(defvar claude-code-ide-posframe-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-x j") #'claude-code-ide-send-prompt)
+    map)
+  "Keymap for `claude-code-ide-posframe-mode'.")
+
+(define-minor-mode claude-code-ide-posframe-mode
+  "Minor mode for Claude Code IDE posframe input.
+This mode's keymap takes precedence over local bindings."
+  :lighter nil
+  :keymap claude-code-ide-posframe-mode-map)
+
 (defun claude-code-ide-send-prompt-with-posframe (orig-fun &optional prompt)
   "Override to use posframe for input. RET sends, S-RET for new line, C-g doesn't send."
   (if prompt
@@ -62,11 +75,11 @@
               (sit-for 0.1)
               (claude-code-ide--terminal-send-return))))))))
 
-(defun claude-code-ide-setup-c-x-j-binding ()
-  "Setup C-x j keybinding for Claude Code IDE buffers."
+(defun claude-code-ide-setup-posframe-mode ()
+  "Enable posframe mode for Claude Code IDE buffers."
   (when (and (fboundp 'claude-code-ide--session-buffer-p)
              (claude-code-ide--session-buffer-p (current-buffer)))
-    (local-set-key (kbd "C-x j") #'claude-code-ide-send-prompt)))
+    (claude-code-ide-posframe-mode 1)))
 
 ;;; Setup
 
@@ -76,9 +89,10 @@
   (dolist (hook '(vterm-mode-hook eat-mode-hook))
     (add-hook hook #'claude-code-ide-setup-c-o-binding))
 
-  ;; C-x j binding for posframe input
+  ;; Enable posframe minor mode for claude-code buffers
+  ;; Minor mode keymap takes precedence over local-set-key
   (dolist (hook '(vterm-mode-hook eat-mode-hook))
-    (add-hook hook #'claude-code-ide-setup-c-x-j-binding))
+    (add-hook hook #'claude-code-ide-setup-posframe-mode))
 
   ;; Advice for posframe input dialog
   (advice-add 'claude-code-ide-send-prompt :around #'claude-code-ide-send-prompt-with-posframe))
