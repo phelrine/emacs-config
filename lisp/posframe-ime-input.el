@@ -4,20 +4,20 @@
 
 ;; Author: phelrine
 ;; Keywords: convenience, frames, i18n
-;; Version: 0.1.0
+;; Version: 0.2.0
 ;; Package-Requires: ((emacs "26.1") (posframe "1.0"))
 
 ;;; Commentary:
 
 ;; This package provides an IME-friendly input dialog using posframe.
 ;; It's particularly useful for read-only or terminal buffers (like vterm, eat)
-;; where you can't directly edit text but want to use Japanese IME like SKK.
+;; where you can't directly edit text but want to use Japanese IME.
 ;;
 ;; Features:
 ;; - Posframe-based input dialog with multi-line support
-;; - SKK mode integration with mode-aware cursor colors
 ;; - Customizable callbacks for submit/cancel actions
-;; - Visual mode indicator for SKK states
+;; - Extensible via hooks for IME integration (e.g., SKK)
+;; - Custom cursor and mode indicators
 ;;
 ;; Usage:
 ;;   (require 'posframe-ime-input)
@@ -44,11 +44,6 @@
   :group 'convenience
   :prefix "posframe-ime-input-")
 
-(defcustom posframe-ime-input-enable-skk t
-  "Enable SKK mode integration when available."
-  :type 'boolean
-  :group 'posframe-ime-input)
-
 (defcustom posframe-ime-input-width 70
   "Width of the posframe input dialog."
   :type 'integer
@@ -59,74 +54,58 @@
   :type 'integer
   :group 'posframe-ime-input)
 
+;;; Hooks and Extension Points
+
+(defvar posframe-ime-input-setup-hook nil
+  "Hook run after buffer setup, before displaying posframe.
+Functions are called with no arguments in the input buffer.")
+
+(defvar posframe-ime-input-cursor-color-function nil
+  "Function to get cursor color.
+Should return a color string. Default: \"white\".")
+
+(defvar posframe-ime-input-mode-indicator-function nil
+  "Function to get mode indicator string.
+Should return a string or nil. Default: nil.")
+
+(defvar posframe-ime-input-update-hook nil
+  "Hook run on post-command to update cursor and indicators.
+Functions are called with no arguments in the input buffer.")
+
 ;;; Internal Variables
 
 (defvar posframe-ime-input--cursor-overlay nil
   "Overlay for displaying cursor position in posframe.")
 
 (defvar posframe-ime-input--mode-indicator-overlay nil
-  "Overlay for displaying SKK mode indicator.")
-
-;;; SKK Integration
-
-(defun posframe-ime-input--ensure-skk-mode ()
-  "Ensure SKK mode is loaded and activated."
-  (when (and posframe-ime-input-enable-skk
-             (or (featurep 'skk) (require 'skk nil t)))
-    (unless (and (boundp 'skk-mode) skk-mode)
-      (skk-mode 1))
-    ;; Switch to hiragana mode
-    (when (and (boundp 'skk-j-mode)
-               (not skk-j-mode)
-               (fboundp 'skk-j-mode-on))
-      (skk-j-mode-on))))
-
-(defun posframe-ime-input--get-skk-mode-string ()
-  "Get SKK mode indicator string."
-  (if (and (boundp 'skk-mode) skk-mode)
-      (cond
-       ((and (boundp 'skk-katakana) skk-katakana) "[カナ]")
-       ((and (boundp 'skk-jisx0201-mode) skk-jisx0201-mode) "[半角ｶﾅ]")
-       ((and (boundp 'skk-abbrev-mode) skk-abbrev-mode) "[abbrev]")
-       ((and (boundp 'skk-j-mode) skk-j-mode) "[かな]")
-       (t "[SKK]"))
-    ""))
-
-(defun posframe-ime-input--get-cursor-color ()
-  "Get cursor color based on SKK mode."
-  (cond
-   ((not (and (boundp 'skk-mode) skk-mode))
-    ;; SKK disabled
-    (or (and (boundp 'skk-cursor-latin-color) skk-cursor-latin-color)
-        "white"))
-   ((and (boundp 'skk-j-mode) skk-j-mode)
-    ;; SKK enabled, choose color based on mode
-    (cond
-     ((and (boundp 'skk-katakana) skk-katakana)
-      (or (and (boundp 'skk-cursor-katakana-color) skk-cursor-katakana-color) "red"))
-     ((and (boundp 'skk-jisx0201-mode) skk-jisx0201-mode)
-      (or (and (boundp 'skk-cursor-jisx0201-color) skk-cursor-jisx0201-color) "pink"))
-     ((and (boundp 'skk-abbrev-mode) skk-abbrev-mode)
-      (or (and (boundp 'skk-cursor-abbrev-color) skk-cursor-abbrev-color) "orange"))
-     (t
-      (or (and (boundp 'skk-cursor-hiragana-color) skk-cursor-hiragana-color) "coral"))))
-   (t
-    (or (and (boundp 'skk-cursor-latin-color) skk-cursor-latin-color) "white"))))
+  "Overlay for displaying mode indicator.")
 
 ;;; Visual Updates
 
+(defun posframe-ime-input--get-cursor-color ()
+  "Get cursor color from function or default."
+  (if posframe-ime-input-cursor-color-function
+      (funcall posframe-ime-input-cursor-color-function)
+    "white"))
+
+(defun posframe-ime-input--get-mode-indicator ()
+  "Get mode indicator string from function or default."
+  (when posframe-ime-input-mode-indicator-function
+    (funcall posframe-ime-input-mode-indicator-function)))
+
 (defun posframe-ime-input--update-mode-indicator ()
-  "Update SKK mode indicator overlay."
+  "Update mode indicator overlay."
   (when posframe-ime-input--mode-indicator-overlay
     (delete-overlay posframe-ime-input--mode-indicator-overlay))
-  (save-excursion
-    (goto-char (point-min))
-    (end-of-line)
-    (setq posframe-ime-input--mode-indicator-overlay
-          (make-overlay (point) (point)))
-    (overlay-put posframe-ime-input--mode-indicator-overlay 'after-string
-                 (propertize (concat " " (posframe-ime-input--get-skk-mode-string))
-                            'face '(:foreground "#4CAF50" :weight bold)))))
+  (when-let ((indicator (posframe-ime-input--get-mode-indicator)))
+    (save-excursion
+      (goto-char (point-min))
+      (end-of-line)
+      (setq posframe-ime-input--mode-indicator-overlay
+            (make-overlay (point) (point)))
+      (overlay-put posframe-ime-input--mode-indicator-overlay 'after-string
+                   (propertize (concat " " indicator)
+                              'face '(:foreground "#4CAF50" :weight bold))))))
 
 (defun posframe-ime-input--update-cursor-overlay ()
   "Update cursor position overlay and mode indicator."
@@ -139,7 +118,9 @@
                  (propertize " " 'display `(space :width (1))
                             'face `(:background ,cursor-color))))
   ;; Update mode indicator
-  (posframe-ime-input--update-mode-indicator))
+  (posframe-ime-input--update-mode-indicator)
+  ;; Run extension hooks
+  (run-hooks 'posframe-ime-input-update-hook))
 
 ;;; Main Function
 
@@ -161,6 +142,12 @@ Keyword arguments:
   :allow-newline BOOL - Allow S-RET to insert newline. Default: t.
 
 Returns whatever the callback returns.
+
+Extension points:
+  - `posframe-ime-input-setup-hook' runs after buffer setup
+  - `posframe-ime-input-cursor-color-function' provides cursor color
+  - `posframe-ime-input-mode-indicator-function' provides mode indicator
+  - `posframe-ime-input-update-hook' runs on post-command
 
 Default behavior (no callbacks):
   RET       - Returns the input text
@@ -231,8 +218,8 @@ Default behavior (no callbacks):
       (when initial-input
         (insert initial-input))
       (use-local-map keymap)
-      ;; Enable SKK mode if available
-      (posframe-ime-input--ensure-skk-mode)
+      ;; Run setup hooks (for IME integration, etc.)
+      (run-hooks 'posframe-ime-input-setup-hook)
       ;; Cursor overlay
       (add-hook 'post-command-hook #'posframe-ime-input--update-cursor-overlay nil t))
 
@@ -263,7 +250,6 @@ Default behavior (no callbacks):
                     (select-window (frame-first-window posframe))
                     (with-current-buffer buffer
                       (goto-char (point-max))
-                      (posframe-ime-input--ensure-skk-mode)
                       (recursive-edit))))))
           (quit
            (let ((text (with-current-buffer buffer

@@ -440,8 +440,11 @@
         (indent-for-tab-command))))
 
 ;;; Posframe IME Input - IME-friendly input dialog
-;; General-purpose posframe input with SKK/IME support
+;; General-purpose posframe input
 (require 'posframe-ime-input)
+;; Enable SKK integration
+(require 'posframe-ime-skk)
+(posframe-ime-skk-enable)
 
 ;;; Claude Code IDE
 (use-package claude-code-ide
