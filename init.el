@@ -323,6 +323,28 @@
 ;;; EDITOR FEATURES
 ;;; ========================================
 
+;;; View mode - read-only by default
+(use-package view
+  :straight (:type built-in)
+  :init
+  ;; Open files in view-mode by default for better safety
+  (setq view-read-only t)
+  ;; Enable view-mode when opening files
+  (add-hook 'find-file-hook
+            (lambda ()
+              ;; Skip special buffers and modes where view-mode doesn't make sense
+              (unless (or (derived-mode-p 'dired-mode)
+                          (derived-mode-p 'special-mode)
+                          (derived-mode-p 'term-mode)
+                          (derived-mode-p 'vterm-mode)
+                          (derived-mode-p 'eat-mode)
+                          (derived-mode-p 'magit-mode)
+                          (string-match-p "\\*.*\\*" (buffer-name))
+                          buffer-read-only)
+                (view-mode 1))))
+  :bind (:map view-mode-map
+         ("C-x C-q" . view-mode))) ; Standard read-only toggle
+
 (use-package multiple-cursors
   :bind (("C-S-c C-S-c" . mc/edit-lines)
          ("C->" . mc/mark-next-like-this)
@@ -441,7 +463,9 @@
 ;;; Agent Shell - AI Agent Integration
 ;; Dependencies
 (use-package shell-maker
-  :straight (:type git :host github :repo "xenodium/shell-maker"))
+  :straight (:type git :host github :repo "xenodium/shell-maker")
+  :custom
+  (shell-maker-prompt-before-killing-buffer nil))
 
 (use-package acp
   :straight (:type git :host github :repo "xenodium/acp.el"))
