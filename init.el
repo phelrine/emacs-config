@@ -349,25 +349,12 @@
 (use-package rainbow-delimiters :hook (prog-mode . rainbow-delimiters-mode))
 
 ;;; Input Method
-(defun vterm-minibuffer-skk-setup ()
-  "Enable SKK mode in minibuffer only when called from vterm."
-  (let ((calling-buffer (current-buffer)))
-    (when (minibuffer-selected-window)
-      (with-current-buffer (window-buffer (minibuffer-selected-window))
-        (when (and (fboundp 'vterm-mode) (derived-mode-p 'vterm-mode))
-          (with-current-buffer calling-buffer
-            (when (fboundp 'skk-mode)
-              (skk-mode 1))))))))
-
 (if (locate-library "skk-autoloads")
-    (progn
-      (bind-key "C-x j" 'skk-mode)
-      (add-hook 'minibuffer-setup-hook 'vterm-minibuffer-skk-setup))
+    (bind-key "C-x j" 'skk-mode)
   (use-package ddskk
     :if (memq window-system '(mac ns x))
     :custom (skk-use-jisx0201-input-method t)
-    :bind ("C-x j" . skk-mode)
-    :hook (minibuffer-setup . vterm-minibuffer-skk-setup)))
+    :bind ("C-x j" . skk-mode)))
 (use-package ddskk-posframe :after ddskk :diminish :commands ddskk-posframe-mode :config (ddskk-posframe-mode t))
 
 ;;; ========================================
@@ -447,31 +434,9 @@
   :bind ("C-c C-'" . claude-code-ide-menu)
   :config
   (claude-code-ide-emacs-tools-setup)
-
-  ;; C-o をターミナルに直接送信する設定
-  ;; グローバルな C-o (other-window) を claude-code-ide バッファでオーバーライド
-  (defun claude-code-ide-send-c-o ()
-    "Send C-o directly to the terminal in Claude Code IDE buffer."
-    (interactive)
-    (cond
-     ((eq claude-code-ide-terminal-backend 'vterm)
-      (when (fboundp 'vterm-send-string)
-        (vterm-send-string "\C-o")))
-     ((eq claude-code-ide-terminal-backend 'eat)
-      (when (and (boundp 'eat-terminal)
-                 eat-terminal
-                 (fboundp 'eat-term-send-string))
-        (eat-term-send-string eat-terminal "\C-o")))))
-
-  (defun claude-code-ide-setup-c-o-binding ()
-    "Setup C-o keybinding for Claude Code IDE buffers only."
-    (when (and (fboundp 'claude-code-ide--session-buffer-p)
-               (claude-code-ide--session-buffer-p (current-buffer)))
-      (local-set-key (kbd "C-o") #'claude-code-ide-send-c-o)))
-
-  ;; vterm と eat の両方に対応
-  (dolist (hook '(vterm-mode-hook eat-mode-hook))
-    (add-hook hook #'claude-code-ide-setup-c-o-binding)))
+  ;; Custom configuration loaded from separate file
+  (require 'claude-code-ide-config)
+  (claude-code-ide-config-setup))
 
 ;;; Agent Shell - AI Agent Integration
 ;; Dependencies
