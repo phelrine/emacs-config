@@ -383,24 +383,12 @@
 ;;; TERMINAL & SHELL
 ;;; ========================================
 
-(defun vterm-skk-insert ()
-  "Insert Japanese text in vterm using prompt input."
-  (interactive)
-  (when (and (fboundp 'vterm-send-string) (derived-mode-p 'vterm-mode))
-    (let ((input (read-string "skk input: ")))
-      (vterm-send-string input))))
-
 (use-package vterm
   :straight t
   :defer t
-  :bind (:map vterm-mode-map
-         ("C-x j" . vterm-skk-insert))
   :config
-  (defun vterm-skk-setup ()
-    "Configure Japanese input for vterm."
-    (when (fboundp 'vterm-skk-insert)
-      (local-set-key (kbd "C-x j") 'vterm-skk-insert)))
-  (add-hook 'vterm-mode-hook #'vterm-skk-setup))
+  (require 'posframe-ime-vterm)
+  (posframe-ime-vterm-enable))
 
 (use-package eat
   :defer t
@@ -409,7 +397,10 @@
                            "*.ti" ("terminfo/e" "terminfo/e/*")
                            ("terminfo/65" "terminfo/65/*")
                            ("integration" "integration/*")
-                           (:exclude ".dir-locals.el" "*-tests.el"))))
+                           (:exclude ".dir-locals.el" "*-tests.el")))
+  :config
+  (require 'posframe-ime-eat)
+  (posframe-ime-eat-enable))
 
 ;;; ========================================
 ;;; AI ASSISTANCE
@@ -447,6 +438,10 @@
     (interactive)
     (or (copilot-accept-completion)
         (indent-for-tab-command))))
+
+;;; Posframe IME Input - IME-friendly input dialog
+;; General-purpose posframe input with SKK/IME support
+(require 'posframe-ime-input)
 
 ;;; Claude Code IDE
 (use-package claude-code-ide
