@@ -40,6 +40,17 @@
 
 ;;; Posframe Input Dialog
 
+(defun claude-code-ide--ensure-skk-mode ()
+  "Ensure SKK mode is loaded and activated."
+  (when (or (featurep 'skk) (require 'skk nil t))
+    (unless (and (boundp 'skk-mode) skk-mode)
+      (skk-mode 1))
+    ;; ひらがなモードに切り替え
+    (when (and (boundp 'skk-j-mode)
+               (not skk-j-mode)
+               (fboundp 'skk-j-mode-on))
+      (skk-j-mode-on))))
+
 (defvar claude-code-ide--cursor-overlay nil
   "Overlay for displaying cursor position in posframe.")
 
@@ -71,29 +82,52 @@
                  (propertize (concat " " (claude-code-ide--get-skk-mode-string))
                             'face '(:foreground "#4CAF50" :weight bold)))))
 
+(defun claude-code-ide--get-cursor-color ()
+  "Get cursor color based on SKK mode."
+  (cond
+   ((not (and (boundp 'skk-mode) skk-mode))
+    ;; SKKが無効の場合
+    (or (and (boundp 'skk-cursor-latin-color) skk-cursor-latin-color)
+        "white"))
+   ((and (boundp 'skk-j-mode) skk-j-mode)
+    ;; SKKが有効な場合、モードに応じて色を変更
+    (cond
+     ((and (boundp 'skk-katakana) skk-katakana)
+      (or (and (boundp 'skk-cursor-katakana-color) skk-cursor-katakana-color) "red"))
+     ((and (boundp 'skk-jisx0201-mode) skk-jisx0201-mode)
+      (or (and (boundp 'skk-cursor-jisx0201-color) skk-cursor-jisx0201-color) "pink"))
+     ((and (boundp 'skk-abbrev-mode) skk-abbrev-mode)
+      (or (and (boundp 'skk-cursor-abbrev-color) skk-cursor-abbrev-color) "orange"))
+     (t
+      (or (and (boundp 'skk-cursor-hiragana-color) skk-cursor-hiragana-color) "coral"))))
+   (t
+    (or (and (boundp 'skk-cursor-latin-color) skk-cursor-latin-color) "white"))))
+
 (defun claude-code-ide--update-cursor-overlay ()
   "Update cursor position overlay and mode indicator."
   (when claude-code-ide--cursor-overlay
     (delete-overlay claude-code-ide--cursor-overlay))
+  ;; 細いバー型のカーソルを表示
   (setq claude-code-ide--cursor-overlay (make-overlay (point) (point)))
-  (overlay-put claude-code-ide--cursor-overlay 'after-string
-               (propertize "█" 'face '(:foreground "#4CAF50" :background "#4CAF50")))
+  (let ((cursor-color (claude-code-ide--get-cursor-color)))
+    (overlay-put claude-code-ide--cursor-overlay 'before-string
+                 (propertize " " 'display `(space :width (1))
+                            'face `(:background ,cursor-color))))
   ;; モードインジケーターも更新
   (claude-code-ide--update-mode-indicator))
 
 (defun claude-code-ide-read-string-in-posframe (prompt &optional initial-input)
   "Read string from user in a posframe with direct editing.
-Supports SKK input. C-c C-c to submit and send, C-g to submit without sending."
+Supports SKK input. RET to submit and send, S-RET for new line, C-g to submit without sending."
   (require 'posframe)
   (let* ((buffer-name " *claude-code-input*")
          (buffer (get-buffer-create buffer-name))
          (result 'not-set)
          (should-send nil)
-         (keymap (make-sparse-keymap))
-         (skk-mode-was-on (and (boundp 'skk-mode) skk-mode)))
+         (keymap (make-sparse-keymap)))
 
     ;; キーマップ設定
-    (define-key keymap (kbd "C-c C-c")
+    (define-key keymap (kbd "RET")
       (lambda ()
         (interactive)
         (setq result (buffer-substring-no-properties
@@ -104,6 +138,19 @@ Supports SKK input. C-c C-c to submit and send, C-g to submit without sending."
                      (point-max)))
         (setq should-send t)
         (exit-recursive-edit)))
+
+    (define-key keymap (kbd "S-RET")
+      (lambda ()
+        (interactive)
+        (insert "\n")))
+    (define-key keymap (kbd "<S-return>")
+      (lambda ()
+        (interactive)
+        (insert "\n")))
+    (define-key keymap (kbd "S-<return>")
+      (lambda ()
+        (interactive)
+        (insert "\n")))
 
     (define-key keymap (kbd "C-g")
       (lambda ()
@@ -127,7 +174,7 @@ Supports SKK input. C-c C-c to submit and send, C-g to submit without sending."
                          'face '(:foreground "#808080" :weight bold)
                          'read-only t
                          'rear-nonsticky t))
-      (insert (propertize "(C-c C-c: Submit & Send | C-g: Submit)\n"
+      (insert (propertize "(RET: Submit & Send | S-RET: New line | C-g: Submit)\n"
                          'face '(:foreground "#808080" :slant italic)
                          'read-only t
                          'rear-nonsticky t))
@@ -135,9 +182,8 @@ Supports SKK input. C-c C-c to submit and send, C-g to submit without sending."
       (when initial-input
         (insert initial-input))
       (use-local-map keymap)
-      ;; SKKモードが有効だった場合は再度有効化
-      (when skk-mode-was-on
-        (skk-mode 1))
+      ;; SKKモードを確実に起動
+      (claude-code-ide--ensure-skk-mode)
       ;; カーソル位置を示すオーバーレイを追加
       (add-hook 'post-command-hook #'claude-code-ide--update-cursor-overlay nil t))
 
@@ -169,13 +215,8 @@ Supports SKK input. C-c C-c to submit and send, C-g to submit without sending."
                     (select-window (frame-first-window posframe))
                     (with-current-buffer buffer
                       (goto-char (point-max))
-                      ;; SKKモードを有効化して、自動的にひらがなモードに
-                      (when (fboundp 'skk-mode)
-                        (unless skk-mode
-                          (skk-mode 1))
-                        ;; ひらがなモードに切り替え
-                        (when (and (boundp 'skk-j-mode) (not skk-j-mode))
-                          (skk-j-mode-on)))
+                      ;; SKKモードを確実に起動
+                      (claude-code-ide--ensure-skk-mode)
                       (recursive-edit))))))
           (quit
            (setq result nil)))
@@ -196,23 +237,24 @@ Supports SKK input. C-c C-c to submit and send, C-g to submit without sending."
       (cons result should-send))))
 
 (defun claude-code-ide-send-prompt-with-posframe (orig-fun &optional prompt)
-  "Override to use posframe for input. C-c C-c sends, C-g doesn't send."
+  "Override to use posframe for input. RET sends, S-RET for new line, C-g doesn't send."
   (if prompt
       ;; プログラム的に呼ばれた場合は元の動作
       (funcall orig-fun prompt)
     ;; インタラクティブに呼ばれた場合はposframeで入力
-    (let* ((result (claude-code-ide-read-string-in-posframe "Claude prompt: "))
+    (let* (;; 初期値なし（ターミナルエミュレータでは入力中の内容を取得できないため）
+           (result (claude-code-ide-read-string-in-posframe "Claude prompt: " nil))
            (prompt-to-send (car-safe result))
-           (should-send (cdr-safe result)))
+           (should-send (cdr-safe result))
+           (buffer-name (claude-code-ide--get-buffer-name)))
       (when (and prompt-to-send (not (string-empty-p prompt-to-send)))
-        (let ((buffer-name (claude-code-ide--get-buffer-name)))
-          (when-let ((buffer (get-buffer buffer-name)))
-            (with-current-buffer buffer
-              (claude-code-ide--terminal-send-string prompt-to-send)
-              ;; should-sendがtの場合のみEnterを送信
-              (when should-send
-                (sit-for 0.1)
-                (claude-code-ide--terminal-send-return)))))))))
+        (when-let ((buffer (get-buffer buffer-name)))
+          (with-current-buffer buffer
+            (claude-code-ide--terminal-send-string prompt-to-send)
+            ;; should-sendがtの場合のみEnterを送信
+            (when should-send
+              (sit-for 0.1)
+              (claude-code-ide--terminal-send-return))))))))
 
 (defun claude-code-ide-setup-c-x-j-binding ()
   "Setup C-x j keybinding for Claude Code IDE buffers."
