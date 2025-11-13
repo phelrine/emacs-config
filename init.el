@@ -90,9 +90,9 @@
 (defvar local-lisp-load-path "~/.emacs.d/lisp")
 (add-to-list 'load-path local-lisp-load-path)
 
-;; Load asdf diagnostic tools
-;; Provides M-x check-asdf-environment, asdf-quick-fix, asdf-fix-copilot-server, etc.
-(require 'check-asdf-path)
+;; Load version manager diagnostic tools (supports asdf and mise)
+;; Provides M-x check-version-manager-environment, version-manager-quick-fix, etc.
+(require 'check-version-manager)
 
 (custom-set-variables
  '(recentf-max-menu-items 1000)
