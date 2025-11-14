@@ -340,7 +340,9 @@
                           (derived-mode-p 'eat-mode)
                           (derived-mode-p 'magit-mode)
                           (string-match-p "\\*.*\\*" (buffer-name))
-                          buffer-read-only)
+                          buffer-read-only
+                          ;; Skip view-mode for open-junk-file buffers
+                          (bound-and-true-p open-junk-file-buffer))
                 (view-mode 1))))
   :bind (:map view-mode-map
          ("C-x C-q" . view-mode))) ; Standard read-only toggle
@@ -356,7 +358,18 @@
 
 (use-package yasnippet :diminish yas-minor-mode :hook (prog-mode . yas-minor-mode))
 
-(use-package open-junk-file :commands open-junk-file)
+(use-package open-junk-file
+  :commands open-junk-file
+  :init
+  ;; Mark buffers opened via open-junk-file to skip view-mode
+  (defvar-local open-junk-file-buffer nil
+    "Non-nil if this buffer was opened via open-junk-file.")
+
+  (defun open-junk-file-with-marker (&rest args)
+    "Advice to mark buffers opened via open-junk-file."
+    (setq-local open-junk-file-buffer t))
+
+  (advice-add 'open-junk-file :after #'open-junk-file-with-marker))
 
 (use-package expreg :bind ("C-M-SPC" . expreg-expand))
 (use-package vundo :bind ("C-x u" . vundo))
