@@ -327,9 +327,10 @@
 (use-package view
   :straight (:type built-in)
   :init
-  ;; Open files in view-mode by default for better safety
+  ;; Link read-only-mode and view-mode
   (setq view-read-only t)
-  ;; Enable view-mode when opening files
+
+  ;; Open files in read-only-mode by default
   (add-hook 'find-file-hook
             (lambda ()
               ;; Skip special buffers and modes where view-mode doesn't make sense
@@ -343,9 +344,9 @@
                           buffer-read-only
                           ;; Skip view-mode for open-junk-file buffers
                           (bound-and-true-p open-junk-file-buffer))
-                (view-mode 1))))
-  :bind (:map view-mode-map
-         ("C-x C-q" . view-mode))) ; Standard read-only toggle
+                ;; When read-only-mode is enabled, view-mode is also automatically
+                ;; enabled due to view-read-only=t
+                (read-only-mode 1)))))
 
 (use-package multiple-cursors
   :bind (("C-S-c C-S-c" . mc/edit-lines)
