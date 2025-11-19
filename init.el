@@ -341,9 +341,7 @@
                           (derived-mode-p 'eat-mode)
                           (derived-mode-p 'magit-mode)
                           (string-match-p "\\*.*\\*" (buffer-name))
-                          buffer-read-only
-                          ;; Skip view-mode for open-junk-file buffers
-                          (bound-and-true-p open-junk-file-buffer))
+                          buffer-read-only)
                 ;; When read-only-mode is enabled, view-mode is also automatically
                 ;; enabled due to view-read-only=t
                 (read-only-mode 1)))))
@@ -361,16 +359,14 @@
 
 (use-package open-junk-file
   :commands open-junk-file
-  :init
-  ;; Mark buffers opened via open-junk-file to skip view-mode
-  (defvar-local open-junk-file-buffer nil
-    "Non-nil if this buffer was opened via open-junk-file.")
+  :config
+  ;; Disable read-only-mode for open-junk-file buffers
+  (defun open-junk-file-disable-read-only ()
+    "Advice to disable read-only-mode after opening junk file."
+    (when (and buffer-read-only view-mode)
+      (read-only-mode -1)))
 
-  (defun open-junk-file-with-marker (&rest args)
-    "Advice to mark buffers opened via open-junk-file."
-    (setq-local open-junk-file-buffer t))
-
-  (advice-add 'open-junk-file :after #'open-junk-file-with-marker))
+  (advice-add 'open-junk-file :after #'open-junk-file-disable-read-only))
 
 (use-package expreg :bind ("C-M-SPC" . expreg-expand))
 (use-package vundo :bind ("C-x u" . vundo))
