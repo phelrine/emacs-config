@@ -672,10 +672,14 @@
   (add-to-list 'treesit-language-source-alist '(prisma "https://github.com/victorhqc/tree-sitter-prisma")))
 (use-package treesit-auto
   :commands (global-treesit-auto-mode treesit-auto-add-to-auto-mode-alist)
-  :custom (treesit-auto-install 'prompt)
+  :custom (treesit-auto-install t)
   :init
   (global-treesit-auto-mode 1)
   :config
+  ;; Exclude bash and yaml from treesit-auto
+  ;; bash: ABI version mismatch issues with tree-sitter-bash
+  ;; yaml: user preference for standard yaml-mode
+  (delete 'bash treesit-auto-langs)
   (delete 'yaml treesit-auto-langs)
   (treesit-auto-add-to-auto-mode-alist 'all))
 
