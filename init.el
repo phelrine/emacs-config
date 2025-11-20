@@ -340,6 +340,7 @@
                           (derived-mode-p 'vterm-mode)
                           (derived-mode-p 'eat-mode)
                           (derived-mode-p 'magit-mode)
+                          (derived-mode-p 'git-commit-mode)
                           (string-match-p "\\*.*\\*" (buffer-name))
                           buffer-read-only)
                 ;; When read-only-mode is enabled, view-mode is also automatically
