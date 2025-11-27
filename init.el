@@ -382,12 +382,20 @@
 (use-package rainbow-delimiters :hook (prog-mode . rainbow-delimiters-mode))
 
 ;;; Input Method
+(defun my/skk-mode-unless-view-mode ()
+  "Toggle `skk-mode'. In `view-mode', only allow turning SKK off."
+  (interactive)
+  (cond
+   ((bound-and-true-p skk-mode) (skk-mode -1))
+   ((bound-and-true-p view-mode) (message "Cannot enable SKK in view-mode"))
+   (t (skk-mode 1))))
+
 (if (locate-library "skk-autoloads")
-    (bind-key "C-x j" 'skk-mode)
+    (bind-key "C-x j" 'my/skk-mode-unless-view-mode)
   (use-package ddskk
     :if (memq window-system '(mac ns x))
     :custom (skk-use-jisx0201-input-method t)
-    :bind ("C-x j" . skk-mode)))
+    :bind ("C-x j" . my/skk-mode-unless-view-mode)))
 (use-package ddskk-posframe :after ddskk :diminish :commands ddskk-posframe-mode :config (ddskk-posframe-mode t))
 
 ;;; ========================================
