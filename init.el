@@ -407,7 +407,12 @@
   :defer t
   :config
   (require 'posframe-ime-vterm)
-  (posframe-ime-vterm-enable))
+  (posframe-ime-vterm-enable)
+  ;; C-o で other-window を呼ぶ
+  (define-key vterm-mode-map (kbd "C-o") #'other-window)
+  ;; C-c o で Claude Code の詳細出力トグル（C-o を送信）
+  (define-key vterm-mode-map (kbd "C-c o")
+    (lambda () (interactive) (vterm-send-key "o" nil nil t))))
 
 (use-package eat
   :defer t
