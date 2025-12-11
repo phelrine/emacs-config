@@ -33,13 +33,20 @@
  '(indent-tabs-mode nil)
  '(make-backup-files nil)
  '(menu-bar-mode nil)
+ '(recentf-max-menu-items 1000)
+ '(recentf-max-saved-items 1000)
  '(ring-bell-function 'ignore)
  '(scroll-margin 0)
  '(show-trailing-whitespace t)
  '(tab-width 4)
  '(tool-bar-mode nil)
+ '(treesit-font-lock-level 4)
  '(warning-suppress-log-types '((use-package)))
- '(warning-suppress-types '((use-package))))
+ '(warning-suppress-types '((use-package)))
+ '(whitespace-display-mappings '((space-mark 12288 [9633]) (tab-mark 9 [187 9])))
+ '(whitespace-global-modes '(not dired-mode))
+ '(whitespace-space-regexp "\\(　+\\)")
+ '(whitespace-style '(face tabs tab-mark spaces space-mark)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -94,9 +101,6 @@
 ;; Provides M-x check-version-manager-environment, version-manager-quick-fix, etc.
 (require 'check-version-manager)
 
-(custom-set-variables
- '(recentf-max-menu-items 1000)
- '(recentf-max-saved-items 1000))
 (recentf-mode 1)
 
 ;;; ========================================
@@ -698,11 +702,6 @@
 ;;; ========================================
 
 ;;; Indent
-(custom-set-variables
- '(whitespace-display-mappings '((space-mark 12288 [9633]) (tab-mark 9 [187 9])))
- '(whitespace-space-regexp "\\(　+\\)")
- '(whitespace-style '(face tabs tab-mark spaces space-mark))
- '(whitespace-global-modes '(not dired-mode)))
 (diminish 'global-whitespace-mode)
 (global-whitespace-mode 1)
 (add-hook 'before-save-hook #'delete-trailing-whitespace)
