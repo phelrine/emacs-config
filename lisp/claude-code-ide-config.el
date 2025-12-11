@@ -8,7 +8,8 @@
 ;;; Commentary:
 
 ;; Custom configuration for claude-code-ide including:
-;; - C-o keybinding to send directly to terminal
+;; - C-o keybinding to other-window (consistent with global binding)
+;; - C-c o keybinding to send C-o to terminal (for verbose toggle)
 ;; - Posframe-based input dialog with SKK support using posframe-ime-input
 
 ;;; Code:
@@ -32,10 +33,13 @@
       (eat-term-send-string eat-terminal "\C-o")))))
 
 (defun claude-code-ide-setup-c-o-binding ()
-  "Setup C-o keybinding for Claude Code IDE buffers only."
+  "Setup C-o keybinding for Claude Code IDE buffers only.
+C-o is bound to `other-window' for consistency with global binding.
+C-c o sends C-o to terminal (e.g., for Claude Code verbose toggle)."
   (when (and (fboundp 'claude-code-ide--session-buffer-p)
              (claude-code-ide--session-buffer-p (current-buffer)))
-    (local-set-key (kbd "C-o") #'claude-code-ide-send-c-o)))
+    (local-set-key (kbd "C-o") #'other-window)
+    (local-set-key (kbd "C-c o") #'claude-code-ide-send-c-o)))
 
 ;;; Posframe Input Dialog
 
