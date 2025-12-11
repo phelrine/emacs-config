@@ -345,6 +345,7 @@
                           (derived-mode-p 'eat-mode)
                           (derived-mode-p 'magit-mode)
                           (derived-mode-p 'git-commit-mode)
+                          (derived-mode-p 'org-mode)
                           (string-match-p "\\*.*\\*" (buffer-name))
                           buffer-read-only)
                 ;; When read-only-mode is enabled, view-mode is also automatically
@@ -724,20 +725,12 @@
 (use-package org
   :defer t
   :bind (("C-c l" . org-store-link)
-         ("C-c a" . org-agenda))
+         ("C-c a" . org-agenda)
+         ("C-c c" . org-capture))
   :init
-  (setq org-directory "~/Dropbox/org")
+  (setq org-directory "~/org")
   :config
-  (defvar org-todo-file (concat org-directory "/todo.org")
-    "Path to the org-mode TODO file.")
-  (defvar org-query-file (concat org-directory "/query.org")
-    "Path to the org-mode query file.")
-  (setq org-agenda-files `(,org-todo-file))
-  (customize-set-variable 'org-capture-templates
-        '(("t" "TODO" entry (file+headline org-todo-file "Tasks")
-           "** TODO %? \n" :prepend t)
-          ("s" "SQL" entry (file+headline org-query-file "Queries")
-           "** %?%T\n#+name\n#+begin_src sql\n\n#+end_src\n" :prepend t)))
+  (require 'my-org)
   (use-package ob-typescript :defer t)
   (org-babel-do-load-languages
    'org-babel-load-languages
