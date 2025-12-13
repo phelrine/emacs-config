@@ -306,6 +306,9 @@
   :bind (("C-c C-e" . consult-flycheck)
          ("C-c e" . consult-flycheck)))
 
+;; GitHub issue/PR URL copy using gh CLI
+(require 'gh-copy-url)
+
 (use-package embark
   :bind
   (("C-." . embark-act)         ;; pick some comfortable binding
