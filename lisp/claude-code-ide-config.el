@@ -85,14 +85,6 @@ This mode's keymap takes precedence over local bindings."
              (claude-code-ide--session-buffer-p (current-buffer)))
     (claude-code-ide-posframe-mode 1)))
 
-;;; vterm-copy-mode cursor visibility fix
-;; Temporary workaround until upstream PR is merged:
-;; https://github.com/manzaltu/claude-code-ide.el/pull/118
-
-(defun claude-code-ide--vterm-copy-mode-hook ()
-  "Make sure cursor is visible in `vterm-copy-mode'."
-  (setq-local cursor-type (if vterm-copy-mode t nil)))
-
 ;;; Setup
 
 (defun claude-code-ide-config-setup ()
@@ -100,9 +92,6 @@ This mode's keymap takes precedence over local bindings."
   ;; C-o binding for vterm and eat
   (dolist (hook '(vterm-mode-hook eat-mode-hook))
     (add-hook hook #'claude-code-ide-setup-c-o-binding))
-
-  ;; Fix cursor visibility in vterm-copy-mode
-  (add-hook 'vterm-copy-mode-hook #'claude-code-ide--vterm-copy-mode-hook)
 
   ;; Enable posframe minor mode for claude-code buffers
   ;; Minor mode keymap takes precedence over local-set-key
