@@ -165,6 +165,10 @@
   :config
   (exec-path-from-shell-copy-envs '("UID" "GID")))
 
+;;; mise-env - automatic mise environment loading
+(require 'mise-env)
+(add-hook 'after-init-hook #'global-mise-env-mode)
+
 ;;; auth-source
 (require 'auth-source)
 (when (eq system-type 'darwin)
@@ -581,7 +585,7 @@
   :defer t
   :custom
   (lsp-keymap-prefix "C-c l")
-  (lsp-ruby-lsp-use-bundler t)
+  (lsp-ruby-lsp-use-bundler nil)
   :hook
   (lsp-mode . lsp-enable-which-key-integration)
   (lsp-mode . lsp-completion-mode)
