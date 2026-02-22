@@ -481,6 +481,7 @@
 ;; Enable SKK integration
 (require 'posframe-ime-skk)
 (posframe-ime-skk-enable)
+(bind-key "C-c C-g" #'posframe-ime-input-force-quit)
 
 ;;; Claude Code IDE
 (use-package claude-code-ide
