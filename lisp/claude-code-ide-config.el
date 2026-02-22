@@ -43,6 +43,9 @@ C-c o sends C-o to terminal (e.g., for Claude Code verbose toggle)."
 
 ;;; Posframe Input Dialog
 
+(defvar claude-code-ide--last-dismissed-prompt nil
+  "Prompt text saved when posframe was dismissed by ediff guard.")
+
 ;; Define a minor mode to ensure our keybindings take precedence
 (defvar claude-code-ide-posframe-mode-map
   (let ((map (make-sparse-keymap)))
@@ -62,20 +65,26 @@ This mode's keymap takes precedence over local bindings."
       ;; Called programmatically - use original behavior
       (funcall orig-fun prompt)
     ;; Called interactively - use posframe with callbacks
-    (let* ((result (posframe-ime-input-read-string
-                   "Claude prompt: " nil
-                   :help-text "(RET: Submit & Send | S-RET: New line | C-g: Submit)"
-                   :on-submit (lambda (text) (cons text t))    ; should-send=t
-                   :on-cancel (lambda (text) (cons text nil)))) ; should-send=nil
-           (prompt-to-send (car-safe result))
-           (should-send (cdr-safe result))
+    (let* ((initial (prog1 claude-code-ide--last-dismissed-prompt
+                      (setq claude-code-ide--last-dismissed-prompt nil)))
+           (submitted nil)
+           (text (posframe-ime-input-read-string
+                  "Claude prompt: " initial
+                  :help-text "(RET: Submit & Send | S-RET: New line | C-g: Submit)"
+                  :on-submit (lambda (text) (setq submitted t) text)
+                  :on-cancel #'identity
+                  :on-dismiss (lambda (text)
+                                (when (not (string-empty-p text))
+                                  (setq claude-code-ide--last-dismissed-prompt text)
+                                  (kill-new text)
+                                  (message "プロンプトを保存しました (C-y で貼り付け可能)"))
+                                nil)))
            (buffer-name (claude-code-ide--get-buffer-name)))
-      (when (and prompt-to-send (not (string-empty-p prompt-to-send)))
+      (when (and text (not (string-empty-p text)))
         (when-let ((buffer (get-buffer buffer-name)))
           (with-current-buffer buffer
-            (claude-code-ide--terminal-send-string prompt-to-send)
-            ;; Only send Enter if should-send is t
-            (when should-send
+            (claude-code-ide--terminal-send-string text)
+            (when submitted
               (sit-for 0.1)
               (claude-code-ide--terminal-send-return))))))))
 
@@ -84,6 +93,24 @@ This mode's keymap takes precedence over local bindings."
   (when (and (fboundp 'claude-code-ide--session-buffer-p)
              (claude-code-ide--session-buffer-p (current-buffer)))
     (claude-code-ide-posframe-mode 1)))
+
+;;; Posframe Guard for Ediff
+
+(defun claude-code-ide-config--dismiss-posframe-for-diff (orig-fn arguments)
+  "Advice around `claude-code-ide-mcp-handle-open-diff'.
+When posframe-ime-input is active, cancel it and switch to main frame
+before starting ediff."
+  (when (posframe-ime-input-active-p)
+    (posframe-ime-input-cancel)
+    ;; Switch to the main (non-child) frame
+    (when-let ((main-frame (seq-find
+                            (lambda (f)
+                              (not (frame-parameter f 'parent-frame)))
+                            (frame-list))))
+      (select-frame-set-input-focus main-frame))
+    ;; Wait for recursive-edit to finish via the timer-based abort
+    (sit-for 0.2))
+  (funcall orig-fn arguments))
 
 ;;; Setup
 
@@ -99,7 +126,11 @@ This mode's keymap takes precedence over local bindings."
     (add-hook hook #'claude-code-ide-setup-posframe-mode))
 
   ;; Advice for posframe input dialog
-  (advice-add 'claude-code-ide-send-prompt :around #'claude-code-ide-send-prompt-with-posframe))
+  (advice-add 'claude-code-ide-send-prompt :around #'claude-code-ide-send-prompt-with-posframe)
+
+  ;; Dismiss posframe before opening ediff
+  (advice-add 'claude-code-ide-mcp-handle-open-diff
+              :around #'claude-code-ide-config--dismiss-posframe-for-diff))
 
 (provide 'claude-code-ide-config)
 ;;; claude-code-ide-config.el ends here

@@ -80,6 +80,30 @@ Functions are called with no arguments in the input buffer.")
 (defvar posframe-ime-input--mode-indicator-overlay nil
   "Overlay for displaying mode indicator.")
 
+(defvar posframe-ime-input--active nil
+  "Non-nil when posframe-ime-input dialog is currently active (in recursive-edit).")
+
+(defun posframe-ime-input-active-p ()
+  "Return non-nil if posframe-ime-input dialog is currently active."
+  posframe-ime-input--active)
+
+(defun posframe-ime-input-cancel ()
+  "Force-cancel the active posframe-ime-input dialog.
+Safely exits recursive-edit via timer to avoid calling from wrong context.
+The :on-dismiss callback will be invoked (not :on-cancel)."
+  (when posframe-ime-input--active
+    (run-at-time 0 nil #'abort-recursive-edit)))
+
+(defun posframe-ime-input-force-quit ()
+  "Emergency: force-delete all posframes and exit recursive-edit.
+Use this when posframe becomes unresponsive (e.g., after unexpected
+buffer switches from ediff or other tools)."
+  (interactive)
+  (posframe-delete-all)
+  (setq posframe-ime-input--active nil)
+  (ignore-errors (abort-recursive-edit))
+  (message "posframe-ime-input: force quit"))
+
 ;;; Visual Updates
 
 (defun posframe-ime-input--get-cursor-color ()
@@ -125,8 +149,8 @@ Functions are called with no arguments in the input buffer.")
 ;;; Main Function
 
 (cl-defun posframe-ime-input-read-string (prompt &optional initial-input
-                                                 &key on-submit on-cancel help-text
-                                                 (allow-newline t))
+                                                 &key on-submit on-cancel on-dismiss
+                                                 help-text (allow-newline t))
   "Read string from user in a posframe with IME support.
 
 PROMPT is displayed at the top of the dialog.
@@ -137,6 +161,9 @@ Keyword arguments:
                        Return value becomes the result. Default: identity.
   :on-cancel FUNC    - Called with input text when C-g is pressed.
                        Return value becomes the result. Default: (lambda (_) nil).
+  :on-dismiss FUNC   - Called with input text when programmatically cancelled
+                       via `posframe-ime-input-cancel'.
+                       Return value becomes the result. Default: on-cancel.
   :help-text TEXT    - Help text shown below prompt.
                        Default: \"(RET: Submit | S-RET: New line | C-g: Cancel)\"
   :allow-newline BOOL - Allow S-RET to insert newline. Default: t.
@@ -161,6 +188,7 @@ Default behavior (no callbacks):
          (keymap (make-sparse-keymap))
          (on-submit-fn (or on-submit #'identity))
          (on-cancel-fn (or on-cancel (lambda (_) nil)))
+         (on-dismiss-fn (or on-dismiss on-cancel-fn))
          (help-text (or help-text
                         (if allow-newline
                             "(RET: Submit | S-RET: New line | C-g: Cancel)"
@@ -227,6 +255,7 @@ Default behavior (no callbacks):
     (unwind-protect
         (condition-case nil
             (progn
+              (setq posframe-ime-input--active t)
               (posframe-show buffer
                             :position (point)
                             :poshandler #'posframe-poshandler-frame-center
@@ -259,7 +288,8 @@ Default behavior (no callbacks):
                             (search-forward "\n" nil t)
                             (point))
                           (point-max)))))
-             (setq result (funcall on-cancel-fn text)))))
+             (setq result (funcall on-dismiss-fn text)))))
+      (setq posframe-ime-input--active nil)
       ;; Clean up overlays and hooks
       (with-current-buffer buffer
         (remove-hook 'post-command-hook #'posframe-ime-input--update-cursor-overlay t)
