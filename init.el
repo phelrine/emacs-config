@@ -88,11 +88,11 @@
     (setq flycheck-emacs-lisp-load-path load-path))
   ;; Advise add-to-list to sync with flycheck when modifying load-path
   (advice-add 'add-to-list :after
-    (lambda (list-var element &optional append compare-fn)
-      "Sync flycheck-emacs-lisp-load-path when load-path is modified."
-      (when (and (eq list-var 'load-path)
-                 (boundp 'flycheck-emacs-lisp-load-path))
-        (add-to-list 'flycheck-emacs-lisp-load-path element append compare-fn)))))
+              (lambda (list-var element &optional append compare-fn)
+                "Sync flycheck-emacs-lisp-load-path when load-path is modified."
+                (when (and (eq list-var 'load-path)
+                           (boundp 'flycheck-emacs-lisp-load-path))
+                  (add-to-list 'flycheck-emacs-lisp-load-path element append compare-fn)))))
 
 (defvar local-lisp-load-path "~/.emacs.d/lisp")
 (add-to-list 'load-path local-lisp-load-path)
@@ -424,7 +424,7 @@
   (define-key vterm-mode-map (kbd "C-o") #'other-window)
   ;; C-c o で Claude Code の詳細出力トグル（C-o を送信）
   (define-key vterm-mode-map (kbd "C-c o")
-    (lambda () (interactive) (vterm-send-key "o" nil nil t))))
+              (lambda () (interactive) (vterm-send-key "o" nil nil t))))
 
 (use-package eat
   :defer t
@@ -459,9 +459,9 @@
   :defer t
   :hook (prog-mode . copilot-mode)
   :bind (:map copilot-mode-map
-         ("C-M-;" . copilot-complete)
-         ("TAB" . my/copilot-accept-completion)
-         ("C-<tab>" . copilot-next-completion))
+              ("C-M-;" . copilot-complete)
+              ("TAB" . my/copilot-accept-completion)
+              ("C-<tab>" . copilot-next-completion))
   :custom
   ;; Disable automatic completion - only trigger manually with C-M-;
   (copilot-disable-predicates '((lambda () t)))
@@ -485,7 +485,7 @@
 
 ;;; Claude Code IDE
 (use-package claude-code-ide
-  :straight (:type git :host github :repo "manzaltu/claude-code-ide.el")
+  :straight (:type git :host github :repo "phelrine/claude-code-ide.el" :branch "feat/session-dashboard")
   :defer t
   :commands claude-code-ide-menu
   :bind ("C-c C-'" . claude-code-ide-menu)
@@ -610,8 +610,8 @@
   :config
   (require 'lsp-graphql)
   :bind (:map lsp-ui-mode-map
-         ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
-         ([remap xref-find-references] . lsp-ui-peek-find-references)))
+              ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
+              ([remap xref-find-references] . lsp-ui-peek-find-references)))
 (use-package string-inflection
   :after lsp-mode
   :autoload string-inflection-camelcase-function
@@ -667,10 +667,6 @@
   :config
   (when (fboundp 'global-git-gutter-mode)
     (global-git-gutter-mode t)))
-(use-package code-review
-  :straight (:host github :repo "phelrine/code-review" :branch "fix/closql-update")
-  :defer t)
-(use-package igist :custom (igist-current-user-name "phelrine") :commands igist-dispatch)
 (use-package browse-at-remote :commands browse-at-remote)
 
 ;;; ========================================
@@ -874,7 +870,6 @@
   :init
   (dolist (feature '(npm-run npm-install npm-update npm-publish))
     (with-eval-after-load feature (require 'npm))))
-(use-package deno-fmt :defer t)
 (use-package prisma-ts-mode
   :mode (("\\.prisma\\'" . prisma-ts-mode))
   :hook (prisma-ts-mode . eglot-ensure)
