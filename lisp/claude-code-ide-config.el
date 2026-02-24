@@ -67,7 +67,10 @@ This mode's keymap takes precedence over local bindings."
       ;; Called programmatically - use original behavior
       (funcall orig-fun prompt)
     ;; Called interactively - use posframe with callbacks
-    (let* ((initial (prog1 claude-code-ide--last-dismissed-prompt
+    ;; Capture target session BEFORE opening posframe, since C-x j is always
+    ;; invoked from a claude-code session buffer and posframe may change context.
+    (let* ((target-session (claude-code-ide--session-for-buffer (current-buffer)))
+           (initial (prog1 claude-code-ide--last-dismissed-prompt
                       (setq claude-code-ide--last-dismissed-prompt nil)))
            (submitted nil)
            (text (posframe-ime-input-read-string
@@ -80,15 +83,16 @@ This mode's keymap takes precedence over local bindings."
                                   (setq claude-code-ide--last-dismissed-prompt text)
                                   (kill-new text)
                                   (message "プロンプトを保存しました (C-y で貼り付け可能)"))
-                                nil)))
-           (buffer-name (claude-code-ide--get-buffer-name)))
+                                nil))))
       (when (and text (not (string-empty-p text)))
-        (when-let ((buffer (get-buffer buffer-name)))
-          (with-current-buffer buffer
-            (claude-code-ide--terminal-send-string text)
-            (when submitted
-              (sit-for 0.1)
-              (claude-code-ide--terminal-send-return))))))))
+        (when-let ((buf (and target-session
+                             (claude-code-ide-session-buffer target-session))))
+          (when (buffer-live-p buf)
+            (with-current-buffer buf
+              (claude-code-ide--terminal-send-string text)
+              (when submitted
+                (sit-for 0.1)
+                (claude-code-ide--terminal-send-return)))))))))
 
 (defun claude-code-ide-setup-posframe-mode ()
   "Enable posframe mode for Claude Code IDE buffers."
