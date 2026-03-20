@@ -538,34 +538,6 @@
   (require 'copilot-chat-shell-maker)
   (copilot-chat-shell-maker-init))
 (use-package gptel :defer t :straight (:host github :repo "karthink/gptel" :files ("*.el")))
-(use-package mcp-hub
-  :defer 2
-  :straight (:host github :repo "lizqwerscott/mcp.el" :files ("*.el"))
-  :preface
-  (require 'mcp-config)
-  (setq mcp-hub-servers (mcp-config-resolve-servers))
-  :init
-  (run-with-idle-timer 2 nil #'mcp-hub-start-all-server)
-  :config
-  (defun gptel-mcp-register-tool ()
-    (interactive)
-    (let ((tools (mcp-hub-get-all-tool :asyncp t :categoryp t)))
-      (mapcar #'(lambda (tool)
-                  (apply #'gptel-make-tool
-                         tool))
-              tools)))
-  (defun gptel-mcp-use-tool ()
-    (interactive)
-    (let ((tools (mcp-hub-get-all-tool :asyncp t :categoryp t)))
-      (mapcar #'(lambda (tool)
-                  (let ((path (list (plist-get tool :category)
-                                    (plist-get tool :name))))
-                    (push (gptel-get-tool path)
-                          gptel-tools)))
-              tools)))
-  (with-eval-after-load 'gptel
-    (gptel-mcp-register-tool)
-    (gptel-mcp-use-tool)))
 
 (use-package emigo
   :defer 3
