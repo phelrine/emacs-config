@@ -167,7 +167,7 @@
 
 ;;; mise-env - automatic mise environment loading
 (require 'mise-env)
-(add-hook 'prog-mode-hook #'mise-env--maybe-update)
+(add-hook 'prog-mode-hook #'mise-env-update)
 
 ;;; auth-source
 (require 'auth-source)
