@@ -49,14 +49,28 @@
               (json-read)
             (error nil)))))))
 
+(defun mise-env--prioritize-path (path)
+  "Reorder PATH so mise install directories come first.
+`mise env' appends install paths after existing PATH entries when
+called outside an activated shell.  This ensures they are prepended
+so that mise-managed tools take priority over system ones."
+  (let (mise-entries other-entries)
+    (dolist (entry (parse-colon-path path))
+      (if (string-prefix-p (expand-file-name "~/.local/share/mise/installs/") entry)
+          (push entry mise-entries)
+        (push entry other-entries)))
+    (string-join (append (nreverse mise-entries) (nreverse other-entries)) ":")))
+
 (defun mise-env--apply-env (env)
   "Apply mise ENV to current environment."
   (when env
     (let ((path (cdr (assq 'PATH env))))
+      (when path
+        (setq path (mise-env--prioritize-path path)))
       ;; Update process-environment
       (dolist (pair env)
-        (let ((name (symbol-name (car pair)))
-              (value (cdr pair)))
+        (let* ((name (symbol-name (car pair)))
+               (value (if (string= name "PATH") path (cdr pair))))
           (setenv name value)))
       ;; Update exec-path from PATH
       (when path

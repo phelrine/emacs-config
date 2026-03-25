@@ -168,6 +168,9 @@
 ;;; mise-env - automatic mise environment loading
 (require 'mise-env)
 (add-hook 'after-init-hook #'global-mise-env-mode)
+;; Run mise-env before LSP starts: prog-mode-hook fires before
+;; derived mode hooks (e.g. ruby-ts-mode-hook where lsp is triggered).
+(add-hook 'prog-mode-hook #'mise-env--maybe-update)
 
 ;;; auth-source
 (require 'auth-source)
