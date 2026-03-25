@@ -24,9 +24,17 @@
   "Cache of mise environments per project root.")
 
 (defun mise-env--project-root ()
-  "Find project root with .tool-versions or .mise.toml."
-  (or (locate-dominating-file default-directory ".tool-versions")
-      (locate-dominating-file default-directory ".mise.toml")))
+  "Find nearest project root with .tool-versions or .mise.toml.
+When both exist in different ancestor directories, return the closest one."
+  (let ((tv (locate-dominating-file default-directory ".tool-versions"))
+        (mt (locate-dominating-file default-directory ".mise.toml")))
+    (cond
+     ((and tv mt)
+      (if (>= (length (expand-file-name mt))
+              (length (expand-file-name tv)))
+          mt tv))
+     (tv tv)
+     (mt mt))))
 
 (defun mise-env--get-env (dir)
   "Get mise environment for DIR as alist."
@@ -38,10 +46,24 @@
           (puthash dir result mise-env--project-cache))
         result))))
 
+(defun mise-env--clean-path ()
+  "Return PATH with mise install directories removed.
+This prevents a previously loaded project's tool paths from
+contaminating `mise env --json' output for a different project."
+  (let ((mise-installs (expand-file-name "~/.local/share/mise/installs/")))
+    (string-join
+     (seq-remove (lambda (p) (string-prefix-p mise-installs p))
+                 (parse-colon-path (getenv "PATH")))
+     ":")))
+
 (defun mise-env--fetch-env (dir)
   "Fetch mise environment for DIR."
   (when (and dir (executable-find mise-env-executable))
-    (let ((default-directory dir))
+    (let* ((default-directory dir)
+           (process-environment
+            (cons (concat "PATH=" (mise-env--clean-path))
+                  (seq-remove (lambda (e) (string-prefix-p "PATH=" e))
+                              process-environment))))
       (with-temp-buffer
         (when (zerop (call-process mise-env-executable nil t nil "env" "--json"))
           (goto-char (point-min))
@@ -62,19 +84,23 @@ so that mise-managed tools take priority over system ones."
     (string-join (append (nreverse mise-entries) (nreverse other-entries)) ":")))
 
 (defun mise-env--apply-env (env)
-  "Apply mise ENV to current environment."
+  "Apply mise ENV as buffer-local environment.
+Each buffer gets its own `process-environment' and `exec-path',
+so different projects can use different tool versions simultaneously."
   (when env
-    (let ((path (cdr (assq 'PATH env))))
-      (when path
-        (setq path (mise-env--prioritize-path path)))
-      ;; Update process-environment
+    (let* ((path (cdr (assq 'PATH env)))
+           (path (when path (mise-env--prioritize-path path)))
+           (new-env (copy-sequence process-environment)))
       (dolist (pair env)
         (let* ((name (symbol-name (car pair)))
-               (value (if (string= name "PATH") path (cdr pair))))
-          (setenv name value)))
-      ;; Update exec-path from PATH
+               (value (if (string= name "PATH") path (cdr pair)))
+               (prefix (concat name "=")))
+          (setq new-env (cons (concat prefix value)
+                              (seq-remove (lambda (e) (string-prefix-p prefix e))
+                                          new-env)))))
+      (setq-local process-environment new-env)
       (when path
-        (setq exec-path (parse-colon-path path))))))
+        (setq-local exec-path (parse-colon-path path))))))
 
 (defun mise-env-update ()
   "Update current buffer's environment from mise."
