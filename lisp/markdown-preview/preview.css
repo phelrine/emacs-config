@@ -1,0 +1,10 @@
+body {
+  background: #fff;
+  color: #1f2328;
+}
+
+.markdown-body {
+  max-width: 960px;
+  margin: 2em auto;
+  padding: 0 1em;
+}

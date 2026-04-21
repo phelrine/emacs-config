@@ -936,9 +936,12 @@
 (use-package groovy-mode :defer t)
 
 ;;; Markdown
-(use-package maple-preview
-  :straight (:host github :repo "honmaple/emacs-maple-preview" :files ("*.el" "index.html" "static"))
-  :defer t)
+(use-package markdown-preview-mode :defer t)
+
+(use-package markdown-mode
+  :defer t
+  :custom (markdown-command "pandoc")
+  :config (require 'markdown-preview-setup))
 
 ;;; ========================================
 ;;; UTILITIES
