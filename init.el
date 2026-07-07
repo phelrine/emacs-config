@@ -169,6 +169,13 @@
 (require 'mise-env)
 (add-hook 'prog-mode-hook #'mise-env-update)
 
+;;; server - allow emacsclient connections
+(use-package server
+  :straight nil
+  :config
+  (unless (server-running-p)
+    (server-start)))
+
 ;;; auth-source
 (require 'auth-source)
 (when (eq system-type 'darwin)
@@ -453,28 +460,6 @@
 
 (defalias 'pick-anthropic-key 'pick-emigo-api-key)
 
-;;; Copilot
-(use-package copilot
-  :straight (:host github :repo "copilot-emacs/copilot.el" :files ("*.el"))
-  :defer t
-  :hook (prog-mode . copilot-mode)
-  :bind (:map copilot-mode-map
-              ("C-M-;" . copilot-complete)
-              ("TAB" . my/copilot-accept-completion)
-              ("C-<tab>" . copilot-next-completion))
-  :custom
-  ;; Disable automatic completion - only trigger manually with C-M-;
-  (copilot-disable-predicates '((lambda () t)))
-  ;; Enable logging to debug server crashes
-  ;; Check *copilot stderr* and *copilot events* buffers for errors
-  (copilot-log-max 1000)
-  :commands copilot-accept-completion
-  :config
-  (defun my/copilot-accept-completion ()
-    (interactive)
-    (or (copilot-accept-completion)
-        (indent-for-tab-command))))
-
 ;;; Posframe IME Input - IME-friendly input dialog
 ;; General-purpose posframe input
 (require 'posframe-ime-input)
@@ -530,13 +515,6 @@
   :custom
   ((chatgpt-shell-openai-key (pick-openai-key))
    (dall-e-shell-openai-key (pick-openai-key))))
-(use-package copilot-chat
-  :straight (:host github :repo "chep/copilot-chat.el" :files ("*.el"))
-  :defer t
-  :commands copilot-chat-insert-commit-message
-  :config
-  (require 'copilot-chat-shell-maker)
-  (copilot-chat-shell-maker-init))
 (use-package gptel :defer t :straight (:host github :repo "karthink/gptel" :files ("*.el")))
 
 (use-package emigo

@@ -49,7 +49,6 @@ Key package management commands:
 **Development Tools:**
 - Magit for Git integration
 - Flycheck for syntax checking
-- Copilot for AI assistance
 - Claude Code integration for AI-powered development
 
 **Terminal Integration:**
@@ -60,7 +59,7 @@ Key package management commands:
 
 ### Environment Management with Version Managers (asdf/mise)
 
-This configuration supports **asdf** and **mise** for managing runtime versions (Node.js, Ruby, Go, Python, etc.). Proper version manager integration is critical for tools like Copilot, LSP servers, and language-specific utilities to function correctly.
+This configuration supports **asdf** and **mise** for managing runtime versions (Node.js, Ruby, Go, Python, etc.). Proper version manager integration is critical for tools like LSP servers and language-specific utilities to function correctly.
 
 **Supported version managers:**
 - **asdf** (https://asdf-vm.com) - Traditional shim-based approach
@@ -84,7 +83,6 @@ This configuration supports **asdf** and **mise** for managing runtime versions 
 
 3. **Global npm packages must be installed per Node.js version**
    - When switching Node.js versions, reinstall global packages
-   - Example: `npm install -g @github/copilot-language-server`
    - Version managers reshim automatically after npm global installs (asdf) or update PATH (mise)
 
 #### Common Issues
@@ -94,13 +92,6 @@ This configuration supports **asdf** and **mise** for managing runtime versions 
 - **Solution**:
   - asdf: Run `asdf reshim <plugin>`
   - mise: Paths update automatically; verify with `mise doctor`
-
-**Symptom**: Copilot server crashes with exit code 126
-- **Cause**: Version manager environment not loaded, or copilot-language-server not in current Node.js version
-- **Solution**:
-  1. Check environment: `M-x check-version-manager-environment`
-  2. Reinstall if needed: `npm install -g @github/copilot-language-server`
-  3. Restart Emacs
 
 **Symptom**: Different behavior in terminal vs Emacs
 - **Cause**: Emacs not loading shell environment
@@ -118,7 +109,6 @@ The diagnostic buffer shows:
 - Environment variables
 - Executable paths and whether they're managed by the version manager
 - Node.js execution tests
-- copilot-language-server location (PATH or Emacs cache)
 - Summary of any issues
 
 **Manual checks:**
@@ -138,7 +128,6 @@ The configuration integrates with various authentication sources:
 
 ### AI Integration
 Multiple AI services are configured:
-- **Copilot**: Integrated with `copilot-mode` for inline suggestions
 - **Claude Code**: Configured with Anthropic API key from auth-source
 - **ChatGPT Shell**: Available for interactive AI conversations  
 - **Emigo**: Alternative AI backend using OpenRouter
@@ -179,8 +168,6 @@ C-c d     # Docker commands
 ### AI Assistance
 ```
 C-c c     # Claude Code integration
-C-M-;     # Copilot complete
-TAB       # Accept Copilot suggestion (custom binding)
 ```
 
 ## Testing
@@ -220,15 +207,8 @@ Opens a detailed report showing:
   - asdf: Checks if paths are shims (preferred)
   - mise: Checks if paths are direct (preferred)
 - Node.js execution tests
-- copilot-language-server details (PATH or Emacs cache)
 
 #### Common Fix Commands
-
-**Reinstall copilot-language-server:**
-```elisp
-M-x version-manager-fix-copilot-server RET
-```
-Reinstalls copilot-language-server for the current Node.js version. Works with both asdf and mise.
 
 **Reshim all plugins (asdf/mise):**
 ```elisp
@@ -256,17 +236,9 @@ Checks if versions listed in `.tool-versions` or `.mise.toml` are actually insta
    ```
    Verify PATH contains version manager directories. If not, restart Emacs.
 
-3. **Symptom**: Copilot server fails with exit code 126 or 1
-   ```elisp
-   M-x check-version-manager-environment RET  ; Check environment
-   M-x version-manager-fix-copilot-server RET ; Fix if needed
-   ```
-   Then restart Emacs.
-
-4. **Symptom**: After upgrading Node.js version
+3. **Symptom**: After upgrading Node.js version
    ```bash
-   # In terminal
-   npm install -g @github/copilot-language-server
+   # In terminal, reinstall any global npm packages you rely on
 
    # If using asdf
    asdf reshim nodejs
@@ -282,20 +254,3 @@ Checks if versions listed in `.tool-versions` or `.mise.toml` are actually insta
 - After changing versions, reinstall global npm packages
 - Restart Emacs after significant environment changes
 - Run `M-x check-version-manager-environment` after updating your version manager or installing new tools
-
-### Copilot-Specific Issues
-
-**Check Copilot logs:**
-- `*copilot stderr*` buffer - Server errors and warnings
-- `*copilot events*` buffer - JSONRPC communication log (when `copilot-log-max` > 0)
-
-**Authentication:**
-```elisp
-M-x copilot-diagnose RET  ; Check authorization status
-M-x copilot-login RET     ; Re-authenticate if needed
-```
-
-**Server status:**
-```elisp
-M-x copilot-reinstall-server RET  ; Reinstall if corrupted
-```

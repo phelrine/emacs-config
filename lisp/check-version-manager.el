@@ -25,19 +25,6 @@ Returns an instance of asdf-manager, mise-manager, or nil."
    ;; Neither detected
    (t nil)))
 
-;;; Additional Helper Functions
-
-(defun version-manager-find-copilot-server ()
-  "Find copilot-language-server in PATH or in Emacs cache.
-Returns (PATH . SOURCE) where SOURCE is \\='path, \\='emacs-cache, or nil."
-  (let ((path-location (executable-find "copilot-language-server"))
-        (cache-location (expand-file-name ".cache/copilot/bin/copilot-language-server"
-                                         user-emacs-directory)))
-    (cond
-     (path-location (cons path-location 'path))
-     ((file-exists-p cache-location) (cons cache-location 'emacs-cache))
-     (t nil))))
-
 ;;; Main Diagnostic Function
 
 ;;;###autoload
@@ -88,25 +75,12 @@ Supports both asdf and mise."
           (let ((path (executable-find cmd)))
             (insert (format "%-25s: %s\n" cmd (or path "NOT FOUND")))
             (push (cons cmd path) results))))
-      ;; Special handling for copilot-language-server
-      (let ((copilot-info (version-manager-find-copilot-server)))
-        (if copilot-info
-            (let ((path (car copilot-info))
-                  (source (cdr copilot-info)))
-              (insert (format "%-25s: %s\n" "copilot-language-server" path))
-              (insert (format "%-25s  (source: %s)\n" ""
-                             (pcase source
-                               ('path "PATH")
-                               ('emacs-cache "Emacs cache")
-                               (_ "unknown"))))
-              (push (cons "copilot-language-server" path) results))
-          (insert (format "%-25s: %s\n" "copilot-language-server" "NOT FOUND"))))
       (insert "\n")
 
       ;; Check if executables are managed
       (when manager
         (insert (format "## Are executables %s managed?\n" manager-name))
-        (dolist (cmd '("node" "npm" "copilot-language-server"))
+        (dolist (cmd '("node" "npm"))
           (let ((path (executable-find cmd)))
             (when path
               (let ((status (vm-check-executable-status manager cmd path)))
@@ -132,42 +106,14 @@ Supports both asdf and mise."
         (insert (format "Shell 'node --version': %s" shell-node-version)))
       (insert "\n")
 
-      ;; Check copilot-language-server details
-      (insert "## copilot-language-server Details\n")
-      (let ((copilot-info (version-manager-find-copilot-server)))
-        (if copilot-info
-            (let ((copilot-path (car copilot-info))
-                  (source (cdr copilot-info)))
-              (insert (format "Path: %s\n" copilot-path))
-              (insert (format "Source: %s\n"
-                             (pcase source
-                               ('path "PATH (version manager or global npm)")
-                               ('emacs-cache "Emacs cache (copilot.el managed)")
-                               (_ "unknown"))))
-              (insert (format "Exists: %s\n" (if (file-exists-p copilot-path) "YES" "NO")))
-              (insert (format "Executable: %s\n" (if (file-executable-p copilot-path) "YES" "NO")))
-              (when (file-symlink-p copilot-path)
-                (insert (format "Symlink target: %s\n" (file-truename copilot-path))))
-              ;; Read first few lines if it's a text file
-              (when (and (file-exists-p copilot-path)
-                         (< (nth 7 (file-attributes copilot-path)) 10000))
-                (insert "\nFirst 5 lines:\n")
-                (with-temp-buffer
-                  (insert-file-contents copilot-path nil 0 500)
-                  (insert (buffer-substring-no-properties (point-min) (point-max))))))
-          (insert "NOT FOUND (checked PATH and Emacs cache)\n")))
-      (insert "\n")
-
       ;; Summary
       (insert "## Summary\n")
       (let* ((node-path (executable-find "node"))
-             (copilot-info (version-manager-find-copilot-server))
-             (copilot-path (when copilot-info (car copilot-info)))
              (has-path (and (getenv "PATH")
                            (if manager
                                (string-match-p (vm-path-pattern manager) (getenv "PATH"))
                              t)))
-             (all-good (and manager node-path copilot-path has-path)))
+             (all-good (and manager node-path has-path)))
         (if all-good
             (insert (format "✓ All checks passed! %s environment is properly loaded.\n"
                            manager-name))
@@ -175,36 +121,12 @@ Supports both asdf and mise."
           (unless manager (insert "  - No version manager detected\n"))
           (when (and manager (not has-path))
             (insert (format "  - PATH does not contain %s\n" manager-name)))
-          (unless node-path (insert "  - node executable not found\n"))
-          (unless copilot-path (insert "  - copilot-language-server not found\n"))))
+          (unless node-path (insert "  - node executable not found\n"))))
 
       (goto-char (point-min))
       (display-buffer (current-buffer)))))
 
 ;;; Fix Commands
-
-;;;###autoload
-(defun version-manager-fix-copilot-server ()
-  "Fix copilot-language-server installation issues.
-Reinstalls copilot-language-server in the current Node.js version."
-  (interactive)
-  (let* ((manager (version-manager-detect))
-         (manager-name (if manager (vm-name manager) "version manager"))
-         (node-version (shell-command-to-string "node --version 2>&1")))
-    (if (string-match "v[0-9]+" node-version)
-        (when (yes-or-no-p (format "Reinstall copilot-language-server for Node.js %s? "
-                                   (string-trim node-version)))
-          (message "Installing copilot-language-server...")
-          (let ((result (shell-command-to-string "npm install -g @github/copilot-language-server 2>&1")))
-            (if (string-match-p "added\\|up to date" result)
-                (progn
-                  (message "✓ copilot-language-server installed successfully")
-                  (when manager
-                    (let ((reshim-cmd (vm-cmd manager "reshim" "nodejs")))
-                      (shell-command reshim-cmd)
-                      (message "✓ %s reshim completed. Please restart Emacs." manager-name))))
-              (message "✗ Installation failed: %s" result))))
-      (message "✗ Node.js not found. Please check %s installation." manager-name))))
 
 ;;;###autoload
 (defun version-manager-reshim-all ()
@@ -292,11 +214,6 @@ Checks environment and suggests fixes."
         (push (format "Install Node.js: %s"
                      (vm-cmd manager "install" "nodejs" "<version>"))
               fixes)))
-
-    ;; Check copilot-language-server
-    (unless (version-manager-find-copilot-server)
-      (push "copilot-language-server not found in PATH or Emacs cache" issues)
-      (push "Run: M-x version-manager-fix-copilot-server or M-x copilot-reinstall-server" fixes))
 
     ;; Report
     (if issues

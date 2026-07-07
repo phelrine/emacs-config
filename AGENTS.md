@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-Core configuration lives in `init.el`, with early environment setup in `early-init.el`. Custom modules reside in `lisp/`, each file exposing a focused feature (e.g., `auth-source-ghcli.el` for GitHub auth, `vitest.el` for JS testing helpers). Package builds synced by straight.el populate `straight/`; do not edit its contents manually. Runtime caches and user data sit in `var/`, `auto-save-list/`, and tool-specific directories such as `chatgpt/` and `copilot-chat/`. Keep new agent integrations in dedicated folders and load them from `init.el` via `use-package` to preserve the current modular layout.
+Core configuration lives in `init.el`, with early environment setup in `early-init.el`. Custom modules reside in `lisp/`, each file exposing a focused feature (e.g., `auth-source-ghcli.el` for GitHub auth, `vitest.el` for JS testing helpers). Package builds synced by straight.el populate `straight/`; do not edit its contents manually. Runtime caches and user data sit in `var/`, `auto-save-list/`, and tool-specific directories such as `chatgpt/`. Keep new agent integrations in dedicated folders and load them from `init.el` via `use-package` to preserve the current modular layout.
 
 ## Build, Test, and Development Commands
 - `emacs --debug-init` — launch with this config and capture initialization stack traces.
