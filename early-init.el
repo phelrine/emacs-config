@@ -12,6 +12,10 @@
 ;; Package initialization optimization
 (setq package-enable-at-startup nil)
 
+;; Prefer newer .el over stale .elc (a stray outdated .elc in lisp/
+;; once silently shadowed bug fixes)
+(setq load-prefer-newer t)
+
 ;; Inhibit resizing frame
 (setq frame-inhibit-implied-resize t)
 

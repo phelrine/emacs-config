@@ -74,6 +74,9 @@ Functions are called with no arguments in the input buffer.")
 
 ;;; Internal Variables
 
+(defconst posframe-ime-input--buffer-name " *posframe-ime-input*"
+  "Name of the buffer used for the posframe input dialog.")
+
 (defvar posframe-ime-input--cursor-overlay nil
   "Overlay for displaying cursor position in posframe.")
 
@@ -93,6 +96,27 @@ Safely exits recursive-edit via timer to avoid calling from wrong context.
 The :on-dismiss callback will be invoked (not :on-cancel)."
   (when posframe-ime-input--active
     (run-at-time 0 nil #'abort-recursive-edit)))
+
+(defun posframe-ime-input--should-dismiss-p (window)
+  "Return non-nil if selecting WINDOW means the dialog lost input.
+Non-nil when the dialog is active and WINDOW shows a buffer other
+than the input buffer.  Minibuffer windows are ignored so that
+minibuffer prompts during input (e.g. SKK dictionary registration)
+don't dismiss the dialog."
+  (and posframe-ime-input--active
+       (not (window-minibuffer-p window))
+       (not (eq (window-buffer window)
+                (get-buffer posframe-ime-input--buffer-name)))))
+
+(defun posframe-ime-input--guard-selection-change (_frame)
+  "Dismiss the dialog when window selection moves away from it.
+Async code (e.g. claude-code-ide MCP handlers calling `find-file')
+can steal the selected window while the dialog waits for input in
+`recursive-edit'; without this guard, subsequent keystrokes would be
+inserted into whatever buffer got selected.  Added globally to
+`window-selection-change-functions' while the dialog is active."
+  (when (posframe-ime-input--should-dismiss-p (selected-window))
+    (posframe-ime-input-cancel)))
 
 (defun posframe-ime-input-force-quit ()
   "Emergency: force-delete all posframes and exit recursive-edit.
@@ -182,8 +206,7 @@ Default behavior (no callbacks):
   S-RET     - Insert newline (if :allow-newline is t)"
   (require 'posframe)
   (require 'cl-lib)
-  (let* ((buffer-name " *posframe-ime-input*")
-         (buffer (get-buffer-create buffer-name))
+  (let* ((buffer (get-buffer-create posframe-ime-input--buffer-name))
          (result 'not-set)
          (keymap (make-sparse-keymap))
          (on-submit-fn (or on-submit #'identity))
@@ -256,6 +279,8 @@ Default behavior (no callbacks):
         (condition-case nil
             (progn
               (setq posframe-ime-input--active t)
+              (add-hook 'window-selection-change-functions
+                        #'posframe-ime-input--guard-selection-change)
               (posframe-show buffer
                             :position (point)
                             :poshandler #'posframe-poshandler-frame-center
@@ -290,6 +315,8 @@ Default behavior (no callbacks):
                           (point-max)))))
              (setq result (funcall on-dismiss-fn text)))))
       (setq posframe-ime-input--active nil)
+      (remove-hook 'window-selection-change-functions
+                   #'posframe-ime-input--guard-selection-change)
       ;; Clean up overlays and hooks
       (with-current-buffer buffer
         (remove-hook 'post-command-hook #'posframe-ime-input--update-cursor-overlay t)
