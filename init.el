@@ -403,11 +403,13 @@
 
 ;;; Input Method
 (defun my/skk-mode-unless-view-mode ()
-  "Toggle `skk-mode'. In `view-mode', only allow turning SKK off."
+  "Toggle `skk-mode'. In `view-mode' and Magit buffers, only allow turning SKK off."
   (interactive)
   (cond
    ((bound-and-true-p skk-mode) (skk-mode -1))
    ((bound-and-true-p view-mode) (message "Cannot enable SKK in view-mode"))
+   ((derived-mode-p 'magit-section-mode)
+    (message "Cannot enable SKK in Magit buffers"))
    (t (skk-mode 1))))
 
 (if (locate-library "skk-autoloads")
