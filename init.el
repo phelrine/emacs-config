@@ -921,6 +921,69 @@
   :custom (markdown-command "pandoc")
   :config (require 'markdown-preview-setup))
 
+(use-package cm-mode
+  :straight (:host github :repo "joostkremers/criticmarkup-emacs")
+  :hook (markdown-mode . cm-mode)
+  :custom (cm-author "phelrine")
+  :config
+  ;; cm-mode makes delimiters read-only and cm-pretty hides them, so a
+  ;; visually plain region can contain markup and region deletion then
+  ;; fails with a cryptic "Text is read-only". Check first and stop
+  ;; with a clear error instead.
+  (defun my/cm-guard-region-markup (&rest _)
+    "Refuse region commands when the region overlaps existing CriticMarkup."
+    (when (and (use-region-p) (fboundp 'cm-pretty-region-has-markup-p)
+               (cm-pretty-region-has-markup-p (region-beginning) (region-end)))
+      (user-error "Region overlaps existing CriticMarkup (TAB on 💬 or C-c * p to inspect)")))
+  (dolist (cmd '(cm-comment cm-substitution cm-deletion))
+    (advice-add cmd :before #'my/cm-guard-region-markup))
+  (with-eval-after-load 'embark
+    (defun my/embark-criticmarkup-target ()
+      "Detect the CriticMarkup change at point as an Embark target."
+      (when (bound-and-true-p cm-mode)
+        (when-let* ((change (cm-markup-at-point)))
+          `(criticmarkup ,(buffer-substring-no-properties (nth 2 change) (nth 3 change))
+                         ,(nth 2 change) . ,(nth 3 change)))))
+    (defvar-keymap my/embark-criticmarkup-map
+      :doc "Embark actions for the CriticMarkup change at point."
+      :parent embark-general-map
+      "RET" #'cm-accept/reject-change-at-point
+      "i" #'cm-accept/reject-change-at-point
+      "f" #'cm-forward-change
+      "b" #'cm-backward-change)
+    (add-to-list 'embark-target-finders #'my/embark-criticmarkup-target)
+    (add-to-list 'embark-keymap-alist '(criticmarkup . my/embark-criticmarkup-map))
+    ;; Use the cm-pretty popup-editor commands for insertion: typing
+    ;; into cm-comment/cm-substitution's body is invisible under
+    ;; cm-pretty's ghost rendering.
+    (define-key embark-region-map (kbd "C") #'cm-pretty-comment)
+    (define-key embark-region-map (kbd "S") #'cm-pretty-substitution)
+    (define-key embark-region-map (kbd "D") #'cm-deletion)
+    ;; Region commands rely on (interactive "r") + use-region-p, so
+    ;; re-mark the target region before running them via embark.
+    (dolist (cmd '(cm-pretty-comment cm-pretty-substitution
+                   cm-comment cm-substitution cm-deletion))
+      (add-to-list 'embark-pre-action-hooks (list cmd #'embark--mark-target)))
+    ;; cm's prompts (a/r/s of accept/reject etc.) do not ask for the
+    ;; target, so disable embark's target injection for them.
+    (dolist (cmd '(cm-accept/reject-change-at-point cm-pretty-comment
+                   cm-pretty-substitution cm-comment cm-substitution
+                   cm-deletion cm-addition))
+      (add-to-list 'embark-target-injection-hooks
+                   (list cmd #'embark--ignore-target)))))
+
+(use-package cm-pretty
+  :load-path local-lisp-load-path
+  :straight nil
+  :hook (markdown-mode . cm-pretty-mode)
+  :config
+  ;; C-c * p toggles the prettified display (to inspect raw markup).
+  ;; C-c * c/s are rebound to the popup-editor insertion commands.
+  (with-eval-after-load 'cm-mode
+    (define-key cm-prefix-map (kbd "p") #'cm-pretty-mode)
+    (define-key cm-prefix-map (kbd "c") #'cm-pretty-comment)
+    (define-key cm-prefix-map (kbd "s") #'cm-pretty-substitution)))
+
 ;;; ========================================
 ;;; UTILITIES
 ;;; ========================================
