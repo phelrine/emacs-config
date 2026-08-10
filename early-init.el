@@ -22,4 +22,21 @@
 ;; LSP optimization
 (setenv "LSP_USE_PLISTS" "true")
 
+;; Emacs.app's launcher (Contents/MacOS/Emacs) exports LIBRARY_PATH pointing at
+;; the bundled libgccjit dirs before exec'ing the arch binary. When that binary
+;; is started directly the variable is absent, and native compilation dies with
+;; "ld: library 'emutls_w' not found" -- libgccjit's link step cannot locate
+;; libemutls_w.a. Redefining a C primitive (see the yes-or-no-p defalias in
+;; init.el) needs a runtime-compiled trampoline, so this is not hypothetical.
+(when (and (eq system-type 'darwin)
+           (not (getenv "LIBRARY_PATH"))
+           (string-prefix-p "Emacs-" invocation-name))
+  (let ((dir (expand-file-name
+              (format "lib-%s/libgccjit/" (substring invocation-name (length "Emacs-")))
+              invocation-directory)))
+    (when (file-directory-p dir)
+      (setenv "LIBRARY_PATH"
+              (mapconcat (lambda (sub) (expand-file-name sub dir))
+                         '("." "apple-darwin" "sdk-libs") path-separator)))))
+
 ;;; early-init.el ends here
