@@ -153,7 +153,7 @@
 (use-package exec-path-from-shell
   :custom
   (exec-path-from-shell-variables '("PATH" "MANPATH" "ASDF_DIR" "ASDF_DATA_DIR"))
-  (exec-path-from-shell-arguments '("-l"))  ; Use login shell to read .zshenv
+  (exec-path-from-shell-arguments '("-l"))  ; Use login shell to read .zprofile
   (exec-path-from-shell-check-startup-files nil)
   :commands
   exec-path-from-shell-initialize
@@ -178,8 +178,9 @@
 
 ;;; auth-source
 (require 'auth-source)
+;; Only the internet keychain is used: for macos-keychain-generic auth-source
+;; maps :host to the 4-char creator code, so hostname lookups cannot work there.
 (when (eq system-type 'darwin)
-  (add-to-list 'auth-sources 'macos-keychain-generic)
   (add-to-list 'auth-sources 'macos-keychain-internet))
 (use-package auth-source-kwallet
   :straight (:host github :repo "phelrine/auth-source-kwallet" :files ("auth-source-kwallet.el"))
@@ -450,15 +451,16 @@
 ;;; ========================================
 
 ;;; API key helpers
+;; Keys live in the macOS internet keychain (server=host, account=apikey) and in
+;; KWallet on Linux (key="apikey@<host>"), so :host plus :user resolves on both.
+;; :user is required, not decorative: KWallet builds its key from user and host.
 (defun pick-openai-key ()
-  "Pick the OpenAI api key from auth source."
-  (auth-source-pick-first-password :host "api.openai.com"))
+  "Pick the OpenAI API key from auth source."
+  (auth-source-pick-first-password :host "api.openai.com" :user "apikey"))
 
-(defun pick-emigo-api-key ()
-  "Pick the Emigo API key from auth source."
-  (auth-source-pick-first-password :host "openrouter.ai"))
-
-(defalias 'pick-anthropic-key 'pick-emigo-api-key)
+(defun pick-openrouter-api-key ()
+  "Pick the OpenRouter API key from auth source."
+  (auth-source-pick-first-password :host "openrouter.ai" :user "apikey"))
 
 ;;; Posframe IME Input - IME-friendly input dialog
 ;; General-purpose posframe input
