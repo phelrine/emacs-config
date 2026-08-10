@@ -511,23 +511,21 @@
   ;; Codex command configuration
   (setq agent-shell-openai-codex-command '("codex-acp")))
 
-;;; ChatGPT & GPT Tools
-(use-package chatgpt-shell
+;;; GPTel
+(use-package gptel
   :defer t
+  :straight (:host github :repo "karthink/gptel" :files ("*.el"))
   :custom
-  ((chatgpt-shell-openai-key (pick-openai-key))
-   (dall-e-shell-openai-key (pick-openai-key))))
-(use-package gptel :defer t :straight (:host github :repo "karthink/gptel" :files ("*.el")))
-
-(use-package emigo
-  :defer 3
-  :straight (:host github :repo "MatthewZMD/emigo" :files (:defaults "*.py" "*.el"))
-  :config
-  (emigo-enable) ;; Starts the background process automatically
-  :custom
-  (emigo-model "openrouter/anthropic/claude-3.7-sonnet")
-  (emigo-base-url "https://openrouter.ai/api/v1")
-  (emigo-api-key (pick-emigo-api-key)))
+  (gptel-api-key #'pick-openrouter-api-key)
+  (gptel-backend (gptel-make-openai "OpenRouter"
+                   :host "openrouter.ai"
+                   :endpoint "/api/v1/chat/completions"
+                   :stream t
+                   :key #'pick-openrouter-api-key
+                   :models '(anthropic/claude-sonnet-4
+                             anthropic/claude-opus-4
+                             openai/gpt-4o
+                             google/gemini-2.0-flash-001))))
 
 ;;; ========================================
 ;;; LSP & DEVELOPMENT TOOLS

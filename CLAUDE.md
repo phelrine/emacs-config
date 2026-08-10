@@ -129,8 +129,8 @@ The configuration integrates with various authentication sources:
 ### AI Integration
 Multiple AI services are configured:
 - **Claude Code**: Configured with Anthropic API key from auth-source
-- **ChatGPT Shell**: Available for interactive AI conversations  
-- **Emigo**: Alternative AI backend using OpenRouter
+- **Agent Shell**: OpenAI Codex integration via ACP
+- **gptel**: Chat interface backed by OpenRouter
 - **MCP Hub**: Model Context Protocol integration with GitHub and fetch servers
 
 ### Language-Specific Notes
