@@ -950,13 +950,13 @@
     ;; Region commands rely on (interactive "r") + use-region-p, so
     ;; re-mark the target region before running them via embark.
     (dolist (cmd '(cm-pretty-comment cm-pretty-substitution
-                   cm-comment cm-substitution cm-deletion))
+                                     cm-comment cm-substitution cm-deletion))
       (add-to-list 'embark-pre-action-hooks (list cmd #'embark--mark-target)))
     ;; cm's prompts (a/r/s of accept/reject etc.) do not ask for the
     ;; target, so disable embark's target injection for them.
     (dolist (cmd '(cm-accept/reject-change-at-point cm-pretty-comment
-                   cm-pretty-substitution cm-comment cm-substitution
-                   cm-deletion cm-addition))
+                                                    cm-pretty-substitution cm-comment cm-substitution
+                                                    cm-deletion cm-addition))
       (add-to-list 'embark-target-injection-hooks
                    (list cmd #'embark--ignore-target)))))
 
