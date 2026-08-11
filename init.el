@@ -462,10 +462,6 @@
   "Pick the OpenAI API key from auth source."
   (auth-source-pick-first-password :host "api.openai.com" :user "apikey"))
 
-(defun pick-openrouter-api-key ()
-  "Pick the OpenRouter API key from auth source."
-  (auth-source-pick-first-password :host "openrouter.ai" :user "apikey"))
-
 ;;; Posframe IME Input - IME-friendly input dialog
 ;; General-purpose posframe input
 (require 'posframe-ime-input)
@@ -515,22 +511,6 @@
 
   ;; Codex command configuration
   (setq agent-shell-openai-codex-command '("codex-acp")))
-
-;;; GPTel
-(use-package gptel
-  :defer t
-  :straight (:host github :repo "karthink/gptel" :files ("*.el"))
-  :custom
-  (gptel-api-key #'pick-openrouter-api-key)
-  (gptel-backend (gptel-make-openai "OpenRouter"
-                   :host "openrouter.ai"
-                   :endpoint "/api/v1/chat/completions"
-                   :stream t
-                   :key #'pick-openrouter-api-key
-                   :models '(anthropic/claude-sonnet-4
-                             anthropic/claude-opus-4
-                             openai/gpt-4o
-                             google/gemini-2.0-flash-001))))
 
 ;;; ========================================
 ;;; LSP & DEVELOPMENT TOOLS

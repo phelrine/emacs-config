@@ -124,13 +124,12 @@ The configuration integrates with various authentication sources:
 - macOS Keychain (when on macOS)
 - KWallet (when available)
 - GitHub CLI authentication
-- API keys stored in auth-source for OpenAI, OpenRouter, and GitHub
+- API keys stored in auth-source for OpenAI and GitHub
 
 ### AI Integration
 Multiple AI services are configured:
 - **Claude Code**: Configured with Anthropic API key from auth-source
 - **Agent Shell**: OpenAI Codex integration via ACP
-- **gptel**: Chat interface backed by OpenRouter
 - **MCP Hub**: Model Context Protocol integration with GitHub and fetch servers
 
 ### Language-Specific Notes
