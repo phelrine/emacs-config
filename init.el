@@ -424,6 +424,8 @@
 ;;; TERMINAL & SHELL
 ;;; ========================================
 
+(use-package ghostel :straight t :defer t)
+
 (use-package vterm
   :straight t
   :defer t
@@ -474,11 +476,12 @@
 
 ;;; Claude Code IDE
 (use-package claude-code-ide
-  :straight (:type git :host github :repo "phelrine/claude-code-ide.el" :branch "feat/session-dashboard")
+  :straight (:type git :host github :repo "manzaltu/claude-code-ide.el")
   :defer t
   :commands claude-code-ide-menu
   :bind ("C-c C-'" . claude-code-ide-menu)
   :config
+  (setq claude-code-ide-terminal-backend 'ghostel)
   (claude-code-ide-emacs-tools-setup)
   ;; Custom configuration loaded from separate file
   (require 'claude-code-ide-config)
@@ -669,6 +672,7 @@
             (when (or (derived-mode-p 'term-mode)
                       (derived-mode-p 'magit-popup-mode)
                       (derived-mode-p 'eat-mode)
+                      (derived-mode-p 'ghostel-mode)
                       (and (fboundp 'vterm-mode)
                            (derived-mode-p 'vterm-mode)))
               (setq-local show-trailing-whitespace nil))))

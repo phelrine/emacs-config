@@ -15,7 +15,7 @@
 ;;; Code:
 
 (require 'claude-code-ide)
-(require 'claude-code-ide-session)
+(require 'claude-code-ide-mcp)
 (require 'claude-code-ide-transient)
 (require 'posframe-ime-input)
 
@@ -32,16 +32,10 @@
     (when (and (boundp 'eat-terminal)
                eat-terminal
                (fboundp 'eat-term-send-string))
-      (eat-term-send-string eat-terminal "\C-o")))))
-
-(defun claude-code-ide-setup-c-o-binding ()
-  "Setup C-o keybinding for Claude Code IDE buffers only.
-C-o is bound to `other-window' for consistency with global binding.
-C-c o sends C-o to terminal (e.g., for Claude Code verbose toggle)."
-  (when (and (fboundp 'claude-code-ide--session-buffer-p)
-             (claude-code-ide--session-buffer-p (current-buffer)))
-    (local-set-key (kbd "C-o") #'other-window)
-    (local-set-key (kbd "C-c o") #'claude-code-ide-send-c-o)))
+      (eat-term-send-string eat-terminal "\C-o")))
+   ((eq claude-code-ide-terminal-backend 'ghostel)
+    (when (fboundp 'ghostel-send-key)
+      (ghostel-send-key "o" "ctrl")))))
 
 ;;; Posframe Input Dialog
 
@@ -61,15 +55,16 @@ This mode's keymap takes precedence over local bindings."
   :lighter nil
   :keymap claude-code-ide-posframe-mode-map)
 
-(defun claude-code-ide-send-prompt-with-posframe (orig-fun &optional prompt)
+(defun claude-code-ide-send-prompt-with-posframe (orig-fun &optional prompt session)
   "Override to use posframe for input. RET sends, S-RET for new line, C-g doesn't send."
   (if prompt
       ;; Called programmatically - use original behavior
-      (funcall orig-fun prompt)
+      (funcall orig-fun prompt session)
     ;; Called interactively - use posframe with callbacks
     ;; Capture target session BEFORE opening posframe, since C-x j is always
     ;; invoked from a claude-code session buffer and posframe may change context.
-    (let* ((target-session (claude-code-ide--session-for-buffer (current-buffer)))
+    (let* ((target-session (or session
+                               (claude-code-ide--buffer-session (current-buffer))))
            (initial (prog1 claude-code-ide--last-dismissed-prompt
                       (setq claude-code-ide--last-dismissed-prompt nil)))
            (submitted nil)
@@ -86,7 +81,7 @@ This mode's keymap takes precedence over local bindings."
                                 nil))))
       (when (and text (not (string-empty-p text)))
         (when-let ((buf (and target-session
-                             (claude-code-ide-session-buffer target-session))))
+                             (claude-code-ide-mcp-session-buffer target-session))))
           (when (buffer-live-p buf)
             (with-current-buffer buf
               (claude-code-ide--terminal-send-string text)
@@ -94,15 +89,24 @@ This mode's keymap takes precedence over local bindings."
                 (sit-for 0.1)
                 (claude-code-ide--terminal-send-return)))))))))
 
-(defun claude-code-ide-setup-posframe-mode ()
-  "Enable posframe mode for Claude Code IDE buffers."
-  (when (and (fboundp 'claude-code-ide--session-buffer-p)
-             (claude-code-ide--session-buffer-p (current-buffer)))
-    (claude-code-ide-posframe-mode 1)))
+(defun claude-code-ide-config--setup-session-buffer (buffer-and-process)
+  "Set up keybindings in the freshly created Claude session buffer.
+BUFFER-AND-PROCESS is `claude-code-ide--create-terminal-session's
+return value, passed through unchanged.  Terminal mode hooks are too
+early for this: `claude-code-ide--session-buffer-p' relies on the
+session backpointer, which is only set after the terminal buffer is
+created."
+  (when-let ((buf (car-safe buffer-and-process)))
+    (when (buffer-live-p buf)
+      (with-current-buffer buf
+        (local-set-key (kbd "C-o") #'other-window)
+        (local-set-key (kbd "C-c o") #'claude-code-ide-send-c-o)
+        (claude-code-ide-posframe-mode 1))))
+  buffer-and-process)
 
 ;;; Posframe Guard for Ediff
 
-(defun claude-code-ide-config--dismiss-posframe-for-diff (orig-fn arguments)
+(defun claude-code-ide-config--dismiss-posframe-for-diff (orig-fn arguments &optional session)
   "Advice around `claude-code-ide-mcp-handle-open-diff'.
 When posframe-ime-input is active, cancel it and switch to main frame
 before starting ediff."
@@ -116,7 +120,7 @@ before starting ediff."
       (select-frame-set-input-focus main-frame))
     ;; Wait for recursive-edit to finish via the timer-based abort
     (sit-for 0.2))
-  (funcall orig-fn arguments))
+  (funcall orig-fn arguments session))
 
 ;;; Session Tiling
 
@@ -126,30 +130,21 @@ before starting ediff."
 (defvar claude-code-ide-config--tiled-p nil
   "Non-nil when sessions are currently tiled.")
 
-(defun claude-code-ide-config--filtered-sessions (filter)
-  "Return list of sessions matching FILTER with live buffers.
-FILTER is one of: nil or `idle' (idle only), `working' (active only),
-`all' (all sessions)."
+(defun claude-code-ide-config--live-sessions ()
+  "Return list of sessions with live terminal buffers."
   (let (result)
     (maphash
      (lambda (_id session)
-       (when-let ((buf (claude-code-ide-session-buffer session)))
+       (when-let ((buf (claude-code-ide-mcp-session-buffer session)))
          (when (buffer-live-p buf)
-           (let ((status (claude-code-ide-session-status session)))
-             (when (pcase filter
-                     ('all t)
-                     ('working (eq status 'active))
-                     (_ (eq status 'idle)))
-               (push session result))))))
-     claude-code-ide--sessions)
+           (push session result))))
+     claude-code-ide-mcp--sessions)
     (nreverse result)))
 
-(defun claude-code-ide-tile-sessions (&optional filter)
-  "Tile Claude Code session buffers in a grid layout.
-FILTER is one of: nil or `idle' (idle only), `working' (active only),
-`all' (all sessions)."
+(defun claude-code-ide-tile-sessions ()
+  "Tile Claude Code session buffers in a grid layout."
   (interactive)
-  (let* ((sessions (claude-code-ide-config--filtered-sessions (or filter 'all)))
+  (let* ((sessions (claude-code-ide-config--live-sessions))
          (n (length sessions)))
     (cond
      ((= n 0)
@@ -199,7 +194,7 @@ FILTER is one of: nil or `idle' (idle only), `working' (active only),
         (setq windows (nreverse windows))
         (cl-loop for session in sessions
                  for win in windows
-                 do (set-window-buffer win (claude-code-ide-session-buffer session))))
+                 do (set-window-buffer win (claude-code-ide-mcp-session-buffer session))))
       (message "Tiled %d Claude Code session(s)." n)))))
 
 (defun claude-code-ide-untile-sessions ()
@@ -212,27 +207,10 @@ FILTER is one of: nil or `idle' (idle only), `working' (active only),
     (setq claude-code-ide-config--tiled-p nil)
     (message "Restored previous window layout.")))
 
-(defun claude-code-ide-tile-idle-sessions ()
-  "Tile idle Claude Code sessions."
-  (interactive)
-  (claude-code-ide-tile-sessions 'idle))
-
-(defun claude-code-ide-tile-working-sessions ()
-  "Tile working (active) Claude Code sessions."
-  (interactive)
-  (claude-code-ide-tile-sessions 'working))
-
-(defun claude-code-ide-tile-all-sessions ()
-  "Tile all Claude Code sessions."
-  (interactive)
-  (claude-code-ide-tile-sessions 'all))
-
 (transient-define-prefix claude-code-ide-tile-menu ()
   "Tile Claude Code session buffers."
   ["Tile Sessions"
-   ("i" "Tile idle sessions" claude-code-ide-tile-idle-sessions)
-   ("w" "Tile working sessions" claude-code-ide-tile-working-sessions)
-   ("a" "Tile all sessions" claude-code-ide-tile-all-sessions)
+   ("t" "Tile all sessions" claude-code-ide-tile-sessions)
    ("u" "Untile (restore)" claude-code-ide-untile-sessions)])
 
 ;;; Side Window Fix
@@ -253,14 +231,11 @@ buffer in the main area, then delete other windows normally."
 
 (defun claude-code-ide-config-setup ()
   "Setup claude-code-ide custom configuration."
-  ;; C-o binding for vterm and eat
-  (dolist (hook '(vterm-mode-hook eat-mode-hook))
-    (add-hook hook #'claude-code-ide-setup-c-o-binding))
-
-  ;; Enable posframe minor mode for claude-code buffers
-  ;; Minor mode keymap takes precedence over local-set-key
-  (dolist (hook '(vterm-mode-hook eat-mode-hook))
-    (add-hook hook #'claude-code-ide-setup-posframe-mode))
+  ;; Keybindings and posframe input for new session buffers.  Advice on
+  ;; session creation rather than terminal mode hooks so every backend
+  ;; (vterm/eat/ghostel) is covered without per-mode registration.
+  (advice-add 'claude-code-ide--create-terminal-session :filter-return
+              #'claude-code-ide-config--setup-session-buffer)
 
   ;; Advice for posframe input dialog
   (advice-add 'claude-code-ide-send-prompt :around #'claude-code-ide-send-prompt-with-posframe)
