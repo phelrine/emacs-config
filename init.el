@@ -628,7 +628,9 @@
 ;;; Dired
 (use-package dired
   :bind
-  (:map dired-mode-map ("." . dired-omit-mode))
+  (:map dired-mode-map
+        ("." . dired-omit-mode)
+        ("C-o" . other-window))
   :custom
   (dired-omit-files (rx (seq bol ".")))
   :hook
