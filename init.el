@@ -73,13 +73,6 @@
 (defalias 'yes-or-no-p 'y-or-n-p)
 (defalias 'message-box 'message)
 
-;;; Font settings
-(when (eq (window-system) 'ns)
-  (set-face-attribute 'default nil :family "Menlo" :height 180)
-  (set-fontset-font t 'japanese-jisx0208 (font-spec :family "Hiragino Kaku Gothic ProN")))
-(when (eq (window-system) 'x)
-  (set-face-attribute 'default nil :family "HackGen" :height 180))
-
 ;;; Local lisp path
 ;; Sync load-path with flycheck-emacs-lisp-load-path
 (with-eval-after-load 'flycheck
@@ -100,6 +93,14 @@
 ;; Load version manager diagnostic tools (supports asdf and mise)
 ;; Provides M-x check-version-manager-environment, version-manager-quick-fix, etc.
 (require 'check-version-manager)
+
+;;; Font settings
+;; Only macOS needs real work here: Menlo has no Japanese glyphs and covers the
+;; symbol blocks only partly, and the fallbacks Emacs reaches for are
+;; proportional fonts whose advances break a terminal grid.  See font-macos.el.
+(pcase (window-system)
+  ('ns (require 'font-macos))
+  ('x (set-face-attribute 'default nil :family "HackGen" :height 180)))
 
 (recentf-mode 1)
 
@@ -424,7 +425,14 @@
 ;;; TERMINAL & SHELL
 ;;; ========================================
 
-(use-package ghostel :straight t :defer t)
+(use-package ghostel
+  :straight t
+  :defer t
+  ;; Default 0.0 shrinks any glyph whose metrics miss the cell, to keep the
+  ;; grid exact.  `font-macos-setup-symbols' already lands the fallbacks close
+  ;; to the cell, so shrinking now costs more than it buys: it just makes the
+  ;; few remaining odd glyphs look undersized next to the text.
+  :custom (ghostel-glyph-scale-floor 1.0))
 
 (use-package vterm
   :straight t

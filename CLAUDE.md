@@ -29,6 +29,7 @@ Key package management commands:
 - `lisp/` - Custom local packages and extensions:
   - `auth-source-ghcli.el` - GitHub CLI authentication integration
   - `check-version-manager*.el` - Version manager (asdf/mise) environment diagnostics and auto-fix tools
+  - `font-macos.el` - macOS fontset rules; keeps Japanese and symbol glyphs on the terminal grid (loaded from `init.el` only when `window-system` is `ns`)
   - `sql-ts-mode.el` - SQL tree-sitter mode
   - `vitest.el` - Vitest integration
   - `gotest-dape.el` - Go testing with DAP integration
