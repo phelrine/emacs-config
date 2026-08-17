@@ -55,3 +55,6 @@
 /.emigo_repomap/
 /tutorial/
 /docs/plans/
+
+# Native compilation output
+eln-cache/
