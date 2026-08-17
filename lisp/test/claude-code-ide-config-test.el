@@ -160,7 +160,8 @@ telling you that C-c C-c is what sends."
   (with-temp-buffer
     (claude-code-ide-external-prompt-mode)
     (should (string-match-p "C-c C-c" header-line-format))
-    (should (string-match-p "C-c C-t" header-line-format))))
+    (should (string-match-p "C-c C-t" header-line-format))
+    (should (string-match-p "C-c C-k" header-line-format))))
 
 (ert-deftest claude-code-ide-config-test-external-posframe-keeps-header-line ()
   "Ask posframe to keep the header and mode lines.
@@ -190,13 +191,58 @@ whatever the CLI already had."
         (should (plist-get args :cursor))
         (should (equal (plist-get args :window-point) (point-max)))))))
 
+(ert-deftest claude-code-ide-config-test-external-mode-claims-only-for-files ()
+  "Only a real handoff takes the display over.
+Turning the mode on in a scratch buffer -- a test, a probe -- would
+otherwise leave `server-window' pointing here for good, and every later
+`emacsclient FILE' would be floated in a posframe."
+  (let ((server-window nil))
+    (with-temp-buffer
+      (claude-code-ide-external-prompt-mode)
+      (should-not server-window))))
+
+(ert-deftest claude-code-ide-config-test-external-display-passes-foreign-buffers-through ()
+  "A buffer that is not a handoff is displayed normally.
+The override is global state cleaned up by a callback, so it can be left
+installed; that must not turn unrelated files into posframes."
+  (let ((server-window nil)
+        floated shown)
+    (cl-letf (((symbol-function 'claude-code-ide-external-prompt--show-posframe)
+               (lambda (&rest _) (setq floated t)))
+              ((symbol-function 'pop-to-buffer-same-window)
+               (lambda (&rest _) (setq shown t))))
+      (with-temp-buffer
+        (text-mode)
+        (claude-code-ide-external-prompt--display (current-buffer))))
+    (should shown)
+    (should-not floated)))
+
+(ert-deftest claude-code-ide-config-test-external-abort-discards-edits ()
+  "Aborting hands the file back untouched, so the CLI's input line is
+exactly what it was before the handoff."
+  (let (order)
+    (cl-letf (((symbol-function 'revert-buffer) (lambda (&rest _) (push 'revert order)))
+              ((symbol-function 'save-buffer) (lambda (&rest _) (push 'save order)))
+              ((symbol-function 'claude-code-ide-external-prompt--hide)
+               (lambda (&rest _) (push 'hide order)))
+              ((symbol-function 'server-edit) (lambda (&rest _) (push 'release order))))
+      (with-temp-buffer
+        (setq buffer-file-name "/tmp/claude-501/claude-prompt-x.md")
+        (insert "捨てる編集")
+        (set-buffer-modified-p t)
+        (claude-code-ide-external-prompt-abort)
+        (set-buffer-modified-p nil)))
+    (should (equal (reverse order) '(revert hide release)))))
+
 (ert-deftest claude-code-ide-config-test-external-mode-claims-server-window ()
   "The mode body is the last moment before `server-switch-buffer' displays,
 so that is where the display override is installed."
   (let ((server-window nil))
     (with-temp-buffer
+      (setq buffer-file-name "/tmp/claude-501/claude-prompt-x.md")
       (claude-code-ide-external-prompt-mode)
-      (should (eq server-window #'claude-code-ide-external-prompt--display)))))
+      (should (eq server-window #'claude-code-ide-external-prompt--display))
+      (set-buffer-modified-p nil))))
 
 (ert-deftest claude-code-ide-config-test-external-display-restores-server-window ()
   "The override lasts exactly one handoff, leaving other emacsclient uses alone."
@@ -204,10 +250,12 @@ so that is where the display override is installed."
     (cl-letf (((symbol-function 'claude-code-ide-external-prompt--show-posframe)
                #'ignore))
       (with-temp-buffer
+        (setq buffer-file-name "/tmp/claude-501/claude-prompt-x.md")
         ;; Claim and fire as one round trip: restoring is only meaningful
         ;; against the value the claim displaced.
         (claude-code-ide-external-prompt-mode)
-        (claude-code-ide-external-prompt--display (current-buffer))))
+        (claude-code-ide-external-prompt--display (current-buffer))
+        (set-buffer-modified-p nil)))
     (should (eq server-window 'previous-value))))
 
 (ert-deftest claude-code-ide-config-test-external-display-honours-style ()
@@ -218,6 +266,8 @@ so that is where the display override is installed."
               ((symbol-function 'claude-code-ide-external-prompt--show-window)
                (lambda (&rest _) (setq shown 'window))))
       (with-temp-buffer
+        (setq buffer-file-name "/tmp/claude-501/claude-prompt-x.md")
+        (claude-code-ide-external-prompt-mode)
         (let ((claude-code-ide-config-external-prompt-display 'posframe)
               (server-window nil))
           (claude-code-ide-external-prompt--display (current-buffer))
@@ -225,7 +275,8 @@ so that is where the display override is installed."
         (let ((claude-code-ide-config-external-prompt-display 'window)
               (server-window nil))
           (claude-code-ide-external-prompt--display (current-buffer))
-          (should (eq shown 'window)))))))
+          (should (eq shown 'window)))
+        (set-buffer-modified-p nil)))))
 
 (ert-deftest claude-code-ide-config-test-external-finish-hides-before-releasing ()
   "Take the posframe down before handing back, so the CLI is never left

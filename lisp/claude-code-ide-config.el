@@ -117,6 +117,7 @@ has no other way to know which terminal it came from.")
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c C-c") #'claude-code-ide-external-prompt-finish-and-send)
     (define-key map (kbd "C-c C-t") #'claude-code-ide-external-prompt-finish)
+    (define-key map (kbd "C-c C-k") #'claude-code-ide-external-prompt-abort)
     map)
   "Keymap for `claude-code-ide-external-prompt-mode'.")
 
@@ -132,7 +133,8 @@ has no other way to know which terminal it came from.")
         (substitute-command-keys
          (concat "\\<claude-code-ide-external-prompt-mode-map>"
                  "\\[claude-code-ide-external-prompt-finish-and-send]: send    "
-                 "\\[claude-code-ide-external-prompt-finish]: back to CLI unsent"))))
+                 "\\[claude-code-ide-external-prompt-finish]: back to CLI unsent    "
+                 "\\[claude-code-ide-external-prompt-abort]: discard"))))
 
 (defvar claude-code-ide-external-prompt--saved-server-window nil
   "Value of `server-window' displaced by the current handoff.")
@@ -142,10 +144,14 @@ has no other way to know which terminal it came from.")
 `server-switch-buffer' consults `server-window' only after the file has
 been visited, so the major mode is the last moment we can intercept it.
 The override is undone the instant it fires, so other `emacsclient'
-uses keep whatever display the user configured."
-  (unless (eq server-window #'claude-code-ide-external-prompt--display)
-    (setq claude-code-ide-external-prompt--saved-server-window server-window))
-  (setq server-window #'claude-code-ide-external-prompt--display))
+uses keep whatever display the user configured.
+
+Only for a real handoff: turning the mode on in a scratch buffer would
+claim the display with nothing left to release it again."
+  (when buffer-file-name
+    (unless (eq server-window #'claude-code-ide-external-prompt--display)
+      (setq claude-code-ide-external-prompt--saved-server-window server-window))
+    (setq server-window #'claude-code-ide-external-prompt--display)))
 
 (defun claude-code-ide-external-prompt--show-window (buffer)
   "Show BUFFER along the bottom of the current frame and select it."
@@ -188,11 +194,19 @@ uses keep whatever display the user configured."
 (defun claude-code-ide-external-prompt--display (buffer)
   "Display BUFFER as `claude-code-ide-config-external-prompt-display' asks.
 Installed as `server-window' for the duration of one handoff; restoring
-it first means an error below cannot strand the override."
+it first means an error below cannot strand the override.
+
+Anything that is not a handoff is displayed the ordinary way.  This is
+global state released by a callback, so it can be left installed, and a
+plain `emacsclient FILE' must not end up floating in a child frame."
   (setq server-window claude-code-ide-external-prompt--saved-server-window)
-  (if (eq claude-code-ide-config-external-prompt-display 'posframe)
-      (claude-code-ide-external-prompt--show-posframe buffer)
-    (claude-code-ide-external-prompt--show-window buffer)))
+  (cond
+   ((not (with-current-buffer buffer
+           (derived-mode-p 'claude-code-ide-external-prompt-mode)))
+    (pop-to-buffer-same-window buffer))
+   ((eq claude-code-ide-config-external-prompt-display 'posframe)
+    (claude-code-ide-external-prompt--show-posframe buffer))
+   (t (claude-code-ide-external-prompt--show-window buffer))))
 
 (defun claude-code-ide-external-prompt--hide (buffer)
   "Take BUFFER's child frame down and hand focus back to the main frame."
@@ -225,6 +239,20 @@ it lands after the rule it overrides."
     (save-buffer))
   ;; Down before the handover: the CLI redraws as soon as the client is
   ;; released, and would do it underneath a stale child frame.
+  (claude-code-ide-external-prompt--hide (current-buffer))
+  (server-edit))
+
+(defun claude-code-ide-external-prompt-abort ()
+  "Hand the file back untouched, discarding whatever was typed here.
+Reverting rather than simply not saving: the CLI re-reads the file, so
+the draft has to be the one it wrote for the input line to come back
+unchanged.
+
+Bound to \`C-c C-k' rather than \`C-g', which SKK needs for cancelling
+a conversion."
+  (interactive)
+  (when buffer-file-name
+    (revert-buffer t t t))
   (claude-code-ide-external-prompt--hide (current-buffer))
   (server-edit))
 
