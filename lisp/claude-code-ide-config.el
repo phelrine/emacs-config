@@ -70,8 +70,8 @@ This mode's keymap takes precedence over the terminal's local bindings."
 
 ;; The CLI's `chat:externalEditor' key (C-g) writes its input line to a
 ;; temp file, runs $EDITOR on it, and reads the file back afterwards.
-;; `claude-code-ide-config--with-project-env' points $EDITOR at this
-;; Emacs, so pressing it hands composing over here -- exactly, including
+;; `claude-code-ide-config--export-editor' points $EDITOR at this Emacs,
+;; so pressing it hands composing over here -- exactly, including
 ;; whatever was already typed on the CLI side, with no screen scraping.
 
 (defcustom claude-code-ide-config-external-prompt-send-delay 0.4
@@ -309,13 +309,21 @@ word.  The client shipped alongside this Emacs also matches its version."
 
 (defun claude-code-ide-config--export-editor ()
   "Point EDITOR at this Emacs for everything Emacs spawns.
-`--with-project-env' only reaches sessions created through its advice.
-Setting it process-wide covers every other route as well, so the CLI's
-external-editor key works whichever way a session came to exist.  Emacs
-inherits no EDITOR of its own on macOS, so nothing is being overridden."
+Emacs inherits no EDITOR of its own on macOS, so nothing is overridden.
+
+Written to the global value rather than with `setenv\='.  `mise-env\='
+gives every prog-mode buffer a buffer-local `process-environment\=', and
+the terminal is spawned from a different buffer again, so a `setenv\='
+here would be discarded before the CLI ever started."
   (when-let ((editor (claude-code-ide-config--editor-command)))
-    (setenv "EDITOR" editor)
-    (setenv "VISUAL" editor)))
+    (setq-default process-environment
+                  (append (list (concat "EDITOR=" editor)
+                                (concat "VISUAL=" editor))
+                          (seq-remove
+                           (lambda (entry)
+                             (or (string-prefix-p "EDITOR=" entry)
+                                 (string-prefix-p "VISUAL=" entry)))
+                           (default-value 'process-environment))))))
 
 (defun claude-code-ide-config--with-project-env (orig-fun buffer-name working-dir &rest args)
   "Advice around `claude-code-ide--create-terminal-session'.
@@ -326,17 +334,13 @@ directory, which carries its own credentials, so a repository can run
 under a different account.  Without this advice the session would
 inherit whatever environment Emacs itself was started with.
 
-EDITOR is set last so it beats any value the project supplies: pointing
-the CLI's external-editor key at this Emacs is the whole reason we set
-it.  It is resolved before EXEC-PATH is rebound, since `emacsclient'
-lives in Emacs' own installation rather than in the project's toolchain."
-  (let* ((editor (claude-code-ide-config--editor-command))
-         (env (claude-code-ide-config--project-env working-dir))
+EDITOR is deliberately not set here.  This binding would not survive the
+buffer switch `claude-code-ide--create-terminal-session\=' makes before
+spawning, so `claude-code-ide-config--export-editor\=' handles it
+globally instead and a project\='s own EDITOR is left to win."
+  (let* ((env (claude-code-ide-config--project-env working-dir))
          (process-environment (if env (car env) process-environment))
          (exec-path (if env (cdr env) exec-path)))
-    (when editor
-      (setenv "EDITOR" editor)
-      (setenv "VISUAL" editor))
     (apply orig-fun buffer-name working-dir args)))
 
 ;;; Session Tiling

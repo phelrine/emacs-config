@@ -310,23 +310,58 @@ override would be skipped without a word."
             ((symbol-function 'executable-find) (lambda (&rest _) nil)))
     (should-not (claude-code-ide-config--editor-command))))
 
-(ert-deftest claude-code-ide-config-test-export-editor-sets-emacs-environment ()
-  "Point EDITOR at this Emacs process-wide.
-The per-session injection only covers sessions started through our
-advice; anything Emacs spawns by another route inherits this instead."
-  (let ((process-environment (copy-sequence process-environment)))
+(defmacro claude-code-ide-config-test--with-saved-global-env (&rest body)
+  "Run BODY, restoring the global `process-environment' afterwards."
+  (declare (indent 0))
+  `(let ((saved (default-value 'process-environment)))
+     (unwind-protect (progn ,@body)
+       (setq-default process-environment saved))))
+
+(ert-deftest claude-code-ide-config-test-export-editor-sets-global-environment ()
+  "Point EDITOR at this Emacs for everything Emacs spawns."
+  (claude-code-ide-config-test--with-saved-global-env
     (cl-letf (((symbol-function 'claude-code-ide-config--editor-command)
                (lambda () "/usr/local/bin/emacsclient")))
       (claude-code-ide-config--export-editor)
-      (should (equal (getenv "EDITOR") "/usr/local/bin/emacsclient"))
-      (should (equal (getenv "VISUAL") "/usr/local/bin/emacsclient")))))
+      (should (equal (getenv-internal "EDITOR" (default-value 'process-environment))
+                     "/usr/local/bin/emacsclient"))
+      (should (equal (getenv-internal "VISUAL" (default-value 'process-environment))
+                     "/usr/local/bin/emacsclient")))))
+
+(ert-deftest claude-code-ide-config-test-export-editor-ignores-buffer-local-env ()
+  "Write the global value even when the current buffer has its own.
+`mise-env' gives every prog-mode buffer a buffer-local
+`process-environment', and the terminal spawns from a different buffer
+again -- a plain `setenv' here would be discarded before the CLI ever
+started."
+  (claude-code-ide-config-test--with-saved-global-env
+    (cl-letf (((symbol-function 'claude-code-ide-config--editor-command)
+               (lambda () "/usr/local/bin/emacsclient")))
+      (with-temp-buffer
+        (setq-local process-environment (cons "MARKER=local" process-environment))
+        (claude-code-ide-config--export-editor))
+      (should (equal (getenv-internal "EDITOR" (default-value 'process-environment))
+                     "/usr/local/bin/emacsclient")))))
+
+(ert-deftest claude-code-ide-config-test-export-editor-replaces-stale-value ()
+  "Exporting twice leaves one EDITOR entry, not a growing stack."
+  (claude-code-ide-config-test--with-saved-global-env
+    (cl-letf (((symbol-function 'claude-code-ide-config--editor-command)
+               (lambda () "/usr/local/bin/emacsclient")))
+      (claude-code-ide-config--export-editor)
+      (claude-code-ide-config--export-editor)
+      (should (= 1 (seq-count (lambda (e) (string-prefix-p "EDITOR=" e))
+                              (default-value 'process-environment)))))))
 
 (ert-deftest claude-code-ide-config-test-export-editor-noop-without-client ()
   "With no client to point at, leave the inherited EDITOR alone."
-  (let ((process-environment (cons "EDITOR=nano" (copy-sequence process-environment))))
+  (claude-code-ide-config-test--with-saved-global-env
+    (setq-default process-environment
+                  (cons "EDITOR=nano" (default-value 'process-environment)))
     (cl-letf (((symbol-function 'claude-code-ide-config--editor-command) #'ignore))
       (claude-code-ide-config--export-editor)
-      (should (equal (getenv "EDITOR") "nano")))))
+      (should (equal (getenv-internal "EDITOR" (default-value 'process-environment))
+                     "nano")))))
 
 ;;; Per-Repository Environment
 
@@ -382,55 +417,11 @@ advice; anything Emacs spawns by another route inherits this instead."
       (should (equal process-environment env-before))
       (should (equal exec-path path-before)))))
 
-(ert-deftest claude-code-ide-config-test-with-project-env-sets-editor ()
-  "Sessions get an EDITOR pointing back at this Emacs, so the CLI's
-external-editor key hands its input line here instead of to vi."
-  (claude-code-ide-config-test--with-stub-mise
-    (cl-letf (((symbol-function 'claude-code-ide-config--editor-command)
-               (lambda () "/usr/local/bin/emacsclient")))
-      (let (observed)
-        (claude-code-ide-config--with-project-env
-         (lambda (&rest _) (setq observed process-environment))
-         "*buf*" "/tmp/some-project/" 1234 nil nil "sid")
-        (should (equal (getenv-internal "EDITOR" observed)
-                       "/usr/local/bin/emacsclient"))
-        (should (equal (getenv-internal "VISUAL" observed)
-                       "/usr/local/bin/emacsclient"))))))
-
-(ert-deftest claude-code-ide-config-test-with-project-env-editor-beats-mise ()
-  "Our EDITOR wins over one the project's mise environment supplies."
-  (cl-letf (((symbol-function 'mise-env-update)
-             (lambda ()
-               (setq-local process-environment
-                           (cons "EDITOR=nano" process-environment))))
-            ((symbol-function 'claude-code-ide-config--editor-command)
-             (lambda () "/usr/local/bin/emacsclient")))
-    (let (observed)
-      (claude-code-ide-config--with-project-env
-       (lambda (&rest _) (setq observed process-environment))
-       "*buf*" "/tmp/some-project/" 1234 nil nil "sid")
-      (should (equal (getenv-internal "EDITOR" observed)
-                     "/usr/local/bin/emacsclient")))))
-
-(ert-deftest claude-code-ide-config-test-with-project-env-editor-optional ()
-  "With no emacsclient to point at, the inherited EDITOR is left alone."
-  (claude-code-ide-config-test--with-stub-mise
-    (cl-letf (((symbol-function 'claude-code-ide-config--editor-command) #'ignore))
-      ;; Pin the inherited value: the ambient one varies with how the
-      ;; test runner itself was started.
-      (let ((process-environment (cons "EDITOR=inherited" process-environment))
-            observed)
-        (claude-code-ide-config--with-project-env
-         (lambda (&rest _) (setq observed process-environment))
-         "*buf*" "/tmp/some-project/" 1234 nil nil "sid")
-        (should (equal (getenv-internal "EDITOR" observed) "inherited"))))))
-
 (ert-deftest claude-code-ide-config-test-with-project-env-survives-mise-failure ()
   "A failing mise lookup falls back to the ambient environment."
   (cl-letf (((symbol-function 'mise-env-update)
              (lambda () (error "mise exploded")))
-            ;; Out of scope here; covered by the EDITOR tests above.
-            ((symbol-function 'claude-code-ide-config--editor-command) #'ignore))
+            )
     (let (observed)
       (claude-code-ide-config--with-project-env
        (lambda (&rest _) (setq observed process-environment))
