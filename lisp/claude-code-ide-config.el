@@ -10,8 +10,8 @@
 ;; Custom configuration for claude-code-ide including:
 ;; - C-o keybinding to other-window (consistent with global binding)
 ;; - C-c o keybinding to send C-o to terminal (for verbose toggle)
-;; - Prompt input: the CLI's own external editor, a popup buffer, or the
-;;   blocking posframe dialog, selected with `claude-code-ide-config-input-style'
+;; - Prompt input through the CLI's own external-editor key, composed in
+;;   Emacs and handed straight back
 ;; - Per-repository environment (Claude account, tool versions) via mise
 
 ;;; Code:
@@ -19,7 +19,7 @@
 (require 'claude-code-ide)
 (require 'claude-code-ide-mcp)
 (require 'claude-code-ide-transient)
-(require 'posframe-ime-input)
+(require 'posframe)
 (require 'mise-env)
 ;; For `server-edit' and `server-window': the CLI's external-editor key
 ;; reaches Emacs through the server, and we take over how it displays.
@@ -52,27 +52,6 @@ see it."
   (claude-code-ide-config--send-ctrl "o"))
 
 ;;; Prompt Input
-
-(defcustom claude-code-ide-config-input-style 'external
-  "How `claude-code-ide-send-prompt' reads an interactive prompt.
-
-`buffer' opens a normal Emacs buffer in a side window and sends on
-\\[claude-code-ide-prompt-send].  Nothing blocks while it is open, so
-async MCP handlers (ediff, `find-file') cannot steal the input.
-
-`posframe-dialog' uses the child-frame dialog, which blocks in
-`recursive-edit' and therefore needs the guards further down this file.
-It is unrelated to `claude-code-ide-config-external-prompt-display''s
-`posframe', which merely picks how the external editor's file is shown.
-
-`external' presses the CLI's own external-editor key instead, so
-whatever is already typed on the CLI side comes along exactly.  It only
-works in sessions started after `EDITOR' was pointed at this Emacs;
-older ones open vi inside the terminal."
-  :type '(choice (const :tag "CLI external editor (C-g)" external)
-                 (const :tag "Popup buffer" buffer)
-                 (const :tag "Posframe dialog (blocking)" posframe-dialog))
-  :group 'claude-code-ide)
 
 ;; Define a minor mode to ensure our keybindings take precedence
 (defvar claude-code-ide-prompt-input-mode-map
@@ -110,9 +89,9 @@ refreshed yet."
 keeping the session's own window visible underneath.  `window' opens it
 along the bottom of the current frame instead.
 
-Unlike the `posframe-dialog' input style further down this file, nothing
-blocks in `recursive-edit' here: the child frame shows an ordinary file
-buffer, so losing focus to it costs nothing."
+Nothing blocks in `recursive-edit' either way: the child frame shows an
+ordinary file buffer, so an async MCP handler stealing focus mid-edit
+costs nothing."
   :type '(choice (const :tag "Floating posframe" posframe)
                  (const :tag "Ordinary window" window))
   :group 'claude-code-ide)
@@ -179,18 +158,17 @@ uses keep whatever display the user configured."
 
 (defun claude-code-ide-external-prompt--show-posframe (buffer)
   "Float BUFFER in a focused child frame, caret after the existing draft."
-  (require 'posframe)
   (let ((end (with-current-buffer buffer (point-max))))
     (posframe-show buffer
-                 :poshandler #'posframe-poshandler-frame-center
-                 :width (car claude-code-ide-config-external-prompt-size)
-                 :height (cdr claude-code-ide-config-external-prompt-size)
-                 :border-width 2
-                 :border-color "#4CAF50"
-                 :left-fringe 8
-                 :right-fringe 8
-                 :background-color (face-background 'default nil t)
-                 :foreground-color (face-foreground 'default nil t)
+                   :poshandler #'posframe-poshandler-frame-center
+                   :width (car claude-code-ide-config-external-prompt-size)
+                   :height (cdr claude-code-ide-config-external-prompt-size)
+                   :border-width 2
+                   :border-color "#4CAF50"
+                   :left-fringe 8
+                   :right-fringe 8
+                   :background-color (face-background 'default nil t)
+                   :foreground-color (face-foreground 'default nil t)
                    :accept-focus t
                    ;; Posframe drops both by default.  They are the child
                    ;; frame's only status readouts: the key help lives in
@@ -278,159 +256,6 @@ unchanged.  SESSION defaults to the one owning the current buffer."
             (claude-code-ide-config--send-ctrl "g")))
       (user-error "No Claude Code session for this buffer"))))
 
-;;; Prompt Buffer Input
-
-(defvar-local claude-code-ide-prompt--session nil
-  "Session this prompt buffer sends to.")
-
-(defvar claude-code-ide-prompt-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-c C-c") #'claude-code-ide-prompt-send)
-    (define-key map (kbd "C-c C-t") #'claude-code-ide-prompt-transfer)
-    (define-key map (kbd "C-c C-k") #'claude-code-ide-prompt-quit)
-    map)
-  "Keymap for `claude-code-ide-prompt-mode'.")
-
-(define-derived-mode claude-code-ide-prompt-mode text-mode "Claude-Prompt"
-  "Major mode for composing a prompt to send to a Claude Code session."
-  ;; Writing prompts here is the reason this buffer exists instead of the
-  ;; terminal, so start ready for Japanese rather than making the user
-  ;; reach for \\[skk-mode] every time.
-  (when (fboundp 'skk-mode)
-    (skk-mode 1))
-  (setq header-line-format
-        (substitute-command-keys
-         (concat "\\<claude-code-ide-prompt-mode-map>"
-                 "\\[claude-code-ide-prompt-send]: send    "
-                 "\\[claude-code-ide-prompt-transfer]: hand to CLI    "
-                 "\\[claude-code-ide-prompt-quit]: close (draft kept)"))))
-
-(defun claude-code-ide-prompt--buffer-name (session)
-  "Return the name of SESSION's prompt buffer.
-Derived from the session's terminal buffer, which claude-code-ide
-already keeps unique, so parallel sessions each get their own draft."
-  (format "*Claude Prompt: %s*"
-          (string-trim (buffer-name (claude-code-ide-mcp-session-buffer session))
-                       "\\*" "\\*")))
-
-(defun claude-code-ide-prompt--bury ()
-  "Hide the current prompt buffer if it is displayed."
-  (when-let ((win (get-buffer-window (current-buffer))))
-    (quit-window nil win)))
-
-(defun claude-code-ide-prompt--hand-off (submit)
-  "Move this buffer's draft into its Claude session and hide the buffer.
-With SUBMIT, press RET afterwards so the CLI acts on it; without, the
-text is left sitting in the CLI's input line for further editing.
-The buffer is cleared on success, so the draft is moved rather than
-copied and cannot be sent twice."
-  (let ((text (string-trim (buffer-string)))
-        (session claude-code-ide-prompt--session))
-    (cond
-     ((string-empty-p text)
-      (message "Prompt is empty"))
-     ((not (and session
-                (buffer-live-p (claude-code-ide-mcp-session-buffer session))))
-      ;; Keep the text: the draft is the only copy the user has.
-      (message "Claude session is gone; draft kept in this buffer"))
-     (t
-      (with-current-buffer (claude-code-ide-mcp-session-buffer session)
-        (claude-code-ide--terminal-send-string text)
-        (when submit
-          (sit-for 0.1)
-          (claude-code-ide--terminal-send-return)))
-      (erase-buffer)
-      (claude-code-ide-prompt--bury)))))
-
-(defun claude-code-ide-prompt-send ()
-  "Send this buffer's text to its Claude session, then clear and hide it."
-  (interactive)
-  (claude-code-ide-prompt--hand-off t))
-
-(defun claude-code-ide-prompt-transfer ()
-  "Put this buffer's text into the Claude session's input line, unsubmitted.
-Use this to keep composing on the CLI side, or to reach a CLI feature
-this buffer has no access to."
-  (interactive)
-  (claude-code-ide-prompt--hand-off nil))
-
-(defun claude-code-ide-prompt-quit ()
-  "Hide the prompt buffer without sending.  The draft is kept."
-  (interactive)
-  (claude-code-ide-prompt--bury))
-
-(defun claude-code-ide-prompt--open (session)
-  "Show SESSION's prompt buffer and select it.  Return the buffer."
-  (let ((buffer (get-buffer-create (claude-code-ide-prompt--buffer-name session))))
-    (with-current-buffer buffer
-      ;; Only on first use: `claude-code-ide-prompt-mode' would wipe the draft.
-      (unless (derived-mode-p 'claude-code-ide-prompt-mode)
-        (claude-code-ide-prompt-mode))
-      (setq claude-code-ide-prompt--session session)
-      (goto-char (point-max)))
-    (when-let ((win (display-buffer buffer
-                                    '((display-buffer-in-side-window)
-                                      (side . bottom)
-                                      (slot . 1)
-                                      (window-height . 12)))))
-      (select-window win))
-    buffer))
-
-(defun claude-code-ide-send-prompt-with-buffer (orig-fun &optional prompt session)
-  "Read an interactive prompt in a popup buffer instead of the minibuffer.
-PROMPT non-nil means a programmatic call, which goes to ORIG-FUN
-unchanged.  SESSION defaults to the one owning the current buffer, and is
-captured now because the prompt buffer is not a session buffer."
-  (if prompt
-      (funcall orig-fun prompt session)
-    (if-let ((target (or session
-                         (claude-code-ide--buffer-session (current-buffer)))))
-        (claude-code-ide-prompt--open target)
-      (user-error "No Claude Code session for this buffer"))))
-
-;;; Posframe Input Dialog
-
-(defvar claude-code-ide--last-dismissed-prompt nil
-  "Prompt text saved when posframe was dismissed by ediff guard.")
-
-(defun claude-code-ide-send-prompt-with-posframe-dialog (orig-fun &optional prompt session)
-  "Read an interactive prompt in a posframe dialog.
-RET sends, S-RET inserts a newline, and C-g leaves the text in the CLI's
-input line without sending it.  PROMPT non-nil means a programmatic call,
-which goes to ORIG-FUN unchanged; SESSION defaults to the current
-buffer's."
-  (if prompt
-      ;; Called programmatically - use original behavior
-      (funcall orig-fun prompt session)
-    ;; Called interactively - use posframe with callbacks
-    ;; Capture target session BEFORE opening posframe, since C-x j is always
-    ;; invoked from a claude-code session buffer and posframe may change context.
-    (let* ((target-session (or session
-                               (claude-code-ide--buffer-session (current-buffer))))
-           (initial (prog1 claude-code-ide--last-dismissed-prompt
-                      (setq claude-code-ide--last-dismissed-prompt nil)))
-           (submitted nil)
-           (text (posframe-ime-input-read-string
-                  "Claude prompt: " initial
-                  :help-text "(RET: Submit & Send | S-RET: New line | C-g: Submit)"
-                  :on-submit (lambda (text) (setq submitted t) text)
-                  :on-cancel #'identity
-                  :on-dismiss (lambda (text)
-                                (when (not (string-empty-p text))
-                                  (setq claude-code-ide--last-dismissed-prompt text)
-                                  (kill-new text)
-                                  (message "プロンプトを保存しました (C-y で貼り付け可能)"))
-                                nil))))
-      (when (and text (not (string-empty-p text)))
-        (when-let ((buf (and target-session
-                             (claude-code-ide-mcp-session-buffer target-session))))
-          (when (buffer-live-p buf)
-            (with-current-buffer buf
-              (claude-code-ide--terminal-send-string text)
-              (when submitted
-                (sit-for 0.1)
-                (claude-code-ide--terminal-send-return)))))))))
-
 (defun claude-code-ide-config--setup-session-buffer (buffer-and-process)
   "Set up keybindings in the freshly created Claude session buffer.
 BUFFER-AND-PROCESS is `claude-code-ide--create-terminal-session's
@@ -513,24 +338,6 @@ lives in Emacs' own installation rather than in the project's toolchain."
       (setenv "EDITOR" editor)
       (setenv "VISUAL" editor))
     (apply orig-fun buffer-name working-dir args)))
-
-;;; Posframe Guard for Ediff
-
-(defun claude-code-ide-config--dismiss-posframe-dialog-for-diff (orig-fn arguments &optional session)
-  "Advice around `claude-code-ide-mcp-handle-open-diff'.
-When posframe-ime-input is active, cancel it and switch to main frame
-before starting ediff."
-  (when (posframe-ime-input-active-p)
-    (posframe-ime-input-cancel)
-    ;; Switch to the main (non-child) frame
-    (when-let ((main-frame (seq-find
-                            (lambda (f)
-                              (not (frame-parameter f 'parent-frame)))
-                            (frame-list))))
-      (select-frame-set-input-focus main-frame))
-    ;; Wait for recursive-edit to finish via the timer-based abort
-    (sit-for 0.2))
-  (funcall orig-fn arguments session))
 
 ;;; Session Tiling
 
@@ -637,16 +444,6 @@ buffer in the main area, then delete other windows normally."
         (set-window-buffer (selected-window) buf)
         (funcall orig-fun nil interactive)))))
 
-;;; Setup
-
-(defun claude-code-ide-config--send-prompt-advice (orig-fun &optional prompt session)
-  "Dispatch `claude-code-ide-send-prompt' on `claude-code-ide-config-input-style'.
-ORIG-FUN, PROMPT and SESSION are passed through to the chosen reader."
-  (pcase claude-code-ide-config-input-style
-    ('posframe-dialog (claude-code-ide-send-prompt-with-posframe-dialog orig-fun prompt session))
-    ('external (claude-code-ide-send-prompt-externally orig-fun prompt session))
-    (_ (claude-code-ide-send-prompt-with-buffer orig-fun prompt session))))
-
 (defun claude-code-ide-config-setup ()
   "Setup claude-code-ide custom configuration."
   ;; Keybindings and posframe input for new session buffers.  Advice on
@@ -662,21 +459,16 @@ ORIG-FUN, PROMPT and SESSION are passed through to the chosen reader."
   (advice-add 'claude-code-ide--create-terminal-session :around
               #'claude-code-ide-config--with-project-env)
 
-  ;; Interactive prompt input, per `claude-code-ide-config-input-style'
+  ;; C-x j presses the CLI's own external-editor key for us
   (advice-add 'claude-code-ide-send-prompt :around
-              #'claude-code-ide-config--send-prompt-advice)
+              #'claude-code-ide-send-prompt-externally)
 
-  ;; Claim the temp file the CLI hands to $EDITOR.  Needed whatever the
-  ;; input style is: C-g works from the terminal on its own.
+  ;; Claim the temp file the CLI hands to $EDITOR.  Needed even without
+  ;; the advice: C-g works from the terminal on its own.
   (add-to-list 'auto-mode-alist
                (cons claude-code-ide-config--external-prompt-file-regexp
                      #'claude-code-ide-external-prompt-mode))
   (add-hook 'find-file-hook #'claude-code-ide-external-prompt--ensure-editable t)
-
-  ;; Dismiss posframe before opening ediff.  A no-op under the buffer
-  ;; style, since no posframe is ever active.
-  (advice-add 'claude-code-ide-mcp-handle-open-diff
-              :around #'claude-code-ide-config--dismiss-posframe-dialog-for-diff)
 
   ;; Fix "Cannot make side window the only window" error
   (advice-add 'delete-other-windows :around

@@ -8,9 +8,8 @@
 ;;     -l lisp/test/claude-code-ide-config-test.el \
 ;;     -f ert-run-tests-batch-and-exit
 ;;
-;; Sections follow `claude-code-ide-config.el': terminal keys, the three
-;; prompt readers (dispatch, popup buffer, external editor), then the
-;; per-repository environment.
+;; Sections follow `claude-code-ide-config.el': terminal keys, the
+;; external-editor prompt handoff, then the per-repository environment.
 
 ;;; Code:
 
@@ -46,22 +45,6 @@ Bound for BODY:
              (ignore session term-buffer sent keys)
              (with-current-buffer term-buffer ,@body))
          (when (buffer-live-p term-buffer) (kill-buffer term-buffer))))))
-
-(defmacro claude-code-ide-config-test--with-prompt-buffer (&rest body)
-  "Run BODY inside the popup prompt buffer of a stub session.
-Binds `prompt-buffer' on top of what `--with-session' binds."
-  (declare (indent 0))
-  `(claude-code-ide-config-test--with-session
-     (let ((prompt-buffer (get-buffer-create
-                           (claude-code-ide-prompt--buffer-name session))))
-       (unwind-protect
-           (progn
-             (ignore prompt-buffer)
-             (with-current-buffer prompt-buffer
-               (claude-code-ide-prompt-mode)
-               (setq claude-code-ide-prompt--session session)
-               ,@body))
-         (when (buffer-live-p prompt-buffer) (kill-buffer prompt-buffer))))))
 
 (defmacro claude-code-ide-config-test--with-server-handshake (&rest body)
   "Run BODY with the `server-edit' handshake stubbed.
@@ -101,19 +84,6 @@ from mere availability."
                 (lambda (&rest _) "/opt/homebrew/bin/emacsclient")))
        ,@body)))
 
-(defun claude-code-ide-config-test--reader-for (style)
-  "Return which reader `--send-prompt-advice' picks for input STYLE."
-  (let ((claude-code-ide-config-input-style style)
-        chosen)
-    (cl-letf (((symbol-function 'claude-code-ide-send-prompt-externally)
-               (lambda (&rest _) (setq chosen 'external)))
-              ((symbol-function 'claude-code-ide-send-prompt-with-buffer)
-               (lambda (&rest _) (setq chosen 'buffer)))
-              ((symbol-function 'claude-code-ide-send-prompt-with-posframe-dialog)
-               (lambda (&rest _) (setq chosen 'posframe-dialog))))
-      (claude-code-ide-config--send-prompt-advice #'ignore)
-      chosen)))
-
 ;;; Terminal Keys
 
 (ert-deftest claude-code-ide-config-test-send-ctrl-reaches-backend ()
@@ -127,143 +97,6 @@ from mere availability."
   (claude-code-ide-config-test--with-session
     (claude-code-ide-send-c-o)
     (should (equal (reverse keys) '(("o" "ctrl"))))))
-
-;;; Prompt Reader Dispatch
-
-(ert-deftest claude-code-ide-config-test-dispatch-honours-input-style ()
-  "Each input style routes to its own reader."
-  (should (eq (claude-code-ide-config-test--reader-for 'external) 'external))
-  (should (eq (claude-code-ide-config-test--reader-for 'buffer) 'buffer))
-  (should (eq (claude-code-ide-config-test--reader-for 'posframe-dialog) 'posframe-dialog)))
-
-(ert-deftest claude-code-ide-config-test-dispatch-defaults-to-popup-buffer ()
-  "An unrecognised style lands on the popup buffer rather than erroring."
-  (should (eq (claude-code-ide-config-test--reader-for 'nonsense) 'buffer)))
-
-;;; Popup Buffer Input
-
-(ert-deftest claude-code-ide-config-test-prompt-send-sends-text-then-return ()
-  "`claude-code-ide-prompt-send' hands the body to the terminal, then RET."
-  (claude-code-ide-config-test--with-prompt-buffer
-    (insert "こんにちは")
-    (claude-code-ide-prompt-send)
-    (should (equal (reverse sent) '("こんにちは" return)))))
-
-(ert-deftest claude-code-ide-config-test-prompt-send-clears-buffer ()
-  "A sent prompt is cleared so the buffer is ready for the next one."
-  (claude-code-ide-config-test--with-prompt-buffer
-    (insert "some prompt")
-    (claude-code-ide-prompt-send)
-    (should (equal (buffer-string) ""))))
-
-(ert-deftest claude-code-ide-config-test-prompt-send-ignores-blank-buffer ()
-  "A blank buffer sends nothing rather than waking the CLI with a bare RET."
-  (claude-code-ide-config-test--with-prompt-buffer
-    (insert "   \n\n  ")
-    (claude-code-ide-prompt-send)
-    (should-not sent)))
-
-(ert-deftest claude-code-ide-config-test-prompt-send-keeps-text-when-session-dead ()
-  "Losing the session must not lose what the user typed."
-  (claude-code-ide-config-test--with-prompt-buffer
-    (insert "大事なプロンプト")
-    (kill-buffer term-buffer)
-    (claude-code-ide-prompt-send)
-    (should-not sent)
-    (should (equal (buffer-string) "大事なプロンプト"))))
-
-(ert-deftest claude-code-ide-config-test-prompt-transfer-sends-text-without-return ()
-  "Transfer leaves the text sitting in the CLI's input line, unsubmitted."
-  (claude-code-ide-config-test--with-prompt-buffer
-    (insert "続きは向こうで書く")
-    (claude-code-ide-prompt-transfer)
-    (should (equal (reverse sent) '("続きは向こうで書く")))))
-
-(ert-deftest claude-code-ide-config-test-prompt-transfer-clears-buffer ()
-  "Transfer moves the draft rather than copying it, so nothing is left
-here to be sent a second time."
-  (claude-code-ide-config-test--with-prompt-buffer
-    (insert "移動する下書き")
-    (claude-code-ide-prompt-transfer)
-    (should (equal (buffer-string) ""))))
-
-(ert-deftest claude-code-ide-config-test-prompt-transfer-ignores-blank-buffer ()
-  "A blank buffer has nothing to transfer."
-  (claude-code-ide-config-test--with-prompt-buffer
-    (insert "  \n ")
-    (claude-code-ide-prompt-transfer)
-    (should-not sent)))
-
-(ert-deftest claude-code-ide-config-test-prompt-transfer-keeps-text-when-session-dead ()
-  "A failed transfer must not clear the only copy of the draft."
-  (claude-code-ide-config-test--with-prompt-buffer
-    (insert "消えたら困る")
-    (kill-buffer term-buffer)
-    (claude-code-ide-prompt-transfer)
-    (should-not sent)
-    (should (equal (buffer-string) "消えたら困る"))))
-
-(ert-deftest claude-code-ide-config-test-prompt-quit-keeps-text-and-sends-nothing ()
-  "Quitting is a dismissal, not a discard: nothing sent, draft preserved."
-  (claude-code-ide-config-test--with-prompt-buffer
-    (insert "書きかけ")
-    (claude-code-ide-prompt-quit)
-    (should-not sent)
-    (should (equal (buffer-string) "書きかけ"))))
-
-(ert-deftest claude-code-ide-config-test-prompt-mode-turns-skk-on ()
-  "The prompt buffer starts ready for Japanese input.
-The other tests in this file run the mode with no SKK loaded, which is
-what proves the guard keeps it optional."
-  (let (skk-arg)
-    (cl-letf (((symbol-function 'skk-mode) (lambda (&optional arg) (setq skk-arg arg))))
-      (with-temp-buffer
-        (claude-code-ide-prompt-mode)
-        (should (equal skk-arg 1))))))
-
-(ert-deftest claude-code-ide-config-test-prompt-buffer-name-is-per-session ()
-  "The prompt buffer name is derived from the session's terminal buffer,
-so parallel sessions each get their own draft."
-  (let* ((term (generate-new-buffer "*claude-code[myproj]*"))
-         (session (make-claude-code-ide-mcp-session :buffer term)))
-    (unwind-protect
-        (should (equal (claude-code-ide-prompt--buffer-name session)
-                       "*Claude Prompt: claude-code[myproj]*"))
-      (kill-buffer term))))
-
-(ert-deftest claude-code-ide-config-test-prompt-open-delegates-programmatic ()
-  "A programmatic prompt bypasses the input buffer entirely."
-  (let (received)
-    (claude-code-ide-send-prompt-with-buffer
-     (lambda (&rest args) (setq received args)) "hello" 'stub-session)
-    (should (equal received '("hello" stub-session)))))
-
-(ert-deftest claude-code-ide-config-test-prompt-open-binds-session ()
-  "The opened buffer remembers which session to send to."
-  (let* ((term (generate-new-buffer "*claude-code[bound]*"))
-         (session (make-claude-code-ide-mcp-session :buffer term))
-         (buf (claude-code-ide-send-prompt-with-buffer #'ignore nil session)))
-    (unwind-protect
-        (progn
-          (should (buffer-live-p buf))
-          (should (eq (buffer-local-value 'claude-code-ide-prompt--session buf)
-                      session)))
-      (kill-buffer term)
-      (when (buffer-live-p buf) (kill-buffer buf)))))
-
-(ert-deftest claude-code-ide-config-test-prompt-open-keeps-draft ()
-  "Reopening the prompt returns to the draft instead of a blank buffer."
-  (let* ((term (generate-new-buffer "*claude-code[draft]*"))
-         (session (make-claude-code-ide-mcp-session :buffer term))
-         (buf (claude-code-ide-send-prompt-with-buffer #'ignore nil session)))
-    (unwind-protect
-        (progn
-          (with-current-buffer buf (insert "途中まで書いた"))
-          (claude-code-ide-send-prompt-with-buffer #'ignore nil session)
-          (should (equal (with-current-buffer buf (buffer-string))
-                         "途中まで書いた")))
-      (kill-buffer term)
-      (when (buffer-live-p buf) (kill-buffer buf)))))
 
 ;;; External Editor Input
 
