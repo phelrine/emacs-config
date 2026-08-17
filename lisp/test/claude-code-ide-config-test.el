@@ -1,0 +1,608 @@
+;;; claude-code-ide-config-test.el --- Tests for claude-code-ide-config -*- lexical-binding: t; -*-
+
+;;; Commentary:
+
+;; Run with:
+;;   emacs --batch -L lisp $(for d in straight/build/*/; do printf -- "-L %s " "$d"; done) \
+;;     -l ert -l claude-code-ide-config \
+;;     -l lisp/test/claude-code-ide-config-test.el \
+;;     -f ert-run-tests-batch-and-exit
+;;
+;; Sections follow `claude-code-ide-config.el': terminal keys, the three
+;; prompt readers (dispatch, popup buffer, external editor), then the
+;; per-repository environment.
+
+;;; Code:
+
+(require 'ert)
+(require 'cl-lib)
+(require 'claude-code-ide-config)
+
+;;; Helpers
+
+(defmacro claude-code-ide-config-test--with-session (&rest body)
+  "Run BODY with a stub session's terminal buffer current.
+Everything the terminal would receive is captured instead of sent.
+Bound for BODY:
+  `session'     a `claude-code-ide-mcp-session'
+  `term-buffer' its terminal buffer
+  `sent'        what reached the terminal, newest first, `return' marking a RET
+  `keys'        (KEY MODS) pairs handed to the backend, newest first"
+  (declare (indent 0))
+  `(let* ((term-buffer (generate-new-buffer "*claude-code[test]*"))
+          (session (make-claude-code-ide-mcp-session :buffer term-buffer))
+          (claude-code-ide-terminal-backend 'ghostel)
+          (sent nil)
+          (keys nil))
+     (cl-letf (((symbol-function 'claude-code-ide--terminal-send-string)
+                (lambda (string) (push string sent)))
+               ((symbol-function 'claude-code-ide--terminal-send-return)
+                (lambda () (push 'return sent)))
+               ((symbol-function 'ghostel-send-key)
+                (lambda (key &optional mods) (push (list key mods) keys))))
+       (unwind-protect
+           (progn
+             ;; Anaphoric: not every test reads every binding.
+             (ignore session term-buffer sent keys)
+             (with-current-buffer term-buffer ,@body))
+         (when (buffer-live-p term-buffer) (kill-buffer term-buffer))))))
+
+(defmacro claude-code-ide-config-test--with-prompt-buffer (&rest body)
+  "Run BODY inside the popup prompt buffer of a stub session.
+Binds `prompt-buffer' on top of what `--with-session' binds."
+  (declare (indent 0))
+  `(claude-code-ide-config-test--with-session
+     (let ((prompt-buffer (get-buffer-create
+                           (claude-code-ide-prompt--buffer-name session))))
+       (unwind-protect
+           (progn
+             (ignore prompt-buffer)
+             (with-current-buffer prompt-buffer
+               (claude-code-ide-prompt-mode)
+               (setq claude-code-ide-prompt--session session)
+               ,@body))
+         (when (buffer-live-p prompt-buffer) (kill-buffer prompt-buffer))))))
+
+(defmacro claude-code-ide-config-test--with-server-handshake (&rest body)
+  "Run BODY with the `server-edit' handshake stubbed.
+Binds `released' non-nil once the client has been handed back, and runs
+scheduled timers inline so the delayed RET needs no waiting."
+  (declare (indent 0))
+  `(let (released)
+     (cl-letf (((symbol-function 'server-edit) (lambda (&rest _) (setq released t)))
+               ((symbol-function 'run-at-time)
+                (lambda (_time _repeat fn &rest args) (apply fn args))))
+       (ignore released)
+       ,@body)))
+
+(defmacro claude-code-ide-config-test--with-stub-mise (&rest body)
+  "Run BODY with `mise-env-update' stubbed to add marker entries.
+Binds `mise-dir' to the `default-directory' the stub observed."
+  (declare (indent 0))
+  `(let ((mise-dir nil))
+     (cl-letf (((symbol-function 'mise-env-update)
+                (lambda ()
+                  (setq mise-dir default-directory)
+                  (setq-local process-environment
+                              (cons "CLAUDE_CONFIG_DIR=/stub/config" process-environment))
+                  (setq-local exec-path (cons "/stub/bin" exec-path)))))
+       (ignore mise-dir)
+       ,@body)))
+
+(defmacro claude-code-ide-config-test--with-only-executable (path-form &rest body)
+  "Run BODY with PATH-FORM's value, bound to `only', as the sole executable.
+`executable-find' keeps answering, so BODY can tell resolution order
+from mere availability."
+  (declare (indent 1))
+  `(let ((only ,path-form))
+     (cl-letf (((symbol-function 'file-executable-p) (lambda (f) (equal f only)))
+               ((symbol-function 'file-directory-p) (lambda (_) nil))
+               ((symbol-function 'executable-find)
+                (lambda (&rest _) "/opt/homebrew/bin/emacsclient")))
+       ,@body)))
+
+(defun claude-code-ide-config-test--reader-for (style)
+  "Return which reader `--send-prompt-advice' picks for input STYLE."
+  (let ((claude-code-ide-config-input-style style)
+        chosen)
+    (cl-letf (((symbol-function 'claude-code-ide-send-prompt-externally)
+               (lambda (&rest _) (setq chosen 'external)))
+              ((symbol-function 'claude-code-ide-send-prompt-with-buffer)
+               (lambda (&rest _) (setq chosen 'buffer)))
+              ((symbol-function 'claude-code-ide-send-prompt-with-posframe-dialog)
+               (lambda (&rest _) (setq chosen 'posframe-dialog))))
+      (claude-code-ide-config--send-prompt-advice #'ignore)
+      chosen)))
+
+;;; Terminal Keys
+
+(ert-deftest claude-code-ide-config-test-send-ctrl-reaches-backend ()
+  "Control keys reach the terminal through the active backend."
+  (claude-code-ide-config-test--with-session
+    (claude-code-ide-config--send-ctrl "g")
+    (should (equal (reverse keys) '(("g" "ctrl"))))))
+
+(ert-deftest claude-code-ide-config-test-send-c-o-sends-control-o ()
+  "The verbose-toggle binding keeps sending C-o after the refactor."
+  (claude-code-ide-config-test--with-session
+    (claude-code-ide-send-c-o)
+    (should (equal (reverse keys) '(("o" "ctrl"))))))
+
+;;; Prompt Reader Dispatch
+
+(ert-deftest claude-code-ide-config-test-dispatch-honours-input-style ()
+  "Each input style routes to its own reader."
+  (should (eq (claude-code-ide-config-test--reader-for 'external) 'external))
+  (should (eq (claude-code-ide-config-test--reader-for 'buffer) 'buffer))
+  (should (eq (claude-code-ide-config-test--reader-for 'posframe-dialog) 'posframe-dialog)))
+
+(ert-deftest claude-code-ide-config-test-dispatch-defaults-to-popup-buffer ()
+  "An unrecognised style lands on the popup buffer rather than erroring."
+  (should (eq (claude-code-ide-config-test--reader-for 'nonsense) 'buffer)))
+
+;;; Popup Buffer Input
+
+(ert-deftest claude-code-ide-config-test-prompt-send-sends-text-then-return ()
+  "`claude-code-ide-prompt-send' hands the body to the terminal, then RET."
+  (claude-code-ide-config-test--with-prompt-buffer
+    (insert "こんにちは")
+    (claude-code-ide-prompt-send)
+    (should (equal (reverse sent) '("こんにちは" return)))))
+
+(ert-deftest claude-code-ide-config-test-prompt-send-clears-buffer ()
+  "A sent prompt is cleared so the buffer is ready for the next one."
+  (claude-code-ide-config-test--with-prompt-buffer
+    (insert "some prompt")
+    (claude-code-ide-prompt-send)
+    (should (equal (buffer-string) ""))))
+
+(ert-deftest claude-code-ide-config-test-prompt-send-ignores-blank-buffer ()
+  "A blank buffer sends nothing rather than waking the CLI with a bare RET."
+  (claude-code-ide-config-test--with-prompt-buffer
+    (insert "   \n\n  ")
+    (claude-code-ide-prompt-send)
+    (should-not sent)))
+
+(ert-deftest claude-code-ide-config-test-prompt-send-keeps-text-when-session-dead ()
+  "Losing the session must not lose what the user typed."
+  (claude-code-ide-config-test--with-prompt-buffer
+    (insert "大事なプロンプト")
+    (kill-buffer term-buffer)
+    (claude-code-ide-prompt-send)
+    (should-not sent)
+    (should (equal (buffer-string) "大事なプロンプト"))))
+
+(ert-deftest claude-code-ide-config-test-prompt-transfer-sends-text-without-return ()
+  "Transfer leaves the text sitting in the CLI's input line, unsubmitted."
+  (claude-code-ide-config-test--with-prompt-buffer
+    (insert "続きは向こうで書く")
+    (claude-code-ide-prompt-transfer)
+    (should (equal (reverse sent) '("続きは向こうで書く")))))
+
+(ert-deftest claude-code-ide-config-test-prompt-transfer-clears-buffer ()
+  "Transfer moves the draft rather than copying it, so nothing is left
+here to be sent a second time."
+  (claude-code-ide-config-test--with-prompt-buffer
+    (insert "移動する下書き")
+    (claude-code-ide-prompt-transfer)
+    (should (equal (buffer-string) ""))))
+
+(ert-deftest claude-code-ide-config-test-prompt-transfer-ignores-blank-buffer ()
+  "A blank buffer has nothing to transfer."
+  (claude-code-ide-config-test--with-prompt-buffer
+    (insert "  \n ")
+    (claude-code-ide-prompt-transfer)
+    (should-not sent)))
+
+(ert-deftest claude-code-ide-config-test-prompt-transfer-keeps-text-when-session-dead ()
+  "A failed transfer must not clear the only copy of the draft."
+  (claude-code-ide-config-test--with-prompt-buffer
+    (insert "消えたら困る")
+    (kill-buffer term-buffer)
+    (claude-code-ide-prompt-transfer)
+    (should-not sent)
+    (should (equal (buffer-string) "消えたら困る"))))
+
+(ert-deftest claude-code-ide-config-test-prompt-quit-keeps-text-and-sends-nothing ()
+  "Quitting is a dismissal, not a discard: nothing sent, draft preserved."
+  (claude-code-ide-config-test--with-prompt-buffer
+    (insert "書きかけ")
+    (claude-code-ide-prompt-quit)
+    (should-not sent)
+    (should (equal (buffer-string) "書きかけ"))))
+
+(ert-deftest claude-code-ide-config-test-prompt-mode-turns-skk-on ()
+  "The prompt buffer starts ready for Japanese input.
+The other tests in this file run the mode with no SKK loaded, which is
+what proves the guard keeps it optional."
+  (let (skk-arg)
+    (cl-letf (((symbol-function 'skk-mode) (lambda (&optional arg) (setq skk-arg arg))))
+      (with-temp-buffer
+        (claude-code-ide-prompt-mode)
+        (should (equal skk-arg 1))))))
+
+(ert-deftest claude-code-ide-config-test-prompt-buffer-name-is-per-session ()
+  "The prompt buffer name is derived from the session's terminal buffer,
+so parallel sessions each get their own draft."
+  (let* ((term (generate-new-buffer "*claude-code[myproj]*"))
+         (session (make-claude-code-ide-mcp-session :buffer term)))
+    (unwind-protect
+        (should (equal (claude-code-ide-prompt--buffer-name session)
+                       "*Claude Prompt: claude-code[myproj]*"))
+      (kill-buffer term))))
+
+(ert-deftest claude-code-ide-config-test-prompt-open-delegates-programmatic ()
+  "A programmatic prompt bypasses the input buffer entirely."
+  (let (received)
+    (claude-code-ide-send-prompt-with-buffer
+     (lambda (&rest args) (setq received args)) "hello" 'stub-session)
+    (should (equal received '("hello" stub-session)))))
+
+(ert-deftest claude-code-ide-config-test-prompt-open-binds-session ()
+  "The opened buffer remembers which session to send to."
+  (let* ((term (generate-new-buffer "*claude-code[bound]*"))
+         (session (make-claude-code-ide-mcp-session :buffer term))
+         (buf (claude-code-ide-send-prompt-with-buffer #'ignore nil session)))
+    (unwind-protect
+        (progn
+          (should (buffer-live-p buf))
+          (should (eq (buffer-local-value 'claude-code-ide-prompt--session buf)
+                      session)))
+      (kill-buffer term)
+      (when (buffer-live-p buf) (kill-buffer buf)))))
+
+(ert-deftest claude-code-ide-config-test-prompt-open-keeps-draft ()
+  "Reopening the prompt returns to the draft instead of a blank buffer."
+  (let* ((term (generate-new-buffer "*claude-code[draft]*"))
+         (session (make-claude-code-ide-mcp-session :buffer term))
+         (buf (claude-code-ide-send-prompt-with-buffer #'ignore nil session)))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf (insert "途中まで書いた"))
+          (claude-code-ide-send-prompt-with-buffer #'ignore nil session)
+          (should (equal (with-current-buffer buf (buffer-string))
+                         "途中まで書いた")))
+      (kill-buffer term)
+      (when (buffer-live-p buf) (kill-buffer buf)))))
+
+;;; External Editor Input
+
+;; The CLI's C-g writes its input line to a temp file, runs $EDITOR on
+;; it, and reads the file back once the editor exits.
+
+(ert-deftest claude-code-ide-config-test-external-presses-ctrl-g ()
+  "The external style hands composing to the CLI rather than opening a buffer."
+  (claude-code-ide-config-test--with-session
+    (claude-code-ide-send-prompt-externally #'ignore nil session)
+    (should (equal (reverse keys) '(("g" "ctrl"))))
+    (should (eq claude-code-ide-external-prompt--pending-session session))))
+
+(ert-deftest claude-code-ide-config-test-external-delegates-programmatic ()
+  "A programmatic prompt never goes through the CLI's editor key."
+  (claude-code-ide-config-test--with-session
+    (let (received)
+      (claude-code-ide-send-prompt-externally
+       (lambda (&rest args) (setq received args)) "hello" session)
+      (should (equal received (list "hello" session)))
+      (should-not keys))))
+
+(ert-deftest claude-code-ide-config-test-external-mode-claims-session ()
+  "The temp file Emacs is handed adopts the session that asked for it,
+so finishing knows which terminal to press RET in."
+  (let ((claude-code-ide-external-prompt--pending-session 'the-session))
+    (with-temp-buffer
+      (claude-code-ide-external-prompt-mode)
+      (should (eq claude-code-ide-external-prompt--session 'the-session))
+      ;; Cleared, so the next unrelated file does not inherit it.
+      (should-not claude-code-ide-external-prompt--pending-session))))
+
+(ert-deftest claude-code-ide-config-test-external-mode-turns-skk-on ()
+  "The handed-over buffer is ready for Japanese input too."
+  (let (skk-arg)
+    (cl-letf (((symbol-function 'skk-mode) (lambda (&optional arg) (setq skk-arg arg))))
+      (with-temp-buffer
+        (claude-code-ide-external-prompt-mode)
+        (should (equal skk-arg 1))))))
+
+(ert-deftest claude-code-ide-config-test-external-file-is-editable ()
+  "The prompt file escapes the global read-only-by-default rule.
+It exists to be typed into, like a commit message buffer."
+  (with-temp-buffer
+    (claude-code-ide-external-prompt-mode)
+    (read-only-mode 1)
+    (claude-code-ide-external-prompt--ensure-editable)
+    (should-not buffer-read-only)))
+
+(ert-deftest claude-code-ide-config-test-external-leaves-other-files-alone ()
+  "Ordinary files keep whatever the global rule decided for them."
+  (with-temp-buffer
+    (text-mode)
+    (read-only-mode 1)
+    (claude-code-ide-external-prompt--ensure-editable)
+    (should buffer-read-only)))
+
+(ert-deftest claude-code-ide-config-test-external-mode-shows-key-help ()
+  "The buffer says how to get out of it: there is no other affordance
+telling you that C-c C-c is what sends."
+  (with-temp-buffer
+    (claude-code-ide-external-prompt-mode)
+    (should (string-match-p "C-c C-c" header-line-format))
+    (should (string-match-p "C-c C-t" header-line-format))))
+
+(ert-deftest claude-code-ide-config-test-external-posframe-keeps-header-line ()
+  "Ask posframe to keep the header and mode lines.
+It drops both by default, which would hide the key help and SKK's input
+mode -- the only two status readouts the child frame has."
+  (let (args)
+    (cl-letf (((symbol-function 'posframe-show)
+               (lambda (_buffer &rest rest) (setq args rest) nil))
+              ((symbol-function 'posframe--find-existing-posframe) #'ignore))
+      (with-temp-buffer
+        (claude-code-ide-external-prompt--show-posframe (current-buffer))))
+    (should (plist-get args :respect-header-line))
+    (should (plist-get args :respect-mode-line))))
+
+(ert-deftest claude-code-ide-config-test-external-posframe-shows-cursor ()
+  "Ask posframe for a cursor, and put it after the draft.
+It hides the cursor and pins the window to position 0 by default, which
+leaves you typing Japanese with nothing to aim at and the caret behind
+whatever the CLI already had."
+  (let (args)
+    (cl-letf (((symbol-function 'posframe-show)
+               (lambda (_buffer &rest rest) (setq args rest) nil))
+              ((symbol-function 'posframe--find-existing-posframe) #'ignore))
+      (with-temp-buffer
+        (insert "CLI側にあった下書き")
+        (claude-code-ide-external-prompt--show-posframe (current-buffer))
+        (should (plist-get args :cursor))
+        (should (equal (plist-get args :window-point) (point-max)))))))
+
+(ert-deftest claude-code-ide-config-test-external-mode-claims-server-window ()
+  "The mode body is the last moment before `server-switch-buffer' displays,
+so that is where the display override is installed."
+  (let ((server-window nil))
+    (with-temp-buffer
+      (claude-code-ide-external-prompt-mode)
+      (should (eq server-window #'claude-code-ide-external-prompt--display)))))
+
+(ert-deftest claude-code-ide-config-test-external-display-restores-server-window ()
+  "The override lasts exactly one handoff, leaving other emacsclient uses alone."
+  (let ((server-window 'previous-value))
+    (cl-letf (((symbol-function 'claude-code-ide-external-prompt--show-posframe)
+               #'ignore))
+      (with-temp-buffer
+        ;; Claim and fire as one round trip: restoring is only meaningful
+        ;; against the value the claim displaced.
+        (claude-code-ide-external-prompt-mode)
+        (claude-code-ide-external-prompt--display (current-buffer))))
+    (should (eq server-window 'previous-value))))
+
+(ert-deftest claude-code-ide-config-test-external-display-honours-style ()
+  "`claude-code-ide-config-external-prompt-display' picks the presentation."
+  (let (shown)
+    (cl-letf (((symbol-function 'claude-code-ide-external-prompt--show-posframe)
+               (lambda (&rest _) (setq shown 'posframe)))
+              ((symbol-function 'claude-code-ide-external-prompt--show-window)
+               (lambda (&rest _) (setq shown 'window))))
+      (with-temp-buffer
+        (let ((claude-code-ide-config-external-prompt-display 'posframe)
+              (server-window nil))
+          (claude-code-ide-external-prompt--display (current-buffer))
+          (should (eq shown 'posframe)))
+        (let ((claude-code-ide-config-external-prompt-display 'window)
+              (server-window nil))
+          (claude-code-ide-external-prompt--display (current-buffer))
+          (should (eq shown 'window)))))))
+
+(ert-deftest claude-code-ide-config-test-external-finish-hides-before-releasing ()
+  "Take the posframe down before handing back, so the CLI is never left
+redrawing underneath a stale child frame."
+  (let (order)
+    (cl-letf (((symbol-function 'claude-code-ide-external-prompt--hide)
+               (lambda (&rest _) (push 'hide order)))
+              ((symbol-function 'server-edit) (lambda (&rest _) (push 'release order))))
+      (with-temp-buffer
+        (claude-code-ide-external-prompt-finish)))
+    (should (equal (reverse order) '(hide release)))))
+
+(ert-deftest claude-code-ide-config-test-external-finish-saves-before-releasing ()
+  "The CLI re-reads the file from disk once emacsclient exits, so an
+unsaved buffer would hand back the text the user just replaced."
+  (let (order)
+    (cl-letf (((symbol-function 'save-buffer) (lambda (&rest _) (push 'save order)))
+              ((symbol-function 'server-edit) (lambda (&rest _) (push 'release order))))
+      (with-temp-buffer
+        (setq buffer-file-name "/tmp/claude-501/claude-prompt-x.md")
+        (insert "edited")
+        (set-buffer-modified-p t)
+        (claude-code-ide-external-prompt-finish)
+        (set-buffer-modified-p nil)))
+    (should (equal (reverse order) '(save release)))))
+
+(ert-deftest claude-code-ide-config-test-external-finish-sends-no-return ()
+  "Plain finish leaves the text in the CLI's input line, unsubmitted."
+  (claude-code-ide-config-test--with-session
+    (claude-code-ide-config-test--with-server-handshake
+      (with-temp-buffer
+        (setq claude-code-ide-external-prompt--session session)
+        (claude-code-ide-external-prompt-finish))
+      (should released))
+    (should-not sent)))
+
+(ert-deftest claude-code-ide-config-test-external-finish-and-send-presses-return ()
+  "Finish-and-send submits by pressing RET in the session's terminal."
+  (claude-code-ide-config-test--with-session
+    (claude-code-ide-config-test--with-server-handshake
+      (with-temp-buffer
+        (setq claude-code-ide-external-prompt--session session)
+        (claude-code-ide-external-prompt-finish-and-send)))
+    (should (equal sent '(return)))))
+
+(ert-deftest claude-code-ide-config-test-external-finish-survives-dead-session ()
+  "Finishing still works when the session died while the file was open."
+  (claude-code-ide-config-test--with-session
+    (claude-code-ide-config-test--with-server-handshake
+      (kill-buffer term-buffer)
+      (with-temp-buffer
+        (setq claude-code-ide-external-prompt--session session)
+        (claude-code-ide-external-prompt-finish-and-send))
+      (should released))
+    (should-not sent)))
+
+;;; Editor Resolution
+
+(ert-deftest claude-code-ide-config-test-editor-prefers-bundled-client ()
+  "Resolve `emacsclient' without consulting `exec-path'.
+A session started early in Emacs' startup runs before
+`exec-path-from-shell', when a PATH lookup finds nothing and the
+override would be skipped without a word."
+  (claude-code-ide-config-test--with-only-executable
+      (expand-file-name "bin/emacsclient" invocation-directory)
+    (should (equal (claude-code-ide-config--editor-command) only))))
+
+(ert-deftest claude-code-ide-config-test-editor-accepts-sibling-client ()
+  "A client sitting beside the Emacs binary counts too."
+  (claude-code-ide-config-test--with-only-executable
+      (expand-file-name "emacsclient" invocation-directory)
+    (should (equal (claude-code-ide-config--editor-command) only))))
+
+(ert-deftest claude-code-ide-config-test-editor-falls-back-to-path ()
+  "With nothing shipped alongside, a PATH lookup still counts."
+  (claude-code-ide-config-test--with-only-executable "/opt/homebrew/bin/emacsclient"
+    (should (equal (claude-code-ide-config--editor-command) only))))
+
+(ert-deftest claude-code-ide-config-test-editor-nil-when-absent ()
+  "No client anywhere means no EDITOR override."
+  (cl-letf (((symbol-function 'file-executable-p) (lambda (_) nil))
+            ((symbol-function 'executable-find) (lambda (&rest _) nil)))
+    (should-not (claude-code-ide-config--editor-command))))
+
+(ert-deftest claude-code-ide-config-test-export-editor-sets-emacs-environment ()
+  "Point EDITOR at this Emacs process-wide.
+The per-session injection only covers sessions started through our
+advice; anything Emacs spawns by another route inherits this instead."
+  (let ((process-environment (copy-sequence process-environment)))
+    (cl-letf (((symbol-function 'claude-code-ide-config--editor-command)
+               (lambda () "/usr/local/bin/emacsclient")))
+      (claude-code-ide-config--export-editor)
+      (should (equal (getenv "EDITOR") "/usr/local/bin/emacsclient"))
+      (should (equal (getenv "VISUAL") "/usr/local/bin/emacsclient")))))
+
+(ert-deftest claude-code-ide-config-test-export-editor-noop-without-client ()
+  "With no client to point at, leave the inherited EDITOR alone."
+  (let ((process-environment (cons "EDITOR=nano" (copy-sequence process-environment))))
+    (cl-letf (((symbol-function 'claude-code-ide-config--editor-command) #'ignore))
+      (claude-code-ide-config--export-editor)
+      (should (equal (getenv "EDITOR") "nano")))))
+
+;;; Per-Repository Environment
+
+(ert-deftest claude-code-ide-config-test-project-env-runs-mise-in-dir ()
+  "`--project-env' runs mise with `default-directory' set to DIR."
+  (claude-code-ide-config-test--with-stub-mise
+    (claude-code-ide-config--project-env "/tmp/some-project/")
+    (should (equal mise-dir "/tmp/some-project/"))))
+
+(ert-deftest claude-code-ide-config-test-project-env-returns-env-and-path ()
+  "`--project-env' returns the environment mise produced."
+  (claude-code-ide-config-test--with-stub-mise
+    (let ((env (claude-code-ide-config--project-env "/tmp/some-project/")))
+      (should (member "CLAUDE_CONFIG_DIR=/stub/config" (car env)))
+      (should (member "/stub/bin" (cdr env))))))
+
+(ert-deftest claude-code-ide-config-test-with-project-env-applies-env ()
+  "The wrapped function sees the project's environment."
+  (claude-code-ide-config-test--with-stub-mise
+    (let (observed-env observed-path)
+      (claude-code-ide-config--with-project-env
+       (lambda (&rest _)
+         (setq observed-env process-environment
+               observed-path exec-path))
+       "*buf*" "/tmp/some-project/" 1234 nil nil "sid")
+      (should (member "CLAUDE_CONFIG_DIR=/stub/config" observed-env))
+      (should (member "/stub/bin" observed-path)))))
+
+(ert-deftest claude-code-ide-config-test-with-project-env-passes-args-through ()
+  "All arguments reach the wrapped function unchanged."
+  (claude-code-ide-config-test--with-stub-mise
+    (let (received)
+      (claude-code-ide-config--with-project-env
+       (lambda (&rest args) (setq received args) 'return-value)
+       "*buf*" "/tmp/some-project/" 1234 t nil "sid")
+      (should (equal received '("*buf*" "/tmp/some-project/" 1234 t nil "sid"))))))
+
+(ert-deftest claude-code-ide-config-test-with-project-env-returns-orig-value ()
+  "The wrapper is transparent to the wrapped function's return value."
+  (claude-code-ide-config-test--with-stub-mise
+    (should (eq (claude-code-ide-config--with-project-env
+                 (lambda (&rest _) 'return-value)
+                 "*buf*" "/tmp/some-project/" 1234 nil nil "sid")
+                'return-value))))
+
+(ert-deftest claude-code-ide-config-test-with-project-env-does-not-leak ()
+  "The project environment does not outlive the call."
+  (claude-code-ide-config-test--with-stub-mise
+    (let ((env-before process-environment)
+          (path-before exec-path))
+      (claude-code-ide-config--with-project-env
+       #'ignore "*buf*" "/tmp/some-project/" 1234 nil nil "sid")
+      (should (equal process-environment env-before))
+      (should (equal exec-path path-before)))))
+
+(ert-deftest claude-code-ide-config-test-with-project-env-sets-editor ()
+  "Sessions get an EDITOR pointing back at this Emacs, so the CLI's
+external-editor key hands its input line here instead of to vi."
+  (claude-code-ide-config-test--with-stub-mise
+    (cl-letf (((symbol-function 'claude-code-ide-config--editor-command)
+               (lambda () "/usr/local/bin/emacsclient")))
+      (let (observed)
+        (claude-code-ide-config--with-project-env
+         (lambda (&rest _) (setq observed process-environment))
+         "*buf*" "/tmp/some-project/" 1234 nil nil "sid")
+        (should (equal (getenv-internal "EDITOR" observed)
+                       "/usr/local/bin/emacsclient"))
+        (should (equal (getenv-internal "VISUAL" observed)
+                       "/usr/local/bin/emacsclient"))))))
+
+(ert-deftest claude-code-ide-config-test-with-project-env-editor-beats-mise ()
+  "Our EDITOR wins over one the project's mise environment supplies."
+  (cl-letf (((symbol-function 'mise-env-update)
+             (lambda ()
+               (setq-local process-environment
+                           (cons "EDITOR=nano" process-environment))))
+            ((symbol-function 'claude-code-ide-config--editor-command)
+             (lambda () "/usr/local/bin/emacsclient")))
+    (let (observed)
+      (claude-code-ide-config--with-project-env
+       (lambda (&rest _) (setq observed process-environment))
+       "*buf*" "/tmp/some-project/" 1234 nil nil "sid")
+      (should (equal (getenv-internal "EDITOR" observed)
+                     "/usr/local/bin/emacsclient")))))
+
+(ert-deftest claude-code-ide-config-test-with-project-env-editor-optional ()
+  "With no emacsclient to point at, the inherited EDITOR is left alone."
+  (claude-code-ide-config-test--with-stub-mise
+    (cl-letf (((symbol-function 'claude-code-ide-config--editor-command) #'ignore))
+      ;; Pin the inherited value: the ambient one varies with how the
+      ;; test runner itself was started.
+      (let ((process-environment (cons "EDITOR=inherited" process-environment))
+            observed)
+        (claude-code-ide-config--with-project-env
+         (lambda (&rest _) (setq observed process-environment))
+         "*buf*" "/tmp/some-project/" 1234 nil nil "sid")
+        (should (equal (getenv-internal "EDITOR" observed) "inherited"))))))
+
+(ert-deftest claude-code-ide-config-test-with-project-env-survives-mise-failure ()
+  "A failing mise lookup falls back to the ambient environment."
+  (cl-letf (((symbol-function 'mise-env-update)
+             (lambda () (error "mise exploded")))
+            ;; Out of scope here; covered by the EDITOR tests above.
+            ((symbol-function 'claude-code-ide-config--editor-command) #'ignore))
+    (let (observed)
+      (claude-code-ide-config--with-project-env
+       (lambda (&rest _) (setq observed process-environment))
+       "*buf*" "/tmp/some-project/" 1234 nil nil "sid")
+      (should (equal observed process-environment)))))
+
+(provide 'claude-code-ide-config-test)
+;;; claude-code-ide-config-test.el ends here
