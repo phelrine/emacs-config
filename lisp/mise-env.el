@@ -28,22 +28,30 @@
   (expand-file-name "~/.local/share/mise/installs/")
   "Path prefix for mise tool installations.")
 
+(defconst mise-env--config-files
+  '("mise.toml" "mise.local.toml" ".mise.toml" ".mise.local.toml"
+    ".config/mise.toml" ".tool-versions")
+  "File names that mark a directory as mise-configured.
+Mirrors the set mise itself reads.  The `.local' variants are the
+ones to use for machine-local settings in a shared repository, since
+they are conventionally gitignored.")
+
 (defun mise-env--project-root ()
-  "Find nearest project root with .tool-versions or .mise.toml."
-  (let ((tv (locate-dominating-file default-directory ".tool-versions"))
-        (mt (locate-dominating-file default-directory ".mise.toml")))
-    (cond
-     ((and tv mt)
-      (if (>= (length (expand-file-name mt))
-              (length (expand-file-name tv)))
-          mt tv))
-     (tv tv)
-     (mt mt))))
+  "Find the nearest ancestor directory holding a mise config file.
+When several config files match at different depths, the deepest one
+wins — that is the one mise itself gives precedence to."
+  (car (sort (delq nil (mapcar (lambda (name)
+                                 (locate-dominating-file default-directory name))
+                               mise-env--config-files))
+             (lambda (a b) (> (length (expand-file-name a))
+                              (length (expand-file-name b)))))))
 
 (defun mise-env--fetch-env (dir)
   "Fetch mise environment for DIR by running `mise env --json'.
 Uses a clean PATH without mise install dirs to avoid contamination
-from previously loaded projects."
+from previously loaded projects.  Stderr is discarded: mise reports
+things like missing tools there, and mixing that into the parse
+buffer would break `json-read' and lose the whole environment."
   (let* ((default-directory dir)
          (process-environment
           (cons (concat "PATH="
@@ -54,7 +62,7 @@ from previously loaded projects."
                 (seq-remove (lambda (e) (string-prefix-p "PATH=" e))
                             process-environment))))
     (with-temp-buffer
-      (when (zerop (call-process mise-env-executable nil t nil "env" "--json"))
+      (when (zerop (call-process mise-env-executable nil '(t nil) nil "env" "--json"))
         (goto-char (point-min))
         (condition-case nil
             (json-read)
