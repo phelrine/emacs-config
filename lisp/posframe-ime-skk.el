@@ -16,6 +16,9 @@
 
 (require 'posframe-ime-input)
 
+(declare-function skk-mode "skk" (&optional arg))
+(declare-function skk-j-mode-on "skk" (&optional katakana))
+
 ;;; SKK Integration
 
 (defun posframe-ime-skk--ensure-mode ()

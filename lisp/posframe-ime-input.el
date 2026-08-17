@@ -77,9 +77,6 @@ Functions are called with no arguments in the input buffer.")
 (defconst posframe-ime-input--buffer-name " *posframe-ime-input*"
   "Name of the buffer used for the posframe input dialog.")
 
-(defvar posframe-ime-input--cursor-overlay nil
-  "Overlay for displaying cursor position in posframe.")
-
 (defvar posframe-ime-input--mode-indicator-overlay nil
   "Overlay for displaying mode indicator.")
 
@@ -155,17 +152,18 @@ buffer switches from ediff or other tools)."
                    (propertize (concat " " indicator)
                               'face '(:foreground "#4CAF50" :weight bold))))))
 
-(defun posframe-ime-input--update-cursor-overlay ()
-  "Update cursor position overlay and mode indicator."
-  (when posframe-ime-input--cursor-overlay
-    (delete-overlay posframe-ime-input--cursor-overlay))
-  ;; Thin bar cursor
-  (setq posframe-ime-input--cursor-overlay (make-overlay (point) (point)))
-  (let ((cursor-color (posframe-ime-input--get-cursor-color)))
-    (overlay-put posframe-ime-input--cursor-overlay 'before-string
-                 (propertize " " 'display `(space :width (1))
-                            'face `(:background ,cursor-color))))
-  ;; Update mode indicator
+(defun posframe-ime-input--apply-cursor-color ()
+  "Paint the posframe's cursor in the current input mode's colour.
+Goes on the child frame itself: `posframe-show' is asked for a real
+cursor, so the colour is how the IME mode shows through."
+  (when-let ((frame (posframe--find-existing-posframe
+                     (get-buffer posframe-ime-input--buffer-name))))
+    (set-frame-parameter frame 'cursor-color
+                         (posframe-ime-input--get-cursor-color))))
+
+(defun posframe-ime-input--update-cursor ()
+  "Refresh the cursor colour and mode indicator after each command."
+  (posframe-ime-input--apply-cursor-color)
   (posframe-ime-input--update-mode-indicator)
   ;; Run extension hooks
   (run-hooks 'posframe-ime-input-update-hook))
@@ -184,7 +182,8 @@ Keyword arguments:
   :on-submit FUNC    - Called with input text when RET is pressed.
                        Return value becomes the result. Default: identity.
   :on-cancel FUNC    - Called with input text when C-g is pressed.
-                       Return value becomes the result. Default: (lambda (_) nil).
+                       Return value becomes the result.
+                       Default: a function returning nil.
   :on-dismiss FUNC   - Called with input text when programmatically cancelled
                        via `posframe-ime-input-cancel'.
                        Return value becomes the result. Default: on-cancel.
@@ -272,7 +271,7 @@ Default behavior (no callbacks):
       ;; Run setup hooks (for IME integration, etc.)
       (run-hooks 'posframe-ime-input-setup-hook)
       ;; Cursor overlay
-      (add-hook 'post-command-hook #'posframe-ime-input--update-cursor-overlay nil t))
+      (add-hook 'post-command-hook #'posframe-ime-input--update-cursor nil t))
 
     ;; Display posframe
     (unwind-protect
@@ -295,6 +294,12 @@ Default behavior (no callbacks):
                             :background-color (face-background 'default nil t)
                             :foreground-color (face-foreground 'default nil t)
                             :accept-focus t
+                            ;; Posframe hides the cursor and pins the
+                            ;; window to position 0 unless asked, which
+                            ;; would leave the caret invisible and in
+                            ;; front of INITIAL-INPUT.
+                            :cursor 'box
+                            :window-point (with-current-buffer buffer (point-max))
                             :override-parameters '((alpha . 95)))
               ;; Move focus to posframe
               (let ((posframe (posframe--find-existing-posframe buffer)))
@@ -319,10 +324,7 @@ Default behavior (no callbacks):
                    #'posframe-ime-input--guard-selection-change)
       ;; Clean up overlays and hooks
       (with-current-buffer buffer
-        (remove-hook 'post-command-hook #'posframe-ime-input--update-cursor-overlay t)
-        (when posframe-ime-input--cursor-overlay
-          (delete-overlay posframe-ime-input--cursor-overlay)
-          (setq posframe-ime-input--cursor-overlay nil))
+        (remove-hook 'post-command-hook #'posframe-ime-input--update-cursor t)
         (when posframe-ime-input--mode-indicator-overlay
           (delete-overlay posframe-ime-input--mode-indicator-overlay)
           (setq posframe-ime-input--mode-indicator-overlay nil)))
