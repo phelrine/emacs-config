@@ -21,8 +21,8 @@
 (require 'claude-code-ide-transient)
 (require 'posframe)
 (require 'mise-env)
-;; For `server-edit' and `server-window': the CLI's external-editor key
-;; reaches Emacs through the server, and we take over how it displays.
+;; For `server-edit' and `server-switch-buffer': the CLI's external-editor
+;; key reaches Emacs through the server, and we take over how it displays.
 (require 'server)
 
 ;;; C-o Terminal Keybinding
@@ -127,25 +127,11 @@ has no other way to know which terminal it came from.")
   (setq claude-code-ide-external-prompt--session
         (prog1 claude-code-ide-external-prompt--pending-session
           (setq claude-code-ide-external-prompt--pending-session nil)))
-  (claude-code-ide-external-prompt--claim-server-window)
   (setq header-line-format
         (substitute-command-keys
          (concat "\\<claude-code-ide-external-prompt-mode-map>"
                  "\\[claude-code-ide-external-prompt-finish-and-send]: send    "
                  "\\[claude-code-ide-external-prompt-finish]: back to CLI unsent"))))
-
-(defvar claude-code-ide-external-prompt--saved-server-window nil
-  "Value of `server-window' displaced by the current handoff.")
-
-(defun claude-code-ide-external-prompt--claim-server-window ()
-  "Arrange for us, not the server, to display this buffer.
-`server-switch-buffer' consults `server-window' only after the file has
-been visited, so the major mode is the last moment we can intercept it.
-The override is undone the instant it fires, so other `emacsclient'
-uses keep whatever display the user configured."
-  (unless (eq server-window #'claude-code-ide-external-prompt--display)
-    (setq claude-code-ide-external-prompt--saved-server-window server-window))
-  (setq server-window #'claude-code-ide-external-prompt--display))
 
 (defun claude-code-ide-external-prompt--show-window (buffer)
   "Show BUFFER along the bottom of the current frame and select it."
@@ -186,13 +172,28 @@ uses keep whatever display the user configured."
       (with-current-buffer buffer (goto-char end)))))
 
 (defun claude-code-ide-external-prompt--display (buffer)
-  "Display BUFFER as `claude-code-ide-config-external-prompt-display' asks.
-Installed as `server-window' for the duration of one handoff; restoring
-it first means an error below cannot strand the override."
-  (setq server-window claude-code-ide-external-prompt--saved-server-window)
+  "Display BUFFER as `claude-code-ide-config-external-prompt-display' asks."
   (if (eq claude-code-ide-config-external-prompt-display 'posframe)
       (claude-code-ide-external-prompt--show-posframe buffer)
     (claude-code-ide-external-prompt--show-window buffer)))
+
+(defun claude-code-ide-external-prompt--switch-buffer (orig-fun &optional next-buffer &rest args)
+  "Around `server-switch-buffer': show the CLI's prompt file our own way.
+Every other buffer -- and the no-buffer call `server-edit' makes when
+the last client leaves -- goes to ORIG-FUN with NEXT-BUFFER and ARGS
+untouched.
+
+Decided per buffer rather than by installing ourselves as
+`server-window': that global stayed overridden whenever the mode ran
+without a handoff to undo it -- a stale prompt file picked from
+`recentf', or a request arriving while the minibuffer was active, which
+`server-execute' answers without ever switching buffers -- and from then
+on every file any `emacsclient' opened landed in the posframe."
+  (if (and (buffer-live-p next-buffer)
+           (with-current-buffer next-buffer
+             (derived-mode-p 'claude-code-ide-external-prompt-mode)))
+      (claude-code-ide-external-prompt--display next-buffer)
+    (apply orig-fun next-buffer args)))
 
 (defun claude-code-ide-external-prompt--hide (buffer)
   "Take BUFFER's child frame down and hand focus back to the main frame."
@@ -473,6 +474,8 @@ buffer in the main area, then delete other windows normally."
                (cons claude-code-ide-config--external-prompt-file-regexp
                      #'claude-code-ide-external-prompt-mode))
   (add-hook 'find-file-hook #'claude-code-ide-external-prompt--ensure-editable t)
+  (advice-add 'server-switch-buffer :around
+              #'claude-code-ide-external-prompt--switch-buffer)
 
   ;; Fix "Cannot make side window the only window" error
   (advice-add 'delete-other-windows :around

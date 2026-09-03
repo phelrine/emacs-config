@@ -190,25 +190,44 @@ whatever the CLI already had."
         (should (plist-get args :cursor))
         (should (equal (plist-get args :window-point) (point-max)))))))
 
-(ert-deftest claude-code-ide-config-test-external-mode-claims-server-window ()
-  "The mode body is the last moment before `server-switch-buffer' displays,
-so that is where the display override is installed."
-  (let ((server-window nil))
+(ert-deftest claude-code-ide-config-test-external-mode-leaves-server-window-alone ()
+  "Entering the mode must not touch global server state.
+A prompt file visited outside a handoff -- from `recentf', say -- would
+otherwise leave every later `emacsclient' file displaying our way."
+  (let ((server-window 'previous-value))
     (with-temp-buffer
       (claude-code-ide-external-prompt-mode)
-      (should (eq server-window #'claude-code-ide-external-prompt--display)))))
+      (should (eq server-window 'previous-value)))))
 
-(ert-deftest claude-code-ide-config-test-external-display-restores-server-window ()
-  "The override lasts exactly one handoff, leaving other emacsclient uses alone."
-  (let ((server-window 'previous-value))
-    (cl-letf (((symbol-function 'claude-code-ide-external-prompt--show-posframe)
-               #'ignore))
+(ert-deftest claude-code-ide-config-test-external-switch-buffer-takes-prompt-buffers ()
+  "The `server-switch-buffer' advice displays prompt files itself."
+  (let (shown orig-called)
+    (cl-letf (((symbol-function 'claude-code-ide-external-prompt--display)
+               (lambda (buffer) (setq shown buffer))))
       (with-temp-buffer
-        ;; Claim and fire as one round trip: restoring is only meaningful
-        ;; against the value the claim displaced.
         (claude-code-ide-external-prompt-mode)
-        (claude-code-ide-external-prompt--display (current-buffer))))
-    (should (eq server-window 'previous-value))))
+        (claude-code-ide-external-prompt--switch-buffer
+         (lambda (&rest _) (setq orig-called t))
+         (current-buffer) nil '(3 . 4) nil)
+        (should (eq shown (current-buffer)))
+        (should-not orig-called)))))
+
+(ert-deftest claude-code-ide-config-test-external-switch-buffer-leaves-others-alone ()
+  "Any other buffer, or none, goes to the stock implementation unchanged."
+  (let (shown seen)
+    (cl-letf (((symbol-function 'claude-code-ide-external-prompt--display)
+               (lambda (buffer) (setq shown buffer))))
+      (with-temp-buffer
+        (text-mode)
+        (claude-code-ide-external-prompt--switch-buffer
+         (lambda (&rest args) (setq seen args))
+         (current-buffer) nil '(3 . 4) nil)
+        (should (equal seen (list (current-buffer) nil '(3 . 4) nil)))
+        (should-not shown))
+      (claude-code-ide-external-prompt--switch-buffer
+       (lambda (&rest args) (setq seen (or args 'called))))
+      (should (null (car-safe seen)))
+      (should-not shown))))
 
 (ert-deftest claude-code-ide-config-test-external-display-honours-style ()
   "`claude-code-ide-config-external-prompt-display' picks the presentation."
