@@ -327,7 +327,7 @@ here would be discarded before the CLI ever started."
                            (default-value 'process-environment))))))
 
 (defun claude-code-ide-config--with-project-env (orig-fun buffer-name working-dir &rest args)
-  "Advice around `claude-code-ide--create-terminal-session'.
+  "Advice around `claude-code-ide--create-terminal-session\='.
 Start the session under WORKING-DIR's mise environment so a repository's
 `mise.toml' [env] entries reach the Claude process.  The one that matters
 most is CLAUDE_CONFIG_DIR: it points Claude at a different config
@@ -335,14 +335,34 @@ directory, which carries its own credentials, so a repository can run
 under a different account.  Without this advice the session would
 inherit whatever environment Emacs itself was started with.
 
-EDITOR is deliberately not set here.  This binding would not survive the
-buffer switch `claude-code-ide--create-terminal-session\=' makes before
-spawning, so `claude-code-ide-config--export-editor\=' handles it
-globally instead and a project\='s own EDITOR is left to win."
-  (let* ((env (claude-code-ide-config--project-env working-dir))
-         (process-environment (if env (car env) process-environment))
-         (exec-path (if env (cdr env) exec-path)))
-    (apply orig-fun buffer-name working-dir args)))
+The global value is overridden for the duration of the call, not just
+let-bound.  `mise-env-update\=' on `prog-mode-hook\=' gives every source
+buffer under a mise root a buffer-local `process-environment\=', and a
+let-binding made in such a buffer is buffer-local too -- it would vanish
+the moment `claude-code-ide--create-terminal-session\=' switches into the
+freshly created terminal buffer to spawn the CLI.  Starting a session
+from a source file would then hand Claude the ambient environment and
+the wrong account.  The let-binding stays as well, for the part of the
+callee that still runs in the caller's buffer (resolving the CLI against
+`exec-path\=', say).
+
+EDITOR is deliberately not set here.  `claude-code-ide-config--export-editor\='
+exports it globally once instead, which leaves a project\='s own EDITOR
+free to win."
+  (let ((env (claude-code-ide-config--project-env working-dir)))
+    (if (not env)
+        (apply orig-fun buffer-name working-dir args)
+      (let ((saved-env (default-value 'process-environment))
+            (saved-path (default-value 'exec-path))
+            (process-environment (car env))
+            (exec-path (cdr env)))
+        (unwind-protect
+            (progn
+              (setq-default process-environment (car env))
+              (setq-default exec-path (cdr env))
+              (apply orig-fun buffer-name working-dir args))
+          (setq-default process-environment saved-env)
+          (setq-default exec-path saved-path))))))
 
 ;;; Session Tiling
 

@@ -447,5 +447,38 @@ started."
        "*buf*" "/tmp/some-project/" 1234 nil nil "sid")
       (should (equal observed process-environment)))))
 
+(ert-deftest claude-code-ide-config-test-with-project-env-survives-buffer-switch ()
+  "The project environment reaches code running in another buffer.
+`claude-code-ide--create-terminal-session' switches into the terminal
+buffer before spawning, and `mise-env-update' on `prog-mode-hook' gives
+every source buffer under a mise root a buffer-local
+`process-environment', which would confine a plain let-binding to the
+caller and leave the CLI without CLAUDE_CONFIG_DIR."
+  (claude-code-ide-config-test--with-stub-mise
+    (with-temp-buffer
+      (setq-local process-environment (cons "CALLER=local" process-environment))
+      (setq-local exec-path (cons "/caller/bin" exec-path))
+      (let (observed-env observed-path)
+        (claude-code-ide-config--with-project-env
+         (lambda (&rest _)
+           (with-temp-buffer
+             (setq observed-env process-environment
+                   observed-path exec-path)))
+         "*buf*" "/tmp/some-project/" 1234 nil nil "sid")
+        (should (member "CLAUDE_CONFIG_DIR=/stub/config" observed-env))
+        (should (member "/stub/bin" observed-path))))))
+
+(ert-deftest claude-code-ide-config-test-with-project-env-does-not-leak-globally ()
+  "The project environment does not outlive the call in the global value."
+  (claude-code-ide-config-test--with-stub-mise
+    (let ((env-before (default-value 'process-environment))
+          (path-before (default-value 'exec-path)))
+      (with-temp-buffer
+        (setq-local process-environment (cons "CALLER=local" process-environment))
+        (claude-code-ide-config--with-project-env
+         #'ignore "*buf*" "/tmp/some-project/" 1234 nil nil "sid"))
+      (should (equal (default-value 'process-environment) env-before))
+      (should (equal (default-value 'exec-path) path-before)))))
+
 (provide 'claude-code-ide-config-test)
 ;;; claude-code-ide-config-test.el ends here
