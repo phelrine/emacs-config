@@ -135,7 +135,7 @@ has no other way to know which terminal it came from.")
 
 (defun claude-code-ide-external-prompt--show-window (buffer)
   "Show BUFFER along the bottom of the current frame and select it."
-  (when-let ((win (display-buffer buffer
+  (when-let* ((win (display-buffer buffer
                                   '((display-buffer-in-side-window)
                                     (side . bottom)
                                     (slot . 1)
@@ -166,7 +166,7 @@ has no other way to know which terminal it came from.")
                    ;; you typing with nothing to aim at, behind the draft.
                    :cursor 'box
                    :window-point end)
-    (when-let ((frame (posframe--find-existing-posframe buffer)))
+    (when-let* ((frame (posframe--find-existing-posframe buffer)))
       (select-frame-set-input-focus frame)
       (select-window (frame-first-window frame))
       (with-current-buffer buffer (goto-char end)))))
@@ -200,7 +200,7 @@ on every file any `emacsclient' opened landed in the posframe."
   (when (and (eq claude-code-ide-config-external-prompt-display 'posframe)
              (fboundp 'posframe-delete))
     (posframe-delete buffer)
-    (when-let ((main (seq-find (lambda (frame)
+    (when-let* ((main (seq-find (lambda (frame)
                                  (not (frame-parameter frame 'parent-frame)))
                                (frame-list))))
       (select-frame-set-input-focus main))))
@@ -232,7 +232,7 @@ it lands after the rule it overrides."
 (defun claude-code-ide-external-prompt-finish-and-send ()
   "Hand this file back to the CLI and submit it."
   (interactive)
-  (let ((buffer (when-let ((session claude-code-ide-external-prompt--session))
+  (let ((buffer (when-let* ((session claude-code-ide-external-prompt--session))
                   (claude-code-ide-mcp-session-buffer session))))
     (claude-code-ide-external-prompt-finish)
     (when (buffer-live-p buffer)
@@ -264,7 +264,7 @@ return value, passed through unchanged.  Terminal mode hooks are too
 early for this: `claude-code-ide--session-buffer-p' relies on the
 session backpointer, which is only set after the terminal buffer is
 created."
-  (when-let ((buf (car-safe buffer-and-process)))
+  (when-let* ((buf (car-safe buffer-and-process)))
     (when (buffer-live-p buf)
       (with-current-buffer buf
         (local-set-key (kbd "C-o") #'other-window)
@@ -316,7 +316,7 @@ Written to the global value rather than with `setenv\='.  `mise-env\='
 gives every prog-mode buffer a buffer-local `process-environment\=', and
 the terminal is spawned from a different buffer again, so a `setenv\='
 here would be discarded before the CLI ever started."
-  (when-let ((editor (claude-code-ide-config--editor-command)))
+  (when-let* ((editor (claude-code-ide-config--editor-command)))
     (setq-default process-environment
                   (append (list (concat "EDITOR=" editor)
                                 (concat "VISUAL=" editor))
@@ -357,7 +357,7 @@ globally instead and a project\='s own EDITOR is left to win."
   (let (result)
     (maphash
      (lambda (_id session)
-       (when-let ((buf (claude-code-ide-mcp-session-buffer session)))
+       (when-let* ((buf (claude-code-ide-mcp-session-buffer session)))
          (when (buffer-live-p buf)
            (push session result))))
      claude-code-ide-mcp--sessions)

@@ -71,7 +71,7 @@ buffer would break `json-read' and lose the whole environment."
 (defun mise-env--get-env (dir)
   "Get mise environment for DIR, using cache when available."
   (or (gethash dir mise-env--project-cache)
-      (when-let ((result (mise-env--fetch-env dir)))
+      (when-let* ((result (mise-env--fetch-env dir)))
         (puthash dir result mise-env--project-cache)
         result)))
 
@@ -104,7 +104,7 @@ buffer would break `json-read' and lose the whole environment."
 (defun mise-env-update ()
   "Update current buffer's environment from mise."
   (interactive)
-  (when-let ((root (mise-env--project-root))
+  (when-let* ((root (mise-env--project-root))
              (env (mise-env--get-env root)))
     (mise-env--apply-env env)))
 

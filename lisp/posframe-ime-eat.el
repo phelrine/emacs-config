@@ -29,7 +29,7 @@
   (interactive)
   (unless (eq major-mode 'eat-mode)
     (user-error "Not in an eat buffer"))
-  (when-let ((result (posframe-ime-input-read-string "Eat input: ")))
+  (when-let* ((result (posframe-ime-input-read-string "Eat input: ")))
     (posframe-ime-eat-send result)))
 
 (defun posframe-ime-eat-setup ()

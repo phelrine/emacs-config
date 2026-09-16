@@ -27,7 +27,7 @@
   (interactive)
   (unless (eq major-mode 'vterm-mode)
     (user-error "Not in a vterm buffer"))
-  (when-let ((result (posframe-ime-input-read-string "Vterm input: ")))
+  (when-let* ((result (posframe-ime-input-read-string "Vterm input: ")))
     (posframe-ime-vterm-send result)))
 
 (defun posframe-ime-vterm-setup ()

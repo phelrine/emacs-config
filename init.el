@@ -569,7 +569,15 @@
 (use-package dape :defer t)
 
 ;;; flycheck
-(use-package flycheck :hook (prog-mode . flycheck-mode) :diminish flycheck-mode :autoload flycheck-add-mode flycheck-add-next-checker)
+(use-package flycheck
+  :diminish flycheck-mode
+  :autoload flycheck-add-mode flycheck-add-next-checker
+  :init
+  ;; *scratch* has no checker that can run
+  (add-hook 'prog-mode-hook
+            (lambda ()
+              (unless (derived-mode-p 'lisp-interaction-mode)
+                (flycheck-mode)))))
 (use-package flycheck-color-mode-line :hook (flycheck-mode . flycheck-color-mode-line-mode))
 ;; (use-package flycheck-deno
 ;;   :after flycheck
@@ -624,6 +632,8 @@
         ("C-o" . other-window))
   :custom
   (dired-omit-files (rx (seq bol ".")))
+  ;; macOS ls has no --dired flag
+  (dired-use-ls-dired (not (eq system-type 'darwin)))
   :hook
   (dired-mode . dired-omit-mode)
   :init
@@ -739,7 +749,7 @@
 ;; https://github.com/golang/tools/blob/master/gopls/doc/emacs.md#configuring-project-for-go-modules-in-emacs
 (defun project-find-go-module (dir)
   "Search for go.mod file in DIR."
-  (when-let ((root (locate-dominating-file dir "go.mod")))
+  (when-let* ((root (locate-dominating-file dir "go.mod")))
     (cons 'go-module root)))
 (with-eval-after-load 'project
   (cl-defmethod project-root ((project (head go-module)))

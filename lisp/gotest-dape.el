@@ -8,7 +8,7 @@
 
 (defun go-test-dape-get-directory-name-from-go-mod ()
   "Get the directory name where go.mod is located."
-  (if-let ((file (buffer-file-name))
+  (if-let* ((file (buffer-file-name))
            (go-mod-root (locate-dominating-file (file-name-directory file) "go.mod")))
       (let ((relative-path (file-relative-name (file-name-directory file) go-mod-root)))
         (concat "./" relative-path))
@@ -16,7 +16,7 @@
 
 (defun go-test-dape-generate-arg-from-current-test ()
   "Generate arguments to run the Go test at the current cursor position."
-  (if-let ((test-info (go-test--get-current-test-info))
+  (if-let* ((test-info (go-test--get-current-test-info))
            (test-name (cadr test-info)))
       (list "-test.run" (concat "^" test-name "$"))
     (error "No test selected")))
