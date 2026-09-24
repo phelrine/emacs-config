@@ -757,6 +757,23 @@
     (cdr project))
   (add-hook 'project-find-functions #'project-find-go-module))
 
+;; ~/w/<org>/ の git 管理外（work/ など）では org ディレクトリをルートにする。
+;; git リポジトリの中では nil を返し、リポジトリをルートのままにする。
+(defun project-find-w-org (dir)
+  "Return ~/w/<org>/ as the project root when DIR is outside any git repo."
+  (let ((dir (expand-file-name dir))
+        (w (expand-file-name "~/w/")))
+    (when-let* ((root (and (string-match (concat "\\`" (regexp-quote w) "[^/]+/") dir)
+                           (match-string 0 dir))))
+      (unless (locate-dominating-file dir ".git")
+        (cons 'w-org root)))))
+(with-eval-after-load 'project
+  (cl-defmethod project-root ((project (head w-org)))
+    "Return the org directory of a w-org PROJECT."
+    (cdr project))
+  ;; projectile より先に評価させる
+  (add-hook 'project-find-functions #'project-find-w-org -50))
+
 (use-package govet :commands govet)
 (use-package gotest :defer t)
 (use-package go-gen-test :defer t)
