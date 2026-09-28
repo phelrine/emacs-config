@@ -1,4 +1,4 @@
-;;; auth-source-ghcli.el --- Auth source backend for GitHub CLI integration.
+;;; auth-source-ghcli.el --- Auth source backend for GitHub CLI integration  -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 
@@ -14,8 +14,7 @@
 (defvar allowed-packages '("forge" "code-review" "igist" "mcp"))
 
 (cl-defun auth-source-ghcli-search (&rest spec
-                                          &key backend require
-                                          type max host user port
+                                          &key backend type host user
                                           &allow-other-keys)
   "Given a property list SPEC, return search matches from the `:backend'.
 See `auth-source-search' for details on SPEC."

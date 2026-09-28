@@ -142,7 +142,7 @@ buffer switches from ediff or other tools)."
   "Update mode indicator overlay."
   (when posframe-ime-input--mode-indicator-overlay
     (delete-overlay posframe-ime-input--mode-indicator-overlay))
-  (when-let ((indicator (posframe-ime-input--get-mode-indicator)))
+  (when-let* ((indicator (posframe-ime-input--get-mode-indicator)))
     (save-excursion
       (goto-char (point-min))
       (end-of-line)
@@ -156,7 +156,7 @@ buffer switches from ediff or other tools)."
   "Paint the posframe's cursor in the current input mode's colour.
 Goes on the child frame itself: `posframe-show' is asked for a real
 cursor, so the colour is how the IME mode shows through."
-  (when-let ((frame (posframe--find-existing-posframe
+  (when-let* ((frame (posframe--find-existing-posframe
                      (get-buffer posframe-ime-input--buffer-name))))
     (set-frame-parameter frame 'cursor-color
                          (posframe-ime-input--get-cursor-color))))

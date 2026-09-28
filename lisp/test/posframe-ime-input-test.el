@@ -20,7 +20,7 @@
          (progn
            (get-buffer-create posframe-ime-input--buffer-name)
            ,@body)
-       (when-let ((buf (get-buffer posframe-ime-input--buffer-name)))
+       (when-let* ((buf (get-buffer posframe-ime-input--buffer-name)))
          (kill-buffer buf)))))
 
 (ert-deftest posframe-ime-input-test-no-dismiss-when-inactive ()

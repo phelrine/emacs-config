@@ -21,8 +21,8 @@
 (require 'claude-code-ide-transient)
 (require 'posframe)
 (require 'mise-env)
-;; For `server-edit' and `server-window': the CLI's external-editor key
-;; reaches Emacs through the server, and we take over how it displays.
+;; For `server-edit' and `server-switch-buffer': the CLI's external-editor
+;; key reaches Emacs through the server, and we take over how it displays.
 (require 'server)
 
 ;;; C-o Terminal Keybinding
@@ -128,7 +128,6 @@ has no other way to know which terminal it came from.")
   (setq claude-code-ide-external-prompt--session
         (prog1 claude-code-ide-external-prompt--pending-session
           (setq claude-code-ide-external-prompt--pending-session nil)))
-  (claude-code-ide-external-prompt--claim-server-window)
   (setq header-line-format
         (substitute-command-keys
          (concat "\\<claude-code-ide-external-prompt-mode-map>"
@@ -136,26 +135,9 @@ has no other way to know which terminal it came from.")
                  "\\[claude-code-ide-external-prompt-finish]: back to CLI unsent    "
                  "\\[claude-code-ide-external-prompt-abort]: discard"))))
 
-(defvar claude-code-ide-external-prompt--saved-server-window nil
-  "Value of `server-window' displaced by the current handoff.")
-
-(defun claude-code-ide-external-prompt--claim-server-window ()
-  "Arrange for us, not the server, to display this buffer.
-`server-switch-buffer' consults `server-window' only after the file has
-been visited, so the major mode is the last moment we can intercept it.
-The override is undone the instant it fires, so other `emacsclient'
-uses keep whatever display the user configured.
-
-Only for a real handoff: turning the mode on in a scratch buffer would
-claim the display with nothing left to release it again."
-  (when buffer-file-name
-    (unless (eq server-window #'claude-code-ide-external-prompt--display)
-      (setq claude-code-ide-external-prompt--saved-server-window server-window))
-    (setq server-window #'claude-code-ide-external-prompt--display)))
-
 (defun claude-code-ide-external-prompt--show-window (buffer)
   "Show BUFFER along the bottom of the current frame and select it."
-  (when-let ((win (display-buffer buffer
+  (when-let* ((win (display-buffer buffer
                                   '((display-buffer-in-side-window)
                                     (side . bottom)
                                     (slot . 1)
@@ -186,34 +168,41 @@ claim the display with nothing left to release it again."
                    ;; you typing with nothing to aim at, behind the draft.
                    :cursor 'box
                    :window-point end)
-    (when-let ((frame (posframe--find-existing-posframe buffer)))
+    (when-let* ((frame (posframe--find-existing-posframe buffer)))
       (select-frame-set-input-focus frame)
       (select-window (frame-first-window frame))
       (with-current-buffer buffer (goto-char end)))))
 
 (defun claude-code-ide-external-prompt--display (buffer)
-  "Display BUFFER as `claude-code-ide-config-external-prompt-display' asks.
-Installed as `server-window' for the duration of one handoff; restoring
-it first means an error below cannot strand the override.
+  "Display BUFFER as `claude-code-ide-config-external-prompt-display' asks."
+  (if (eq claude-code-ide-config-external-prompt-display 'posframe)
+      (claude-code-ide-external-prompt--show-posframe buffer)
+    (claude-code-ide-external-prompt--show-window buffer)))
 
-Anything that is not a handoff is displayed the ordinary way.  This is
-global state released by a callback, so it can be left installed, and a
-plain `emacsclient FILE' must not end up floating in a child frame."
-  (setq server-window claude-code-ide-external-prompt--saved-server-window)
-  (cond
-   ((not (with-current-buffer buffer
-           (derived-mode-p 'claude-code-ide-external-prompt-mode)))
-    (pop-to-buffer-same-window buffer))
-   ((eq claude-code-ide-config-external-prompt-display 'posframe)
-    (claude-code-ide-external-prompt--show-posframe buffer))
-   (t (claude-code-ide-external-prompt--show-window buffer))))
+(defun claude-code-ide-external-prompt--switch-buffer (orig-fun &optional next-buffer &rest args)
+  "Around `server-switch-buffer': show the CLI's prompt file our own way.
+Every other buffer -- and the no-buffer call `server-edit' makes when
+the last client leaves -- goes to ORIG-FUN with NEXT-BUFFER and ARGS
+untouched.
+
+Decided per buffer rather than by installing ourselves as
+`server-window': that global stayed overridden whenever the mode ran
+without a handoff to undo it -- a stale prompt file picked from
+`recentf', or a request arriving while the minibuffer was active, which
+`server-execute' answers without ever switching buffers -- and from then
+on every file any `emacsclient' opened landed in the posframe."
+  (if (and (buffer-live-p next-buffer)
+           (with-current-buffer next-buffer
+             (derived-mode-p 'claude-code-ide-external-prompt-mode)))
+      (claude-code-ide-external-prompt--display next-buffer)
+    (apply orig-fun next-buffer args)))
 
 (defun claude-code-ide-external-prompt--hide (buffer)
   "Take BUFFER's child frame down and hand focus back to the main frame."
   (when (and (eq claude-code-ide-config-external-prompt-display 'posframe)
              (fboundp 'posframe-delete))
     (posframe-delete buffer)
-    (when-let ((main (seq-find (lambda (frame)
+    (when-let* ((main (seq-find (lambda (frame)
                                  (not (frame-parameter frame 'parent-frame)))
                                (frame-list))))
       (select-frame-set-input-focus main))))
@@ -259,7 +248,7 @@ a conversion."
 (defun claude-code-ide-external-prompt-finish-and-send ()
   "Hand this file back to the CLI and submit it."
   (interactive)
-  (let ((buffer (when-let ((session claude-code-ide-external-prompt--session))
+  (let ((buffer (when-let* ((session claude-code-ide-external-prompt--session))
                   (claude-code-ide-mcp-session-buffer session))))
     (claude-code-ide-external-prompt-finish)
     (when (buffer-live-p buffer)
@@ -291,7 +280,7 @@ return value, passed through unchanged.  Terminal mode hooks are too
 early for this: `claude-code-ide--session-buffer-p' relies on the
 session backpointer, which is only set after the terminal buffer is
 created."
-  (when-let ((buf (car-safe buffer-and-process)))
+  (when-let* ((buf (car-safe buffer-and-process)))
     (when (buffer-live-p buf)
       (with-current-buffer buf
         (local-set-key (kbd "C-o") #'other-window)
@@ -343,7 +332,7 @@ Written to the global value rather than with `setenv\='.  `mise-env\='
 gives every prog-mode buffer a buffer-local `process-environment\=', and
 the terminal is spawned from a different buffer again, so a `setenv\='
 here would be discarded before the CLI ever started."
-  (when-let ((editor (claude-code-ide-config--editor-command)))
+  (when-let* ((editor (claude-code-ide-config--editor-command)))
     (setq-default process-environment
                   (append (list (concat "EDITOR=" editor)
                                 (concat "VISUAL=" editor))
@@ -354,7 +343,7 @@ here would be discarded before the CLI ever started."
                            (default-value 'process-environment))))))
 
 (defun claude-code-ide-config--with-project-env (orig-fun buffer-name working-dir &rest args)
-  "Advice around `claude-code-ide--create-terminal-session'.
+  "Advice around `claude-code-ide--create-terminal-session\='.
 Start the session under WORKING-DIR's mise environment so a repository's
 `mise.toml' [env] entries reach the Claude process.  The one that matters
 most is CLAUDE_CONFIG_DIR: it points Claude at a different config
@@ -362,14 +351,34 @@ directory, which carries its own credentials, so a repository can run
 under a different account.  Without this advice the session would
 inherit whatever environment Emacs itself was started with.
 
-EDITOR is deliberately not set here.  This binding would not survive the
-buffer switch `claude-code-ide--create-terminal-session\=' makes before
-spawning, so `claude-code-ide-config--export-editor\=' handles it
-globally instead and a project\='s own EDITOR is left to win."
-  (let* ((env (claude-code-ide-config--project-env working-dir))
-         (process-environment (if env (car env) process-environment))
-         (exec-path (if env (cdr env) exec-path)))
-    (apply orig-fun buffer-name working-dir args)))
+The global value is overridden for the duration of the call, not just
+let-bound.  `mise-env-update\=' on `prog-mode-hook\=' gives every source
+buffer under a mise root a buffer-local `process-environment\=', and a
+let-binding made in such a buffer is buffer-local too -- it would vanish
+the moment `claude-code-ide--create-terminal-session\=' switches into the
+freshly created terminal buffer to spawn the CLI.  Starting a session
+from a source file would then hand Claude the ambient environment and
+the wrong account.  The let-binding stays as well, for the part of the
+callee that still runs in the caller's buffer (resolving the CLI against
+`exec-path\=', say).
+
+EDITOR is deliberately not set here.  `claude-code-ide-config--export-editor\='
+exports it globally once instead, which leaves a project\='s own EDITOR
+free to win."
+  (let ((env (claude-code-ide-config--project-env working-dir)))
+    (if (not env)
+        (apply orig-fun buffer-name working-dir args)
+      (let ((saved-env (default-value 'process-environment))
+            (saved-path (default-value 'exec-path))
+            (process-environment (car env))
+            (exec-path (cdr env)))
+        (unwind-protect
+            (progn
+              (setq-default process-environment (car env))
+              (setq-default exec-path (cdr env))
+              (apply orig-fun buffer-name working-dir args))
+          (setq-default process-environment saved-env)
+          (setq-default exec-path saved-path))))))
 
 ;;; Session Tiling
 
@@ -384,7 +393,7 @@ globally instead and a project\='s own EDITOR is left to win."
   (let (result)
     (maphash
      (lambda (_id session)
-       (when-let ((buf (claude-code-ide-mcp-session-buffer session)))
+       (when-let* ((buf (claude-code-ide-mcp-session-buffer session)))
          (when (buffer-live-p buf)
            (push session result))))
      claude-code-ide-mcp--sessions)
@@ -501,6 +510,8 @@ buffer in the main area, then delete other windows normally."
                (cons claude-code-ide-config--external-prompt-file-regexp
                      #'claude-code-ide-external-prompt-mode))
   (add-hook 'find-file-hook #'claude-code-ide-external-prompt--ensure-editable t)
+  (advice-add 'server-switch-buffer :around
+              #'claude-code-ide-external-prompt--switch-buffer)
 
   ;; Fix "Cannot make side window the only window" error
   (advice-add 'delete-other-windows :around

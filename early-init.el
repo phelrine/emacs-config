@@ -7,7 +7,7 @@
       gc-cons-percentage 0.6)
 
 ;; Prevent unwanted runtime compilation
-(setq native-comp-deferred-compilation nil)
+(setq native-comp-jit-compilation nil)
 
 ;; Package initialization optimization
 (setq package-enable-at-startup nil)

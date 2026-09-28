@@ -569,7 +569,15 @@
 (use-package dape :defer t)
 
 ;;; flycheck
-(use-package flycheck :hook (prog-mode . flycheck-mode) :diminish flycheck-mode :autoload flycheck-add-mode flycheck-add-next-checker)
+(use-package flycheck
+  :diminish flycheck-mode
+  :autoload flycheck-add-mode flycheck-add-next-checker
+  :init
+  ;; *scratch* has no checker that can run
+  (add-hook 'prog-mode-hook
+            (lambda ()
+              (unless (derived-mode-p 'lisp-interaction-mode)
+                (flycheck-mode)))))
 (use-package flycheck-color-mode-line :hook (flycheck-mode . flycheck-color-mode-line-mode))
 ;; (use-package flycheck-deno
 ;;   :after flycheck
@@ -624,6 +632,8 @@
         ("C-o" . other-window))
   :custom
   (dired-omit-files (rx (seq bol ".")))
+  ;; macOS ls has no --dired flag
+  (dired-use-ls-dired (not (eq system-type 'darwin)))
   :hook
   (dired-mode . dired-omit-mode)
   :init
@@ -739,13 +749,30 @@
 ;; https://github.com/golang/tools/blob/master/gopls/doc/emacs.md#configuring-project-for-go-modules-in-emacs
 (defun project-find-go-module (dir)
   "Search for go.mod file in DIR."
-  (when-let ((root (locate-dominating-file dir "go.mod")))
+  (when-let* ((root (locate-dominating-file dir "go.mod")))
     (cons 'go-module root)))
 (with-eval-after-load 'project
   (cl-defmethod project-root ((project (head go-module)))
     "Return the root directory of a go module PROJECT."
     (cdr project))
   (add-hook 'project-find-functions #'project-find-go-module))
+
+;; ~/w/<org>/ の git 管理外（work/ など）では org ディレクトリをルートにする。
+;; git リポジトリの中では nil を返し、リポジトリをルートのままにする。
+(defun project-find-w-org (dir)
+  "Return ~/w/<org>/ as the project root when DIR is outside any git repo."
+  (let ((dir (expand-file-name dir))
+        (w (expand-file-name "~/w/")))
+    (when-let* ((root (and (string-match (concat "\\`" (regexp-quote w) "[^/]+/") dir)
+                           (match-string 0 dir))))
+      (unless (locate-dominating-file dir ".git")
+        (cons 'w-org root)))))
+(with-eval-after-load 'project
+  (cl-defmethod project-root ((project (head w-org)))
+    "Return the org directory of a w-org PROJECT."
+    (cdr project))
+  ;; projectile より先に評価させる
+  (add-hook 'project-find-functions #'project-find-w-org -50))
 
 (use-package govet :commands govet)
 (use-package gotest :defer t)

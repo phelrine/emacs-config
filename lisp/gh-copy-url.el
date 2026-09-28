@@ -31,18 +31,18 @@
 
 (defun gh-copy-url-action-copy-url (candidate)
   "Copy URL of CANDIDATE to kill-ring."
-  (when-let ((url (get-text-property 0 'gh-url candidate)))
+  (when-let* ((url (get-text-property 0 'gh-url candidate)))
     (kill-new url)
     (message "Copied: %s" url)))
 
 (defun gh-copy-url-action-browse (candidate)
   "Open CANDIDATE in browser."
-  (when-let ((url (get-text-property 0 'gh-url candidate)))
+  (when-let* ((url (get-text-property 0 'gh-url candidate)))
     (browse-url url)))
 
 (defun gh-copy-url-action-copy-markdown (candidate)
   "Copy CANDIDATE as Markdown link to kill-ring."
-  (when-let ((url (get-text-property 0 'gh-url candidate))
+  (when-let* ((url (get-text-property 0 'gh-url candidate))
              (title (get-text-property 0 'gh-title candidate)))
     (let ((markdown (format "[%s](%s)" title url)))
       (kill-new markdown)
@@ -50,7 +50,7 @@
 
 (defun gh-copy-url-action-copy-org (candidate)
   "Copy CANDIDATE as Org link to kill-ring."
-  (when-let ((url (get-text-property 0 'gh-url candidate))
+  (when-let* ((url (get-text-property 0 'gh-url candidate))
              (title (get-text-property 0 'gh-title candidate)))
     (let ((org-link (format "[[%s][%s]]" url title)))
       (kill-new org-link)
@@ -93,7 +93,7 @@ NO-RESULTS-MESSAGE is shown when ITEMS is empty."
   "Show PROMPT for selection from ITEMS and copy URL.
 NO-RESULTS-MESSAGE is shown when ITEMS is empty.
 Default action is copy URL. Use embark (C-.) for other actions."
-  (when-let ((selected (gh-copy-url--select items prompt no-results-message)))
+  (when-let* ((selected (gh-copy-url--select items prompt no-results-message)))
     (gh-copy-url-action-copy-url selected)))
 
 ;;; Issue commands

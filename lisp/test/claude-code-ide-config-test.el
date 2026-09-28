@@ -191,32 +191,6 @@ whatever the CLI already had."
         (should (plist-get args :cursor))
         (should (equal (plist-get args :window-point) (point-max)))))))
 
-(ert-deftest claude-code-ide-config-test-external-mode-claims-only-for-files ()
-  "Only a real handoff takes the display over.
-Turning the mode on in a scratch buffer -- a test, a probe -- would
-otherwise leave `server-window' pointing here for good, and every later
-`emacsclient FILE' would be floated in a posframe."
-  (let ((server-window nil))
-    (with-temp-buffer
-      (claude-code-ide-external-prompt-mode)
-      (should-not server-window))))
-
-(ert-deftest claude-code-ide-config-test-external-display-passes-foreign-buffers-through ()
-  "A buffer that is not a handoff is displayed normally.
-The override is global state cleaned up by a callback, so it can be left
-installed; that must not turn unrelated files into posframes."
-  (let ((server-window nil)
-        floated shown)
-    (cl-letf (((symbol-function 'claude-code-ide-external-prompt--show-posframe)
-               (lambda (&rest _) (setq floated t)))
-              ((symbol-function 'pop-to-buffer-same-window)
-               (lambda (&rest _) (setq shown t))))
-      (with-temp-buffer
-        (text-mode)
-        (claude-code-ide-external-prompt--display (current-buffer))))
-    (should shown)
-    (should-not floated)))
-
 (ert-deftest claude-code-ide-config-test-external-abort-discards-edits ()
   "Aborting hands the file back untouched, so the CLI's input line is
 exactly what it was before the handoff."
@@ -234,29 +208,45 @@ exactly what it was before the handoff."
         (set-buffer-modified-p nil)))
     (should (equal (reverse order) '(revert hide release)))))
 
-(ert-deftest claude-code-ide-config-test-external-mode-claims-server-window ()
-  "The mode body is the last moment before `server-switch-buffer' displays,
-so that is where the display override is installed."
-  (let ((server-window nil))
+(ert-deftest claude-code-ide-config-test-external-mode-leaves-server-window-alone ()
+  "Entering the mode must not touch global server state.
+A prompt file visited outside a handoff -- from `recentf', say -- would
+otherwise leave every later `emacsclient' file displaying our way."
+  (let ((server-window 'previous-value))
     (with-temp-buffer
       (setq buffer-file-name "/tmp/claude-501/claude-prompt-x.md")
       (claude-code-ide-external-prompt-mode)
-      (should (eq server-window #'claude-code-ide-external-prompt--display))
-      (set-buffer-modified-p nil))))
+      (should (eq server-window 'previous-value)))))
 
-(ert-deftest claude-code-ide-config-test-external-display-restores-server-window ()
-  "The override lasts exactly one handoff, leaving other emacsclient uses alone."
-  (let ((server-window 'previous-value))
-    (cl-letf (((symbol-function 'claude-code-ide-external-prompt--show-posframe)
-               #'ignore))
+(ert-deftest claude-code-ide-config-test-external-switch-buffer-takes-prompt-buffers ()
+  "The `server-switch-buffer' advice displays prompt files itself."
+  (let (shown orig-called)
+    (cl-letf (((symbol-function 'claude-code-ide-external-prompt--display)
+               (lambda (buffer) (setq shown buffer))))
       (with-temp-buffer
-        (setq buffer-file-name "/tmp/claude-501/claude-prompt-x.md")
-        ;; Claim and fire as one round trip: restoring is only meaningful
-        ;; against the value the claim displaced.
         (claude-code-ide-external-prompt-mode)
-        (claude-code-ide-external-prompt--display (current-buffer))
-        (set-buffer-modified-p nil)))
-    (should (eq server-window 'previous-value))))
+        (claude-code-ide-external-prompt--switch-buffer
+         (lambda (&rest _) (setq orig-called t))
+         (current-buffer) nil '(3 . 4) nil)
+        (should (eq shown (current-buffer)))
+        (should-not orig-called)))))
+
+(ert-deftest claude-code-ide-config-test-external-switch-buffer-leaves-others-alone ()
+  "Any other buffer, or none, goes to the stock implementation unchanged."
+  (let (shown seen)
+    (cl-letf (((symbol-function 'claude-code-ide-external-prompt--display)
+               (lambda (buffer) (setq shown buffer))))
+      (with-temp-buffer
+        (text-mode)
+        (claude-code-ide-external-prompt--switch-buffer
+         (lambda (&rest args) (setq seen args))
+         (current-buffer) nil '(3 . 4) nil)
+        (should (equal seen (list (current-buffer) nil '(3 . 4) nil)))
+        (should-not shown))
+      (claude-code-ide-external-prompt--switch-buffer
+       (lambda (&rest args) (setq seen (or args 'called))))
+      (should (null (car-safe seen)))
+      (should-not shown))))
 
 (ert-deftest claude-code-ide-config-test-external-display-honours-style ()
   "`claude-code-ide-config-external-prompt-display' picks the presentation."
@@ -478,6 +468,39 @@ started."
        (lambda (&rest _) (setq observed process-environment))
        "*buf*" "/tmp/some-project/" 1234 nil nil "sid")
       (should (equal observed process-environment)))))
+
+(ert-deftest claude-code-ide-config-test-with-project-env-survives-buffer-switch ()
+  "The project environment reaches code running in another buffer.
+`claude-code-ide--create-terminal-session' switches into the terminal
+buffer before spawning, and `mise-env-update' on `prog-mode-hook' gives
+every source buffer under a mise root a buffer-local
+`process-environment', which would confine a plain let-binding to the
+caller and leave the CLI without CLAUDE_CONFIG_DIR."
+  (claude-code-ide-config-test--with-stub-mise
+    (with-temp-buffer
+      (setq-local process-environment (cons "CALLER=local" process-environment))
+      (setq-local exec-path (cons "/caller/bin" exec-path))
+      (let (observed-env observed-path)
+        (claude-code-ide-config--with-project-env
+         (lambda (&rest _)
+           (with-temp-buffer
+             (setq observed-env process-environment
+                   observed-path exec-path)))
+         "*buf*" "/tmp/some-project/" 1234 nil nil "sid")
+        (should (member "CLAUDE_CONFIG_DIR=/stub/config" observed-env))
+        (should (member "/stub/bin" observed-path))))))
+
+(ert-deftest claude-code-ide-config-test-with-project-env-does-not-leak-globally ()
+  "The project environment does not outlive the call in the global value."
+  (claude-code-ide-config-test--with-stub-mise
+    (let ((env-before (default-value 'process-environment))
+          (path-before (default-value 'exec-path)))
+      (with-temp-buffer
+        (setq-local process-environment (cons "CALLER=local" process-environment))
+        (claude-code-ide-config--with-project-env
+         #'ignore "*buf*" "/tmp/some-project/" 1234 nil nil "sid"))
+      (should (equal (default-value 'process-environment) env-before))
+      (should (equal (default-value 'exec-path) path-before)))))
 
 (provide 'claude-code-ide-config-test)
 ;;; claude-code-ide-config-test.el ends here

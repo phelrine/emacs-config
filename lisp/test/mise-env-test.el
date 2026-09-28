@@ -30,7 +30,7 @@ the tree's directory name."
 (defun mise-env-test--root-from (dir)
   "Return `mise-env--project-root' as seen from DIR."
   (let ((default-directory dir))
-    (when-let ((found (mise-env--project-root)))
+    (when-let* ((found (mise-env--project-root)))
       (file-truename found))))
 
 (ert-deftest mise-env-test-detects-dotted-config ()

@@ -13,7 +13,7 @@
 ;;;###autoload
 (defun vitest-get-test-relative-path ()
   "Get the relative path from root directory."
-  (if-let ((file (buffer-file-name))
+  (if-let* ((file (buffer-file-name))
            (project-root-directory (locate-dominating-file (file-name-directory file) "package.json")))
       (let ((relative-path (file-relative-name file project-root-directory)))
         (message relative-path))
