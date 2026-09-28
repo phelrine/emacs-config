@@ -929,6 +929,7 @@
 (use-package nginx-mode :mode "/nginx/sites-\\(?:available\\|enabled\\)/")
 (use-package json-mode :defer t)
 (use-package json-reformat :commands json-reformat-region)
+(use-package jsonnet-mode :straight (:host github :repo "tminor/jsonnet-mode") :defer t)
 (use-package cfn-mode :defer t)
 (use-package lua-mode :defer t)
 (use-package yaml-mode :defer t)
