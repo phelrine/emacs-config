@@ -9,7 +9,8 @@
 ;;     -f ert-run-tests-batch-and-exit
 ;;
 ;; Sections follow `claude-code-ide-config.el': terminal keys, the
-;; external-editor prompt handoff, then the per-repository environment.
+;; external-editor prompt handoff, the per-repository environment, then
+;; session titles.
 
 ;;; Code:
 
@@ -501,6 +502,62 @@ caller and leave the CLI without CLAUDE_CONFIG_DIR."
          #'ignore "*buf*" "/tmp/some-project/" 1234 nil nil "sid"))
       (should (equal (default-value 'process-environment) env-before))
       (should (equal (default-value 'exec-path) path-before)))))
+
+;;; Session Titles
+
+(defmacro claude-code-ide-config-test--with-titled-session (title &rest body)
+  "Run BODY with `session' whose terminal last reported TITLE (OSC 0/2).
+The session belongs to ~/w/proj/ and has a connected client."
+  (declare (indent 1))
+  `(let* ((term-buffer (generate-new-buffer "*claude-code[proj]*"))
+          (session (make-claude-code-ide-mcp-session
+                    :buffer term-buffer
+                    :project-dir (expand-file-name "~/w/proj/")
+                    :client 'stub-client)))
+     (unwind-protect
+         (progn
+           (with-current-buffer term-buffer
+             (setq-local ghostel--title ,title))
+           ,@body)
+       (kill-buffer term-buffer))))
+
+(ert-deftest claude-code-ide-config-test-session-title-busy ()
+  "A spinner glyph marks the session busy and is stripped from the title."
+  (claude-code-ide-config-test--with-titled-session "◑ Fix login bug"
+    (should (equal (claude-code-ide-config--session-title session)
+                   '(busy . "Fix login bug")))))
+
+(ert-deftest claude-code-ide-config-test-session-title-idle ()
+  "The ✳ glyph marks the session idle."
+  (claude-code-ide-config-test--with-titled-session "✳ Fix login bug"
+    (should (equal (claude-code-ide-config--session-title session)
+                   '(idle . "Fix login bug")))))
+
+(ert-deftest claude-code-ide-config-test-session-title-without-glyph ()
+  "A title without a leading glyph is kept whole, with no state."
+  (claude-code-ide-config-test--with-titled-session "Claude Code"
+    (should (equal (claude-code-ide-config--session-title session)
+                   '(nil . "Claude Code")))))
+
+(ert-deftest claude-code-ide-config-test-session-title-none ()
+  "No reported title yields nil."
+  (claude-code-ide-config-test--with-titled-session nil
+    (should-not (claude-code-ide-config--session-title session))))
+
+(ert-deftest claude-code-ide-config-test-session-label-shows-state-and-title ()
+  "The list label carries the name, state, title and directory."
+  (claude-code-ide-config-test--with-titled-session "◑ Fix login bug"
+    (should (equal (claude-code-ide-config--session-label session)
+                   "proj [busy] Fix login bug — ~/w/proj/"))))
+
+(ert-deftest claude-code-ide-config-test-session-label-without-title ()
+  "Without a title the label falls back to the connection state."
+  (claude-code-ide-config-test--with-titled-session nil
+    (should (equal (claude-code-ide-config--session-label session)
+                   "proj [connected] — ~/w/proj/"))
+    (setf (claude-code-ide-mcp-session-client session) nil)
+    (should (equal (claude-code-ide-config--session-label session)
+                   "proj [waiting] — ~/w/proj/"))))
 
 (provide 'claude-code-ide-config-test)
 ;;; claude-code-ide-config-test.el ends here

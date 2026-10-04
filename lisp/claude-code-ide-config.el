@@ -13,6 +13,7 @@
 ;; - Prompt input through the CLI's own external-editor key, composed in
 ;;   Emacs and handed straight back
 ;; - Per-repository environment (Claude account, tool versions) via mise
+;; - Session list labelled with each instance's state and CLI-set title
 
 ;;; Code:
 
@@ -380,6 +381,73 @@ free to win."
           (setq-default process-environment saved-env)
           (setq-default exec-path saved-path))))))
 
+;;; Session Titles
+
+;; The CLI keeps the terminal title (OSC 0/2) set to a summary of the
+;; conversation, prefixed with ✳ while idle and a spinner glyph while
+;; working.  claude-code-ide stops ghostel from renaming the buffer after
+;; it, but ghostel still records the title in `ghostel--title', so the
+;; session list can show what each instance is doing.
+
+(defvar ghostel--title)
+
+(defun claude-code-ide-config--session-title (session)
+  "Return SESSION's terminal title as (STATE . TEXT), or nil.
+STATE is `idle', `busy', or nil when the title carries no glyph."
+  (when-let* ((buffer (claude-code-ide-mcp-session-buffer session))
+              ((buffer-live-p buffer))
+              ((buffer-local-boundp 'ghostel--title buffer))
+              (title (buffer-local-value 'ghostel--title buffer)))
+    (if (string-match "\\`\\([^[:alnum:][:space:]]\\) +" title)
+        (cons (if (equal (match-string 1 title) "✳") 'idle 'busy)
+              (substring title (match-end 0)))
+      (cons nil title))))
+
+(defun claude-code-ide-config--session-label (session)
+  "Return the session list label for SESSION.
+Shows the working state and title when the terminal reported one, the
+connection state otherwise."
+  (let* ((title (claude-code-ide-config--session-title session))
+         (state (or (car title)
+                    (if (claude-code-ide-mcp-session-client session)
+                        'connected 'waiting))))
+    (format "%s [%s]%s — %s"
+            (claude-code-ide--session-display-name session)
+            state
+            (if (cdr title) (concat " " (cdr title)) "")
+            (abbreviate-file-name
+             (claude-code-ide-mcp-session-project-dir session)))))
+
+(defun claude-code-ide-config-list-sessions ()
+  "List all active Claude Code instances with their titles and switch.
+Replaces `claude-code-ide-list-sessions' to label each instance with
+what it is working on."
+  (interactive)
+  (claude-code-ide--cleanup-dead-sessions)
+  (let* ((sessions (sort (claude-code-ide-mcp--active-sessions)
+                         (lambda (a b)
+                           (> (or (claude-code-ide-mcp-session-last-used a) 0)
+                              (or (claude-code-ide-mcp-session-last-used b) 0)))))
+         (candidates (mapcar (lambda (session)
+                               (cons (claude-code-ide-config--session-label session)
+                                     session))
+                             sessions)))
+    (unless candidates
+      (user-error "No active Claude Code sessions"))
+    (let* ((choice (completing-read "Switch to Claude Code session: "
+                                    (lambda (string pred action)
+                                      ;; Keep the most-recently-used order.
+                                      (if (eq action 'metadata)
+                                          '(metadata (display-sort-function . identity))
+                                        (complete-with-action action candidates string pred)))
+                                    nil t))
+           (buffer (claude-code-ide-mcp-session-buffer
+                    (cdr (assoc choice candidates)))))
+      (unless (buffer-live-p buffer)
+        (user-error "Buffer for session %s no longer exists" choice))
+      (when-let* ((window (claude-code-ide--display-buffer-in-side-window buffer)))
+        (select-window window)))))
+
 ;;; Session Tiling
 
 (defvar claude-code-ide-config--saved-window-configuration nil
@@ -516,6 +584,10 @@ buffer in the main area, then delete other windows normally."
   ;; Fix "Cannot make side window the only window" error
   (advice-add 'delete-other-windows :around
               #'claude-code-ide-config--delete-other-windows-advice)
+
+  ;; Label the session list with what each instance is working on
+  (advice-add 'claude-code-ide-list-sessions :override
+              #'claude-code-ide-config-list-sessions)
 
   ;; Add tile menu to Navigation group in transient menu
   (transient-append-suffix 'claude-code-ide-menu '(1 1 -1)
