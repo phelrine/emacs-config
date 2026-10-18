@@ -27,6 +27,11 @@
 ;; which happens after this file; the X11 build uses Emacs*UseXIM instead.
 (setq pgtk-use-im-context-on-new-connection nil)
 
+;; Gentoo starts Emacs as "emacs-31" (slotted binary), which becomes the
+;; Wayland app_id.  KWin then cannot match it to emacs.desktop and shows a
+;; generic icon, so use the unversioned name before the first frame exists.
+(setq x-resource-name "emacs")
+
 ;; Emacs.app's launcher (Contents/MacOS/Emacs) exports LIBRARY_PATH pointing at
 ;; the bundled libgccjit dirs before exec'ing the arch binary. When that binary
 ;; is started directly the variable is absent, and native compilation dies with
