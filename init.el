@@ -432,7 +432,26 @@
   ;; grid exact.  `font-macos-setup-symbols' already lands the fallbacks close
   ;; to the cell, so shrinking now costs more than it buys: it just makes the
   ;; few remaining odd glyphs look undersized next to the text.
-  :custom (ghostel-glyph-scale-floor 1.0))
+  :custom (ghostel-glyph-scale-floor 1.0)
+  :config
+  ;; With the floor at 1.0, rows holding Japanese or fallback symbols come out
+  ;; taller than `default-line-height', so `ghostel--posn-cell' (which divides
+  ;; the click's y by that height) reports a row above the one clicked, and
+  ;; mouse selection in TUIs like Claude Code lands on the wrong lines.  Take
+  ;; the row from the buffer line under the click instead; columns stay
+  ;; pixel-based since cell widths still match the grid.
+  (defun my/ghostel-posn-cell-row-by-line (orig posn)
+    (let ((cell (funcall orig posn))
+          (win (posn-window posn))
+          (pos (posn-point posn)))
+      (if-let* (((windowp win))
+                ((null (posn-area posn)))
+                ((integerp pos))
+                (row (with-current-buffer (window-buffer win)
+                       (ghostel--viewport-row-at pos))))
+          (cons (car cell) row)
+        cell)))
+  (advice-add 'ghostel--posn-cell :around #'my/ghostel-posn-cell-row-by-line))
 
 (use-package vterm
   :straight t
