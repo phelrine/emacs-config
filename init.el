@@ -100,7 +100,7 @@
 ;; proportional fonts whose advances break a terminal grid.  See font-macos.el.
 (pcase (window-system)
   ('ns (require 'font-macos))
-  ('x (set-face-attribute 'default nil :family "HackGen" :height 180)))
+  ((or 'x 'pgtk) (set-face-attribute 'default nil :family "HackGen" :height 180)))
 
 (recentf-mode 1)
 
@@ -416,7 +416,7 @@
 (if (locate-library "skk-autoloads")
     (bind-key "C-x j" 'my/skk-mode-unless-view-mode)
   (use-package ddskk
-    :if (memq window-system '(mac ns x))
+    :if (memq window-system '(mac ns x pgtk))
     :custom (skk-use-jisx0201-input-method t)
     :bind ("C-x j" . my/skk-mode-unless-view-mode)))
 (use-package ddskk-posframe :after ddskk :diminish :commands ddskk-posframe-mode :config (ddskk-posframe-mode t))
