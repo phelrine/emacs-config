@@ -10,6 +10,7 @@
 ;;; Code:
 
 (require 'ert)
+(require 'cl-lib)
 (require 'mise-env)
 
 (defmacro mise-env-test--with-tree (files &rest body)
@@ -113,6 +114,66 @@ mixing that into the parse buffer used to make the whole lookup fail."
     (should (equal (cdr (assq 'CLAUDE_CONFIG_DIR
                               (mise-env--fetch-env default-directory)))
                    "/stub/config"))))
+
+(defmacro mise-env-test--counting-fetches (&rest body)
+  "Run BODY with an empty cache and `mise-env--fetch-env' stubbed.
+Bound for BODY: `fetches', how many times mise would have been run."
+  (declare (indent 0))
+  `(let ((mise-env--project-cache (make-hash-table :test 'equal))
+         (fetches 0))
+     (cl-letf (((symbol-function 'mise-env--fetch-env)
+                (lambda (_dir) (setq fetches (1+ fetches)) '((FOO . "bar")))))
+       ,@body)))
+
+(ert-deftest mise-env-test-get-env-caches ()
+  "An unchanged tree is looked up once."
+  (mise-env-test--with-tree '(".tool-versions")
+    (mise-env-test--counting-fetches
+      (mise-env--get-env root)
+      (mise-env--get-env root)
+      (should (= fetches 1)))))
+
+(ert-deftest mise-env-test-get-env-sees-new-ancestor-config ()
+  "A config file added in an ancestor after the first lookup is picked up.
+mise merges every config up the tree, so a `mise.local.toml' dropped
+into a parent directory changes the project's environment even though
+the project root itself stays the same.  The cache used to keep
+serving the old result until Emacs restarted."
+  (mise-env-test--with-tree '("sub/.tool-versions")
+    (let ((sub (expand-file-name "sub/" root)))
+      (mise-env-test--counting-fetches
+        (mise-env--get-env sub)
+        (write-region "" nil (expand-file-name "mise.local.toml" root) nil 'silent)
+        (mise-env--get-env sub)
+        (should (= fetches 2))))))
+
+(ert-deftest mise-env-test-get-env-sees-edited-config ()
+  "Editing a config file the project already had invalidates the cache."
+  (mise-env-test--with-tree '("mise.toml")
+    (let ((config (expand-file-name "mise.toml" root)))
+      (mise-env-test--counting-fetches
+        (mise-env--get-env root)
+        (set-file-times config (time-add (current-time) 10))
+        (mise-env--get-env root)
+        (should (= fetches 2))))))
+
+(ert-deftest mise-env-test-reapply-drops-stale-vars ()
+  "Re-applying replaces a buffer's earlier mise env instead of layering on it.
+`lsp-workspace-restart' re-runs `lsp' in buffers that were set up
+before a version bump; a variable only the old env had must not leak
+into the server started from them."
+  (with-temp-buffer
+    (mise-env--apply-env '((PATH . "/old/bin") (OLD_ONLY . "1")))
+    (mise-env--apply-env '((PATH . "/new/bin")))
+    (should-not (getenv "OLD_ONLY"))
+    (should (equal exec-path '("/new/bin/")))))
+
+(ert-deftest mise-env-test-update-accepts-advice-args ()
+  "`mise-env-update' can be a :before advice on `lsp', which takes ARG."
+  (with-temp-buffer
+    (let ((default-directory "/"))
+      (cl-letf (((symbol-function 'mise-env--project-root) #'ignore))
+        (mise-env-update 'some-lsp-arg)))))
 
 (provide 'mise-env-test)
 ;;; mise-env-test.el ends here

@@ -561,6 +561,9 @@
         (append lsp-file-watch-ignored-directories
                 '("[/\\\\]vendor\\'" "[/\\\\]\\.bundle\\'")))
   (require 'lsp-ruby-lsp)
+  ;; lsp-workspace-restart re-runs `lsp' in already-open buffers, whose
+  ;; mise env predates any version bump; refresh it before the server starts.
+  (advice-add 'lsp :before #'mise-env-update)
   (custom-set-variables
    '(lsp-disabled-clients '((tsx-ts-mode . graphql-lsp) (js-ts-mode . graphql-lsp) (typescript-ts-mode . graphql-lsp) (ruby-ts-mode . rubocop-ls)))))
 (use-package lsp-treemacs :defer t)

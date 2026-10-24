@@ -68,12 +68,40 @@ buffer would break `json-read' and lose the whole environment."
             (json-read)
           (error nil))))))
 
+(defconst mise-env--global-config-files
+  '("~/.config/mise/config.toml" "~/.config/mise/config.local.toml")
+  "Global mise config files, which live outside any project's ancestry.")
+
+(defun mise-env--config-signature (dir)
+  "Return the config files mise would read for DIR, with their mtimes.
+mise merges every config file from DIR up to the filesystem root plus
+the global one, so a file added or edited anywhere along that chain
+changes DIR's environment -- not just one in DIR itself."
+  (let ((files (mapcar #'expand-file-name mise-env--global-config-files))
+        (current (file-name-as-directory (expand-file-name dir)))
+        parent)
+    (while current
+      (dolist (name mise-env--config-files)
+        (push (expand-file-name name current) files))
+      (setq parent (file-name-directory (directory-file-name current)))
+      (setq current (unless (equal parent current) parent)))
+    (delq nil (mapcar (lambda (file)
+                        (when-let* ((attrs (file-attributes file)))
+                          (cons file (file-attribute-modification-time attrs))))
+                      files))))
+
 (defun mise-env--get-env (dir)
-  "Get mise environment for DIR, using cache when available."
-  (or (gethash dir mise-env--project-cache)
+  "Get mise environment for DIR, using cache when available.
+A cached result is reused only while the config files behind it are
+unchanged; otherwise a config edited or added after Emacs first looked
+would go unnoticed until the cache was cleared by hand."
+  (let ((signature (mise-env--config-signature dir))
+        (cached (gethash dir mise-env--project-cache)))
+    (if (and cached (equal (car cached) signature))
+        (cdr cached)
       (when-let* ((result (mise-env--fetch-env dir)))
-        (puthash dir result mise-env--project-cache)
-        result)))
+        (puthash dir (cons signature result) mise-env--project-cache)
+        result))))
 
 (defun mise-env--prioritize-path (path)
   "Reorder PATH so mise install directories come first."
@@ -85,10 +113,12 @@ buffer would break `json-read' and lose the whole environment."
     (string-join (append (nreverse mise-entries) (nreverse other-entries)) ":")))
 
 (defun mise-env--apply-env (env)
-  "Apply mise ENV as buffer-local `process-environment' and `exec-path'."
+  "Apply mise ENV as buffer-local `process-environment' and `exec-path'.
+Builds on the global environment, not the buffer's, so re-applying
+after a version change drops whatever the previous env set."
   (let* ((path (cdr (assq 'PATH env)))
          (path (when path (mise-env--prioritize-path path)))
-         (new-env (copy-sequence process-environment)))
+         (new-env (copy-sequence (default-value 'process-environment))))
     (dolist (pair env)
       (let* ((name (symbol-name (car pair)))
              (value (if (string= name "PATH") path (cdr pair)))
@@ -101,8 +131,9 @@ buffer would break `json-read' and lose the whole environment."
       (setq-local exec-path (parse-colon-path path)))))
 
 ;;;###autoload
-(defun mise-env-update ()
-  "Update current buffer's environment from mise."
+(defun mise-env-update (&rest _)
+  "Update current buffer's environment from mise.
+Ignores its arguments so it can serve as :before advice."
   (interactive)
   (when-let* ((root (mise-env--project-root))
              (env (mise-env--get-env root)))
