@@ -9,6 +9,17 @@
 ;; Prevent unwanted runtime compilation
 (setq native-comp-jit-compilation nil)
 
+;; libgccjit guesses the macOS version as Darwin major - 9, which is wrong
+;; since macOS 26 (Darwin 27 -> "18.0") and makes clang reject the build.
+;; Pass the real version explicitly.
+(when (eq system-type 'darwin)
+  (with-eval-after-load 'comp
+    (let ((version (string-trim
+                    (shell-command-to-string "sw_vers -productVersion"))))
+      (unless (string-empty-p version)
+        (add-to-list 'native-comp-driver-options
+                     (concat "-mmacosx-version-min=" version) t)))))
+
 ;; Package initialization optimization
 (setq package-enable-at-startup nil)
 
