@@ -529,7 +529,9 @@ real reason (unwritable files, revision buffers) are left alone."
 
 ;;; Claude Code IDE
 (use-package claude-code-ide
-  :straight (:type git :host github :repo "manzaltu/claude-code-ide.el")
+  :straight (:type git :host github :repo "manzaltu/claude-code-ide.el"
+                   :fork (:repo "phelrine/claude-code-ide.el"
+                          :branch "fix/ghostel-alt-screen-rows"))
   :defer t
   :commands claude-code-ide-menu
   :bind ("C-c C-'" . claude-code-ide-menu)
