@@ -451,7 +451,23 @@
                        (ghostel--viewport-row-at pos))))
           (cons (car cell) row)
         cell)))
-  (advice-add 'ghostel--posn-cell :around #'my/ghostel-posn-cell-row-by-line))
+  (advice-add 'ghostel--posn-cell :around #'my/ghostel-posn-cell-row-by-line)
+
+  ;; `ghostel-default-notify' goes through alert.el and falls back to
+  ;; `message' without it, so status changes (Claude Code's `done' and
+  ;; `blocked') only reach the echo area.  On macOS, post them to the
+  ;; Notification Center directly.  The buffer name is the title, since
+  ;; the program's own (Claude Code sends just "claude-code") cannot tell
+  ;; sessions apart.  Text travels as argv so it needs no AppleScript
+  ;; quoting.
+  (defun my/ghostel-notify-macos (_title body)
+    (call-process "osascript" nil 0 nil
+                  "-e" "on run argv"
+                  "-e" "display notification (item 2 of argv) with title (item 1 of argv)"
+                  "-e" "end run"
+                  (buffer-name) body))
+  (when (eq system-type 'darwin)
+    (setq ghostel-notification-functions '(my/ghostel-notify-macos))))
 
 (use-package vterm
   :straight t
