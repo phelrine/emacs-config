@@ -559,5 +559,68 @@ The session belongs to ~/w/proj/ and has a connected client."
     (should (equal (claude-code-ide-config--session-label session)
                    "proj [waiting] — ~/w/proj/"))))
 
+;;; Session Recaps
+
+(defmacro claude-code-ide-config-test--with-transcript (lines &rest body)
+  "Run BODY with `file' bound to a transcript holding LINES (JSON strings)."
+  (declare (indent 1))
+  `(let ((file (make-temp-file "transcript" nil ".jsonl"
+                               (mapconcat #'identity ,lines "\n"))))
+     (unwind-protect (progn ,@body)
+       (remhash file claude-code-ide-config--recap-cache)
+       (delete-file file))))
+
+(ert-deftest claude-code-ide-config-test-transcript-recap-takes-latest ()
+  "The newest away_summary wins, without the CLI's /config hint."
+  (claude-code-ide-config-test--with-transcript
+      '("{\"type\":\"system\",\"subtype\":\"away_summary\",\"content\":\"Old recap. (disable recaps in /config)\"}"
+        "{\"type\":\"user\",\"message\":\"hi\"}"
+        "{\"type\":\"system\",\"subtype\":\"away_summary\",\"content\":\"PR を作成済み。次はマージ。 (turn off recaps in /config)\"}"
+        "{\"type\":\"assistant\",\"message\":\"ok\"}")
+    (should (equal (claude-code-ide-config--transcript-recap file)
+                   "PR を作成済み。次はマージ。"))))
+
+(ert-deftest claude-code-ide-config-test-transcript-recap-none ()
+  "A transcript without recaps yields nil."
+  (claude-code-ide-config-test--with-transcript
+      '("{\"type\":\"user\",\"message\":\"hi\"}")
+    (should-not (claude-code-ide-config--transcript-recap file))))
+
+(ert-deftest claude-code-ide-config-test-session-transcript-follows-pid ()
+  "The terminal pid leads through sessions/<pid>.json to the transcript."
+  (let* ((config (make-temp-file "claude-config" t))
+         (transcript (expand-file-name "projects/-w-proj/abc-123.jsonl" config))
+         (term-buffer (generate-new-buffer "*claude-code[proj]*"))
+         (session (make-claude-code-ide-mcp-session :buffer term-buffer))
+         ;; A real process: stubbing the `process-id' primitive needs a
+         ;; native-compiled trampoline.
+         (process (make-process :name "claude-stub" :buffer term-buffer
+                                :command '("sleep" "30") :noquery t)))
+    (unwind-protect
+        (progn
+          (make-directory (file-name-directory transcript) t)
+          (write-region "" nil transcript)
+          (make-directory (expand-file-name "sessions" config))
+          (write-region "{\"sessionId\":\"abc-123\"}" nil
+                        (expand-file-name (format "sessions/%d.json" (process-id process))
+                                          config))
+          (cl-letf (((symbol-function 'claude-code-ide-config--claude-config-dirs)
+                     (lambda () (list config))))
+            (should (equal (claude-code-ide-config--session-transcript session)
+                           transcript))))
+      (delete-process process)
+      (kill-buffer term-buffer)
+      (delete-directory config t))))
+
+(ert-deftest claude-code-ide-config-test-terminal-pid-from-ghostel ()
+  "Without an OS process, the pid comes from ghostel's `ghostel--pid'."
+  (let ((term-buffer (generate-new-buffer "*claude-code[proj]*")))
+    (unwind-protect
+        (progn
+          (with-current-buffer term-buffer
+            (setq-local ghostel--pid 4242))
+          (should (eql (claude-code-ide-config--terminal-pid term-buffer) 4242)))
+      (kill-buffer term-buffer))))
+
 (provide 'claude-code-ide-config-test)
 ;;; claude-code-ide-config-test.el ends here

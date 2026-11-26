@@ -13,7 +13,8 @@
 ;; - Prompt input through the CLI's own external-editor key, composed in
 ;;   Emacs and handed straight back
 ;; - Per-repository environment (Claude account, tool versions) via mise
-;; - Session list labelled with each instance's state and CLI-set title
+;; - Session list labelled with each instance's state and CLI-set title,
+;;   annotated with the CLI's latest recap
 
 ;;; Code:
 
@@ -418,10 +419,88 @@ connection state otherwise."
             (abbreviate-file-name
              (claude-code-ide-mcp-session-project-dir session)))))
 
+;;; Session Recaps
+
+;; After the user has been away, the CLI writes a one-line recap of the
+;; session (what was done, what is next) into its transcript as a
+;; `system'/`away_summary' entry.  The CLI also records its session id
+;; in <config-dir>/sessions/<pid>.json, so the terminal process's pid
+;; leads to the transcript and its latest recap.
+
+(defun claude-code-ide-config--claude-config-dirs ()
+  "Return the Claude config directories that may hold running sessions.
+Covers $CLAUDE_CONFIG_DIR and every ~/.claude* directory, since a
+repository's mise environment can point a session at its own profile."
+  (delete-dups
+   (seq-filter #'file-directory-p
+               (append (when-let* ((dir (getenv "CLAUDE_CONFIG_DIR")))
+                         (list (expand-file-name dir)))
+                       (directory-files "~" t "\\`\\.claude\\(?:-.+\\)?\\'")))))
+
+(defvar ghostel--pid)
+
+(defun claude-code-ide-config--terminal-pid (buffer)
+  "Return the pid of the CLI process running in terminal BUFFER, or nil.
+ghostel's native process object has no `process-id', so its buffer
+records the pid in `ghostel--pid' instead."
+  (or (when-let* ((process (get-buffer-process buffer)))
+        (process-id process))
+      (when (buffer-local-boundp 'ghostel--pid buffer)
+        (buffer-local-value 'ghostel--pid buffer))))
+
+(defun claude-code-ide-config--session-transcript (session)
+  "Return the transcript file of the CLI running in SESSION, or nil."
+  (when-let* ((buffer (claude-code-ide-mcp-session-buffer session))
+              ((buffer-live-p buffer))
+              (pid (claude-code-ide-config--terminal-pid buffer))
+              (state-file
+               (seq-find #'file-readable-p
+                         (mapcar (lambda (dir)
+                                   (expand-file-name (format "sessions/%d.json" pid) dir))
+                                 (claude-code-ide-config--claude-config-dirs))))
+              (session-id (ignore-errors
+                            (gethash "sessionId"
+                                     (with-temp-buffer
+                                       (insert-file-contents state-file)
+                                       (json-parse-buffer))))))
+    (car (file-expand-wildcards
+          (expand-file-name (format "../projects/*/%s.jsonl" session-id)
+                            (file-name-directory state-file))))))
+
+(defvar claude-code-ide-config--recap-cache (make-hash-table :test #'equal)
+  "Map transcript file to (MTIME . RECAP), so unchanged files are not rescanned.")
+
+(defun claude-code-ide-config--transcript-recap (file)
+  "Return the latest recap recorded in transcript FILE, or nil."
+  (let ((mtime (file-attribute-modification-time (file-attributes file)))
+        (cached (gethash file claude-code-ide-config--recap-cache)))
+    (if (and cached (equal (car cached) mtime))
+        (cdr cached)
+      (let ((recap
+             (with-temp-buffer
+               ;; Transcripts grow to megabytes; let grep pick the lines.
+               (when (eql 0 (call-process "grep" nil t nil "-F"
+                                          "\"subtype\":\"away_summary\"" file))
+                 (goto-char (point-max))
+                 (forward-line -1)
+                 (when-let* ((entry (ignore-errors (json-parse-buffer)))
+                             (content (gethash "content" entry)))
+                   ;; Drop the CLI's "(turn off recaps in /config)" hint.
+                   (string-trim
+                    (replace-regexp-in-string
+                     " *([^()]*recaps in /config)\\'" "" content)))))))
+        (puthash file (cons mtime recap) claude-code-ide-config--recap-cache)
+        recap))))
+
+(defun claude-code-ide-config--session-recap (session)
+  "Return the CLI's latest recap for SESSION, or nil."
+  (when-let* ((file (claude-code-ide-config--session-transcript session)))
+    (claude-code-ide-config--transcript-recap file)))
+
 (defun claude-code-ide-config-list-sessions ()
   "List all active Claude Code instances with their titles and switch.
 Replaces `claude-code-ide-list-sessions' to label each instance with
-what it is working on."
+what it is working on, annotated with the CLI's latest recap."
   (interactive)
   (claude-code-ide--cleanup-dead-sessions)
   (let* ((sessions (sort (claude-code-ide-mcp--active-sessions)
@@ -431,14 +510,22 @@ what it is working on."
          (candidates (mapcar (lambda (session)
                                (cons (claude-code-ide-config--session-label session)
                                      session))
-                             sessions)))
+                             sessions))
+         (recaps (mapcar (lambda (candidate)
+                           (cons (car candidate)
+                                 (claude-code-ide-config--session-recap (cdr candidate))))
+                         candidates))
+         (annotate (lambda (label)
+                     (when-let* ((recap (cdr (assoc label recaps))))
+                       (concat "  " (propertize recap 'face 'completions-annotations))))))
     (unless candidates
       (user-error "No active Claude Code sessions"))
     (let* ((choice (completing-read "Switch to Claude Code session: "
                                     (lambda (string pred action)
-                                      ;; Keep the most-recently-used order.
                                       (if (eq action 'metadata)
-                                          '(metadata (display-sort-function . identity))
+                                          ;; Keep the most-recently-used order.
+                                          `(metadata (display-sort-function . identity)
+                                                     (annotation-function . ,annotate))
                                         (complete-with-action action candidates string pred)))
                                     nil t))
            (buffer (claude-code-ide-mcp-session-buffer
