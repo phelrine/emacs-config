@@ -27,6 +27,7 @@
 /flycheck_init.el
 /forge-database*.sqlite
 /forge-database-*-*.sql
+/forge-database-*-*.db
 /gotools/
 /history
 /local/
@@ -34,8 +35,10 @@
 /image-dired/
 /lisp/transcript.txt
 /network-security.data
+/org-persist/
 /places
 /projectile-bookmarks.eld
+/projectile-frecency.eld
 /projects
 /rake.cache
 /recentf
