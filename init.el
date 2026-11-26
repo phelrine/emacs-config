@@ -366,7 +366,28 @@
                           buffer-read-only)
                 ;; When read-only-mode is enabled, view-mode is also automatically
                 ;; enabled due to view-read-only=t
-                (read-only-mode 1)))))
+                (read-only-mode 1))))
+
+  (defun my/view-mode-make-writable (&rest _)
+    "Undo the default read-only state set by the `find-file-hook' above.
+Only acts when `view-mode' is on, so buffers that are read-only for a
+real reason (unwritable files, revision buffers) are left alone."
+    (when (and buffer-read-only (bound-and-true-p view-mode))
+      (read-only-mode -1))))
+
+;; Ediff compares files to edit them, so keep its file buffers writable.
+(use-package ediff
+  :straight (:type built-in)
+  :defer t
+  :config
+  (add-hook 'ediff-prepare-buffer-hook
+            (lambda ()
+              (when buffer-file-name
+                (my/view-mode-make-writable)))))
+
+;; vc-git turns on smerge-mode for conflicted files after the read-only
+;; rule in `find-file-hook' has run; conflicts exist to be resolved.
+(add-hook 'smerge-mode-hook #'my/view-mode-make-writable)
 
 (use-package multiple-cursors
   :bind (("C-S-c C-S-c" . mc/edit-lines)
@@ -382,13 +403,7 @@
 (use-package open-junk-file
   :commands open-junk-file
   :config
-  ;; Disable read-only-mode for open-junk-file buffers
-  (defun open-junk-file-disable-read-only ()
-    "Advice to disable read-only-mode after opening junk file."
-    (when (and buffer-read-only view-mode)
-      (read-only-mode -1)))
-
-  (advice-add 'open-junk-file :after #'open-junk-file-disable-read-only))
+  (advice-add 'open-junk-file :after #'my/view-mode-make-writable))
 
 (use-package expreg :bind ("C-M-SPC" . expreg-expand))
 (use-package vundo :bind ("C-x u" . vundo))
@@ -998,6 +1013,10 @@
       (user-error "Region overlaps existing CriticMarkup (TAB on 💬 or C-c * p to inspect)")))
   (dolist (cmd '(cm-comment cm-substitution cm-deletion))
     (advice-add cmd :before #'my/cm-guard-region-markup))
+  ;; Annotating edits the buffer, so leave the default read-only view first.
+  (dolist (cmd '(cm-addition cm-deletion cm-substitution cm-comment
+                             cm-accept/reject-change-at-point cm-accept/reject-all-changes))
+    (advice-add cmd :before #'my/view-mode-make-writable))
   (with-eval-after-load 'embark
     (defun my/embark-criticmarkup-target ()
       "Detect the CriticMarkup change at point as an Embark target."
@@ -1038,6 +1057,8 @@
   :straight nil
   :hook (markdown-mode . cm-pretty-mode)
   :config
+  (dolist (cmd '(cm-pretty-comment cm-pretty-substitution cm-pretty-edit))
+    (advice-add cmd :before #'my/view-mode-make-writable))
   ;; C-c * p toggles the prettified display (to inspect raw markup).
   ;; C-c * c/s are rebound to the popup-editor insertion commands.
   (with-eval-after-load 'cm-mode
